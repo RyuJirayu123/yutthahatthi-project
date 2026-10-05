@@ -235,7 +235,7 @@ func _chedi(cx: float, by: float, h: float, w: float) -> PackedVector2Array:
 # ---------- layers ----------
 
 func _ready() -> void:
-	_baked(0.0, 0.0, PADDY_TOP + 2.0, _paint_sky)
+	_baked(0.0, -16.0, PADDY_TOP + 2.0, _paint_sky)     # margins so screen shake never shows an edge
 	for cl in _clouds:
 		var n := Layer.new()
 		var tex := _bake(Rect2(-110, -70, 220, 110), func(c: CanvasItem) -> void: _paint_cloud(c, cl))
@@ -252,7 +252,7 @@ func _ready() -> void:
 		var f := lerpf(0.5, 0.95, (float(r[0]) - PADDY_TOP) / (EDGE - PADDY_TOP))
 		_baked(f, float(r[0]) - 14.0, float(r[1]) + 1.0, func(c: CanvasItem) -> void: _paint_paddy_row(c, k))
 	_baked(0.62, 320.0, EDGE + 4.0, _paint_bananas)
-	_baked(1.0, EDGE - 14.0, H + 4.0, _paint_ground)
+	_baked(1.0, EDGE - 14.0, H + 16.0, _paint_ground)
 	_live = _add(0.0, _paint_live)
 	var front := _add(1.25, Callable())
 	front.z_index = 1

@@ -21,6 +21,15 @@ class Wave:
 	var traveled := 0.0
 	var hit := false
 
+## Ball of water sprayed by the water spout special.
+class Spout:
+	var x: float
+	var y: float
+	var dir: int
+	var owner: Fighter
+	var traveled := 0.0
+	var done := false
+
 class Particle:
 	var x: float
 	var y: float
@@ -58,6 +67,10 @@ var hitstop := 0.0
 var white := 0.0          ## full-screen flash on a decisive strike
 var callouts: Array[Callout] = []
 var waves: Array[Wave] = []
+var spouts: Array[Spout] = []
+var super_t := 0.0        ## world frozen for an ultimate's cut-in (or the flash of an EX move)
+var super_f: Fighter      ## who is doing it
+var super_ex := false     ## the freeze is an EX flash, not an ultimate
 var run_score := 0
 var _presses := {}
 
@@ -94,6 +107,9 @@ func reset_round() -> void:
 	belled = false
 	parts.clear()
 	waves.clear()
+	spouts.clear()
+	super_t = 0.0
+	super_f = null
 
 
 func update(dt: float) -> void:
@@ -115,6 +131,9 @@ func update(dt: float) -> void:
 		if c.t < 1.3:
 			live.append(c)
 	callouts = live
+	if super_t > 0.0:
+		super_t -= dt
+		return
 	if hitstop > 0.0:
 		hitstop -= dt
 		return
@@ -148,6 +167,7 @@ func update(dt: float) -> void:
 		_move_events(fighters[i], fighters[1 - i])
 	_separate()
 	_update_waves(sdt)
+	_update_spouts(sdt)
 	if phase == "fight":
 		_check_hit(fighters[0], fighters[1])
 		_check_hit(fighters[1], fighters[0])
@@ -252,19 +272,32 @@ func _check_hit(a: Fighter, b: Fighter) -> void:
 
 
 func _connects(a: Fighter, b: Fighter, h: GameData.Hit, t: float) -> bool:
-	if t < h.start or t > h.stop:
+	if t < h.start or t > h.stop or _invulnerable(b):
 		return false
 	var cx := a.x + a.face * (h.offset + h.reach / 2.0)
 	return absf(b.x - cx) <= h.reach / 2.0 + 55.0 and absf(a.y - b.y) <= h.vreach
 
 
+func _invulnerable(f: Fighter) -> bool:
+	return f.atk != "" and f.atk_t < GameData.move(f.atk).invuln
+
+
+## Time into the move during which it shrugs off hits; an EX move is armored all through its wind-up.
+func _armor(f: Fighter) -> float:
+	var m := GameData.move(f.atk)
+	if f.atk_ex and not m.hits.is_empty():
+		return maxf(m.armor, m.hits[0].start + 0.02)
+	return m.armor
+
+
 func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 	var finisher := m.id == "rider" and b.dazed > 0.0
 	var blocked := b.blocking and b.face == -a.face and b.stun <= 0.0 and b.atk == "" and not h.overhead
-	var armored := not finisher and b.atk != "" and b.atk_t < GameData.move(b.atk).armor
+	var armored := not finisher and b.atk != "" and b.atk_t < _armor(b)
 	var skill := a.def.rider_skill if m.id == "rider" or m.id == "storm" else 1.0
-	var dmg := h.dmg * a.def.power * skill * (GameData.BUFF_POWER if a.buff_t > 0.0 else 1.0)
-	var shaken := h.balance * skill / b.def.steady
+	var ex := a.atk_ex and m.id == a.atk
+	var dmg := h.dmg * a.def.power * skill * (GameData.BUFF_POWER if a.buff_t > 0.0 else 1.0) * (GameData.EX_POWER if ex else 1.0)
+	var shaken := h.balance * skill / b.def.steady * (1.5 if ex else 1.0)
 	var px := (a.x + b.x) / 2.0
 	var py := minf(a.y, b.y) - 95.0
 	if finisher:
@@ -287,12 +320,30 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 		hitstop = 0.08
 		_shake_rider(b, shaken * 0.5)
 	else:
-		var big := h.dmg >= 9.0
+		var big := h.dmg >= 9.0 or ex
+		# counter hit: caught in the middle of an attack -> harder hit, longer stun
+		var counter := b.atk != "" or b.rider_t >= 0.0
+		# combo: hits landed before the target recovers; later hits do less damage
+		b.hits_taken = b.hits_taken + 1 if b.stun > 0.0 or b.juggled else 1
+		dmg *= GameData.combo_scale(b.hits_taken)
+		if counter:
+			dmg *= GameData.COUNTER_DMG
+		a.combo = b.hits_taken
+		a.combo_t = GameData.COMBO_SHOW
+		if mode == "arcade" and a == fighters[0] and a.combo >= 3:
+			run_score += roundi(a.combo * 40 * (1 + stage * 0.5))
+		var airborne := b.y < GameData.GROUND - 1.0
 		# a hit can't cut short the reel from a balance break
-		b.stun = maxf(b.stun, h.stun) if b.dazed > 0.0 else h.stun
+		var stun := h.stun * GameData.combo_stun(b.hits_taken) + (GameData.COUNTER_STUN if counter else 0.0) + (0.15 if ex else 0.0)
+		b.stun = maxf(b.stun, stun) if b.dazed > 0.0 else stun
 		b.vx = a.face * h.knock * (-1.0 if h.pull else 1.0)
-		if h.lift != 0.0:
-			b.vy = h.lift
+		if airborne or h.lift != 0.0:
+			# juggle: an elephant in the air is knocked back up a few times, then just falls
+			b.juggle += 1
+			if b.juggle <= GameData.JUGGLE_MAX:
+				b.vy = h.lift if h.lift != 0.0 else minf(b.vy, -260.0)
+			b.juggled = true
+			b.vx *= 0.6 if airborne else 1.0
 		b.atk = ""
 		b.rider_t = -1.0
 		b.flash = 0.12
@@ -302,7 +353,10 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 		_burst(px, py, ACC, 18 if big else 10, 1.6 if big else 1.0)
 		if screen_shake:
 			shake = 9.0 if big else 3.0
-		hitstop = 0.11 if big else 0.05
+		hitstop = (0.11 if big else 0.05) + (0.05 if counter else 0.0)
+		if counter and mode != "demo":
+			_callout("สวนจังหวะ!", "COUNTER", b.x, false)
+			_burst(px, py, GameData.GOLD_LIGHT, 12, 1.4)
 		_sfx(h.sound)
 		_shake_rider(b, shaken)
 		if h.daze:
@@ -324,12 +378,35 @@ func _move_events(f: Fighter, o: Fighter) -> void:
 	var m := GameData.move(f.atk)
 	if f.atk_new:
 		f.atk_new = false
-		if m.ultimate and mode != "demo":
-			_callout(m.name_th + "!", m.name_en, f.x, false)
+		if mode != "demo":
+			if m.ultimate:
+				# super freeze: the world stops, the camera pushes in and the move's name cuts in
+				super_t = GameData.SUPER_FREEZE
+				super_f = f
+				super_ex = false
+				white = 0.12
+			elif f.atk_ex:
+				super_t = GameData.EX_FREEZE
+				super_f = f
+				super_ex = true
+				_burst(f.x, f.y - 120.0, GameData.GOLD_LIGHT, 14, 1.2)
+				_callout("EX " + m.name_th + "!", "EX " + m.name_en, f.x, false)
+				_sfx("bless")
+			elif m.id == "counter" or m.id == "uppercut" or m.id == "spout":
+				_callout(m.name_th + "!", m.name_en, f.x, false)
 	if m.event == "" or f.event_done or f.atk_t < m.event_at:
 		return
 	f.event_done = true
 	match m.event:
+		"spout":
+			var s := Spout.new()
+			s.x = f.x + f.face * 120.0
+			s.y = GameData.GROUND - GameData.SPOUT_HEIGHT
+			s.dir = f.face
+			s.owner = f
+			spouts.append(s)
+			f.spout_live = true
+			_sfx("whoosh")
 		"teleport":
 			# lightning step: reappear behind the opponent (or in front if a wall is in the way)
 			var dir := signf(o.x - f.x) if o.x != f.x else float(f.face)
@@ -379,10 +456,56 @@ func _update_waves(dt: float) -> void:
 	waves = live
 
 
-## True when an enemy shockwave is close and heading this way (the CPU jumps it).
+func _update_spouts(dt: float) -> void:
+	for s in spouts:
+		var step := GameData.SPOUT_SPEED * dt
+		s.x += s.dir * step
+		s.traveled += step
+		if randf() < 0.6:
+			var p := Particle.new()
+			p.x = s.x - s.dir * 14.0
+			p.y = s.y + randf_range(-8.0, 8.0)
+			p.vx = -s.dir * randf_range(20.0, 80.0)
+			p.vy = randf_range(-60.0, 20.0)
+			p.life = 0.3
+			p.size = randf_range(3.0, 6.0)
+			p.color = Color("#bfe9ff")
+			parts.append(p)
+		var target := fighters[1] if s.owner == fighters[0] else fighters[0]
+		# jumping elephants clear it when their feet are above the water
+		if phase == "fight" and not target.ko and absf(target.x - s.x) < 55.0 and target.y > s.y + 12.0 and not _invulnerable(target):
+			s.done = true
+			var m := GameData.move("spout")
+			_land(s.owner, target, m, m.wave)
+		if s.traveled > GameData.SPOUT_RANGE:
+			s.done = true
+	# two spouts meeting cancel out
+	for a in spouts:
+		for b in spouts:
+			if a != b and a.owner != b.owner and not a.done and not b.done and absf(a.x - b.x) < 30.0:
+				a.done = true
+				b.done = true
+				_burst((a.x + b.x) / 2.0, a.y, Color("#7fd3ff"), 14, 1.0)
+	var live: Array[Spout] = []
+	for s in spouts:
+		if s.done:
+			_burst(s.x, s.y, Color("#7fd3ff"), 8, 0.7)
+		else:
+			live.append(s)
+	spouts = live
+	for f in fighters:
+		f.spout_live = false
+	for s in spouts:
+		s.owner.spout_live = true
+
+
+## True when an enemy shockwave or water spout is close and heading this way (the CPU jumps it).
 func _wave_near(f: Fighter) -> bool:
 	for w in waves:
 		if w.owner != f and signf(f.x - w.x) == w.dir and absf(f.x - w.x) < 150.0:
+			return true
+	for s in spouts:
+		if s.owner != f and signf(f.x - s.x) == s.dir and absf(f.x - s.x) < 190.0:
 			return true
 	return false
 

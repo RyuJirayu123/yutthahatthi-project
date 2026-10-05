@@ -10,3 +10,4 @@ aggr = 0.45
 heavy = 0.25
 special = 0.3
 rider = 0.15
+combo = 0.2

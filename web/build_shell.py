@@ -6,9 +6,13 @@ The elephant images and the backdrop are inlined as data URIs so the shell stays
 """
 import base64
 import pathlib
+import re
 
 here = pathlib.Path(__file__).parent
 html = (here / "shell_src.html").read_text(encoding="utf-8")
+# {{VERSION}} comes from application/config/version in project.godot
+project = (here.parent / "project.godot").read_text(encoding="utf-8")
+html = html.replace("{{VERSION}}", re.search(r'config/version="([^"]+)"', project).group(1))
 for key, name, mime in [
     ("{{ELEPHANT_STAND}}", "elephant_stand.png", "image/png"),
     ("{{ELEPHANT_REAR}}", "elephant_rear.png", "image/png"),

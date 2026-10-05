@@ -49,6 +49,9 @@ const TRUNK := {
 	"ko": [62, -14, -18, -18, -8],
 	"sweep": [30, -12, -10, -6, 4],
 	"roar": [-70, -18, -12, -6, 40],
+	"upper": [-12, -26, -22, -16, 8],
+	"slam": [52, -8, -8, -4, 22],
+	"spray": [-6, -6, -4, -2, -16],
 }
 const TRUNK_KEYS := ["tb", "t1", "t2", "t3", "t4"]
 
@@ -152,6 +155,11 @@ func update(f: Fighter, duel_phase: String, dt: float) -> void:
 		_kick("sq", 3.0)
 		for i in 10:
 			_puff(f, randf_range(10.0, 120.0), randf_range(40.0, 160.0), 1.6)
+	if f.atk == "light3" and _last_atk_t < 0.18 and f.atk_t >= 0.18:
+		# the trunk slams into the ground in front
+		_kick("sq", 1.2)
+		for i in 5:
+			_puff(f, randf_range(120.0, 170.0), randf_range(20.0, 120.0), 1.1)
 	_last_x = f.x
 	_last_atk_t = f.atk_t if f.atk != "" else 0.0
 	_was_air = air
@@ -165,8 +173,8 @@ func update(f: Fighter, duel_phase: String, dt: float) -> void:
 		if _lifts[i] > 0.15 and lift <= 0.15 and _move > 0.4:
 			_puff(f, (LEGS[i][0] as Vector2).x, -f.vx * f.face * 0.1, 0.8)
 		_lifts[i] = lift
-	if not air and f.atk != "" and absf(f.vx) > 400.0 and randf() < 0.7:
-		_puff(f, -60.0, -120.0, 1.1)
+	if not air and (f.atk != "" or f.dash_t > 0.0) and absf(f.vx) > 400.0 and randf() < 0.7:
+		_puff(f, -60.0 if f.vx * f.face > 0.0 else 60.0, -120.0 * signf(f.vx * f.face), 1.1)
 	if not air and f.stun > 0.0 and absf(f.vx) > 150.0 and randf() < 0.5:
 		_puff(f, 30.0, 0.0, 1.0)
 
@@ -219,6 +227,12 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 		p["pitch"] = clampf(f.vy * 0.015, -10.0, 10.0)
 		p["ear"] = 1.1
 		_trunk(p, "air")
+	if f.dash_t > 0.0 and f.atk == "" and not air:
+		if f.dash_dir == f.face:
+			_apply(p, {"pitch": 5.0, "head": 12.0, "shift": 8.0, "ear": 0.55, "lean": 12.0})
+			_trunk(p, "tuck")
+		else:
+			_apply(p, {"pitch": -6.0, "head": -14.0, "shift": -8.0, "ear": 1.15, "lean": -12.0})
 	if f.atk != "":
 		_attack_pose(p, f)
 	if f.rider_t >= 0.0:
@@ -275,6 +289,49 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 			elif act:
 				_apply(p, {"head": 6.0, "shift": 6.0, "glaive": -8.0, "lean": 8.0})
 				_trunk(p, "whip")
+		"spout":
+			# draws water up the trunk, then sprays it forward
+			if t < m.event_at:
+				_apply(p, {"head": -6.0, "pitch": -2.0, "shift": -6.0, "ear": 1.25, "bob": 4.0})
+				_trunk(p, "tuck")
+			else:
+				var ks := maxf(0.0, 1.0 - (t - m.event_at) / (m.dur - m.event_at))
+				_apply(p, {"head": -14.0 * ks, "shift": 8.0 * ks, "pitch": 3.0 * ks, "ear": 1.1})
+				_trunk(p, "spray")
+		"uppercut":
+			# crouches, then rears up swatting the trunk skywards
+			if pre:
+				_apply(p, {"bob": 8.0, "head": 12.0, "pitch": 4.0, "ear": 0.6})
+				_trunk(p, "tuck")
+			else:
+				_apply(p, {"rear": -20.0 * k, "head": -26.0 * k, "pitch": -4.0 * k, "ear": 1.25, "glaive": lerpf(-62.0, -140.0, k), "lean": -10.0 * k})
+				_trunk(p, "upper" if k > 0.5 else "rest")
+		"light2":
+			# backhand: the trunk drops low, then swings up and across
+			if pre:
+				_apply(p, {"head": 6.0, "glaive": -40.0})
+				_trunk(p, "tuck")
+			elif act:
+				_apply(p, {"head": -10.0, "shift": 8.0, "pitch": -2.0, "glaive": -20.0, "lean": 6.0})
+				_trunk(p, "upper")
+		"light3":
+			# trunk raised high, then slammed down in front
+			if pre:
+				_apply(p, {"rear": -8.0, "head": -20.0, "ear": 1.2, "glaive": -120.0, "lean": -8.0})
+				_trunk(p, "up")
+			else:
+				_apply(p, {"rear": 2.0 * k, "pitch": 9.0 * k, "head": 22.0 * k, "shift": 14.0 * k, "glaive": lerpf(-62.0, -10.0, k), "lean": 12.0 * k})
+				_trunk(p, "slam")
+		"dive":
+			_apply(p, {"pitch": 14.0, "head": 26.0, "shift": 8.0, "ear": 1.25, "glaive": 10.0, "lean": 14.0})
+			_trunk(p, "tuck")
+		"counter":
+			if pre:
+				_apply(p, {"bob": 6.0, "head": 10.0, "shift": -8.0, "glaive": -95.0})
+				_trunk(p, "guard")
+			else:
+				_apply(p, {"pitch": 6.0 * k, "head": 20.0 * k, "shift": 22.0 * k, "lean": 10.0 * k, "ear": 1.2})
+				_trunk(p, "tuck")
 		"gore":
 			if pre:
 				_apply(p, {"pitch": -6.0, "shift": -8.0, "head": -12.0, "glaive": -150.0, "lean": -12.0})
@@ -447,6 +504,11 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 			for i in 4:
 				c.draw_rect(Rect2(-180 - i * 18, -130 + i * 26, 70 - i * 8, 4), Color(1, 1, 1, 0.75))
 		_draw_move_fx(c, f, m)
+	if f.atk_ex and f.atk != "":
+		# EX move: a pulsing gold aura behind the elephant
+		var pulse := 0.5 + 0.5 * sin(_time * 18.0)
+		DrawKit.ellipse(c, Vector2(-6, -100), 135.0, 100.0, Color(GameData.GOLD_LIGHT, 0.18 + 0.12 * pulse))
+		DrawKit.ellipse(c, Vector2(-6, -100), 112.0, 82.0, Color(GameData.GOLD, 0.16 + 0.1 * pulse))
 	if f.buff_t > 0.0:
 		# blessing: gold diamonds circling the elephant while the boost lasts
 		for i in 3:

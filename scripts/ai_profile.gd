@@ -12,3 +12,5 @@ extends Resource
 @export_range(0.0, 1.0) var special := 0.6
 ## Share of close-range attacks that are glaive strikes.
 @export_range(0.0, 1.0) var rider := 0.25
+## Chance to keep a combo going once an attack connects (next F link, or cancel into G).
+@export_range(0.0, 1.0) var combo := 0.5

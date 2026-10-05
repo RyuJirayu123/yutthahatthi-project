@@ -48,6 +48,7 @@ body { background: var(--bg); color: var(--ink); overflow: hidden; touch-action:
 	background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='20'%3E%3Crect width='14' height='20' fill='%238e1013'/%3E%3Crect width='2' height='20' fill='%23e8b33a'/%3E%3Crect x='12' width='2' height='20' fill='%23e8b33a'/%3E%3Cpath d='M7 5 L11 10 L7 15 L3 10Z' fill='%23ffe08a'/%3E%3C/svg%3E") repeat-y;
 }
 .kicker { font-family: 'IBM Plex Sans Thai', var(--font); font-weight: 700; font-size: clamp(11px, 1.35vh, 15px); color: var(--acc-700); letter-spacing: 0.06em; }
+.sub .ver { font-size: 0.5em; letter-spacing: 0.08em; color: var(--muted); vertical-align: middle; }
 .kicker b { font-family: 'Archivo', var(--font); font-weight: 800; letter-spacing: 0.12em; }
 h1 {
 	margin: clamp(10px, 2.5vh, 28px) 0 0;
@@ -144,7 +145,7 @@ $GODOT_HEAD_INCLUDE
 	<div class="panel">
 		<div class="kicker">เกมต่อสู้ช้างศึก · <b>WAR ELEPHANT FIGHTING</b></div>
 		<h1>ยุทธหัตถี</h1>
-		<div class="sub">ELEPHANT DUEL</div>
+		<div class="sub">ELEPHANT DUEL <span class="ver">v{{VERSION}}</span></div>
 
 		<ol class="feats">
 			<li><span class="no">01</span><span><b>เล่นคนเดียว · อาร์เคด</b><em>1 PLAYER · ARCADE — 3 STAGES</em></span></li>
@@ -206,6 +207,13 @@ const engine = new Engine(GODOT_CONFIG);
 	const TIPS = [
 		'ของ้าว (J) ข้ามการป้องกันได้ แต่ช้า กดพร้อมท่าช้างเป็นคอมโบได้',
 		'หลอดทรงตัวหมด ควาญเสียหลักและช้างมึน รีบฟันของ้าวซ้ำ = ฟันปิดฉาก',
+		'ตีโดนแล้วกด F ต่ออีก 2 ครั้ง = คอมโบงวง 3 จังหวะ ครั้งสุดท้ายทุบให้ลอย',
+		'กระโดดแล้วกด F พุ่งลงแทง ลงพื้นแล้วต่อคอมโบได้',
+		'แตะทิศ 2 ครั้งเร็วๆ เพื่อพุ่งเข้าหาหรือถอยหลบ',
+		'↓↘→ + F = งวงพ่นน้ำ · →↓↘ + F = งวงเสย สวนคนกระโดดเข้ามา',
+		'กด G + H พร้อมกัน = ท่า EX ใช้พลังครึ่งหลอด แรงขึ้นและไม่สะดุ้ง',
+		'ตีโดนตอนคู่ต่อสู้กำลังออกท่า = สวนจังหวะ! แรงขึ้นและต่อคอมโบได้ยาวขึ้น',
+		'ตอนป้องกันโดนตี กด G = ปัดสวน ผลักคู่ต่อสู้ออก (ใช้พลัง 1 ช่อง)',
 		'ช้างแต่ละเชือกมีท่าประจำตัว (G) และอัลติ (H) ของตัวเอง',
 		'โดนตีหรือตีโดนจะเติมหลอดพลัง เต็มแล้วกด H ปล่อยอัลติ',
 		'กด S ค้างเพื่อป้องกัน · ท่าฟันจากด้านบนป้องกันไม่ได้',

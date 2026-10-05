@@ -30,6 +30,9 @@ var _backdrop: Backdrop   ## child node drawn behind the arena's own drawing
 var _backdrop_duel: Duel
 var _time := 0.0
 var _shake := Vector2.ZERO
+var _zoom := 1.0          ## camera push-in for ultimates (1 = whole arena)
+var _focus := Vector2(W / 2.0, H / 2.0)   ## screen point the zoom is centred on
+var _cut := 0.0           ## how far the ultimate's dark overlay and cut-in are faded in
 
 
 func _process(delta: float) -> void:
@@ -51,11 +54,45 @@ func _process(delta: float) -> void:
 		adt *= 0.35
 	_sync_rigs()
 	for f in duel.fighters:
-		(_rigs[f] as ElephantRig).update(f, duel.phase, adt)
+		# during a super freeze only the one doing the move keeps moving (into its pose)
+		var still := duel.super_t > 0.0 and f != duel.super_f
+		(_rigs[f] as ElephantRig).update(f, duel.phase, 0.0 if still else adt)
 	_shake = Vector2((randf() - 0.5) * duel.shake * 2.0, (randf() - 0.5) * duel.shake * 2.0)
+	if not frozen:
+		_update_camera(minf(delta, 0.05))
 	_sync_backdrop()
 	_backdrop.update(view_x(), _time, _shake)
+	_backdrop.transform = _cam()
 	queue_redraw()
+
+
+## Ultimate camera: push in hard on the elephant during the freeze, then follow the move a little
+## closer than usual, and ease back out when it's over.
+func _update_camera(dt: float) -> void:
+	var zt := 1.0
+	var ft := _focus
+	var f := duel.super_f
+	var ult := f != null and not duel.super_ex and duel.mode != "demo"
+	if ult and duel.super_t > 0.0:
+		zt = 1.55
+		ft = Vector2(f.x + view_x() + f.face * 40.0, f.y - 125.0)
+	elif ult and f.atk == f.def.ultimate and not f.ko:
+		var mid := (duel.fighters[0].x + duel.fighters[1].x) / 2.0
+		zt = 1.2
+		ft = Vector2(mid + view_x(), G - 150.0)
+	else:
+		ft = Vector2(W / 2.0, G - 150.0)
+	ft = Vector2(clampf(ft.x, W * 0.22, W * 0.78), clampf(ft.y, H * 0.3, H * 0.75))
+	_zoom += (zt - _zoom) * minf(1.0, dt * (9.0 if zt > _zoom else 3.5))
+	_focus += (ft - _focus) * minf(1.0, dt * 8.0)
+	# the cut-in clears just before the world starts moving again
+	var cut_t := 1.0 if ult and duel.super_t > 0.12 else 0.0
+	_cut = move_toward(_cut, cut_t, dt * (7.0 if cut_t > _cut else 8.0))
+
+
+## Screen transform of the camera zoom (the HUD is drawn without it).
+func _cam() -> Transform2D:
+	return Transform2D(0.0, Vector2(_zoom, _zoom), 0.0, _focus * (1.0 - _zoom))
 
 
 ## World offset of the camera: everything on the ground moves by this, far layers by less.
@@ -68,14 +105,22 @@ func _draw() -> void:
 		return
 	_sync_rigs()
 	_sync_backdrop()
-	var world := Transform2D(0.0, _shake + Vector2(view_x(), 0.0))
+	var world := _cam() * Transform2D(0.0, _shake + Vector2(view_x(), 0.0))
+	if _cut > 0.0:
+		_draw_super_bg()
 	for f in duel.fighters:
 		(_rigs[f] as ElephantRig).draw_dust(self, world)
-	for f in duel.fighters:
+	# the elephant doing an ultimate is drawn in front
+	var order := duel.fighters.duplicate()
+	if duel.super_f and duel.super_f == order[0]:
+		order.reverse()
+	for f in order:
 		(_rigs[f] as ElephantRig).draw(self, f, world)
 	draw_set_transform_matrix(world)
 	for w in duel.waves:
 		_draw_wave(w)
+	for s in duel.spouts:
+		_draw_spout(s)
 	for p in duel.parts:
 		draw_rect(Rect2(p.x - p.size / 2.0, p.y - p.size / 2.0, p.size, p.size), Color(p.color, minf(1.0, p.life * 3.0)))
 	draw_set_transform_matrix(Transform2D.IDENTITY)
@@ -85,6 +130,8 @@ func _draw() -> void:
 		_draw_hud()
 		_draw_callouts()
 		_draw_announce()
+		if _cut > 0.0 and duel.super_f:
+			_draw_cut_in(duel.super_f)
 
 
 ## Fighters are recreated every round; give each new one a fresh rig.
@@ -136,6 +183,7 @@ func _draw_hud() -> void:
 			_pip(Vector2(W / 2.0 - sx * (58.0 + k * 18.0), 68.0), duel.wins[i] > k)
 		_meter(W - 104.0 - 190.0 if rev else 104.0, 88.0, f, rev)
 		_balance(W - 104.0 - 150.0 if rev else 104.0, 104.0, f, rev)
+		_combo(f, rev)
 	_timer_badge()
 
 
@@ -236,6 +284,8 @@ func _meter(x: float, y: float, f: Fighter, rev: bool) -> void:
 		var tx := x + mw * i / 4.0
 		draw_line(Vector2(tx, y), Vector2(tx, y + 9), Color(0, 0, 0, 0.35), 1.0)
 	var label := "พลัง · POWER"
+	if f.meter >= GameData.EX_COST and not full:
+		label = "พลัง · EX พร้อม"
 	if full:
 		label = GameData.move(f.def.ultimate).name_th + " พร้อม!"
 	_otext(label, x - 10.0 if rev else x + mw + 10.0, y + 10.0, 11, 800, GOLD_LIGHT if full else Color.WHITE, RIGHT if rev else LEFT, 4)
@@ -255,6 +305,82 @@ func _balance(x: float, y: float, f: Fighter, rev: bool) -> void:
 	_otext(label, x - 10.0 if rev else x + mw + 10.0, y + 7.0, 10, 800, Color("#ff6a50") if dazed else Color.WHITE, RIGHT if rev else LEFT, 4)
 
 
+## Hit counter under the bars while a combo is going; it pops on every new hit.
+func _combo(f: Fighter, rev: bool) -> void:
+	if f.combo < 2 or f.combo_t <= 0.0:
+		return
+	var a := clampf(f.combo_t * 3.0, 0.0, 1.0)
+	var pop := 1.0 + maxf(0.0, f.combo_t - (GameData.COMBO_SHOW - 0.12)) * 3.0
+	var align := RIGHT if rev else LEFT
+	var sx := -1.0 if rev else 1.0
+	var x := W - 40.0 if rev else 40.0
+	var w := _otext(str(f.combo), x, 176.0, int(46.0 * pop), 800, Color(GOLD_LIGHT, a), align, 8, Color(GameData.ACC_700, a))
+	_otext("HITS", x + sx * (w + 8.0), 156.0, 17, 800, Color(1, 1, 1, a), align, 4, Color(INK, a))
+	_otext("คอมโบ!", x + sx * (w + 8.0), 175.0, 14, 800, Color(GOLD, a), align, 4, Color(INK, a))
+
+
+## Super freeze backdrop: the scene darkens and speed lines burst from the elephant.
+func _draw_super_bg() -> void:
+	draw_rect(Rect2(0, 0, W, H), Color(0.08, 0.02, 0.02, 0.62 * _cut))
+	var c := _focus
+	for i in 30:
+		var a := TAU * i / 30.0 + sin(i * 7.3) * 0.08 + _time * 0.15
+		var d := Vector2.from_angle(a)
+		var n := d.orthogonal() * (3.0 + fposmod(i * 2.7, 4.0))
+		var r0 := 120.0 + fposmod(i * 37.0, 60.0)
+		var col := Color(GOLD_LIGHT if i % 3 == 0 else Color.WHITE, 0.32 * _cut)
+		DrawKit.fill(self, PackedVector2Array([c + d * r0 + n, c + d * 1100.0, c + d * r0 - n]), PackedColorArray([col, Color(col, 0.0), col]))
+
+
+## Ultimate cut-in: a lacquer band slides in from the elephant's side with its face and the move's name.
+func _draw_cut_in(f: Fighter) -> void:
+	var m := GameData.move(f.def.ultimate)
+	var rev := f == duel.fighters[1]
+	var sx := -1.0 if rev else 1.0
+	var k := clampf(_cut * 1.6, 0.0, 1.0)
+	var slide := (1.0 - k) * (1.0 - k) * W * 0.6
+	var cy := 410.0
+	var hh := 50.0
+	var x0 := -40.0 - sx * slide
+	var band := PackedVector2Array([Vector2(x0, cy - hh), Vector2(x0 + W + 80.0, cy - hh - 30.0), Vector2(x0 + W + 80.0, cy + hh - 30.0), Vector2(x0, cy + hh)])
+	if rev:
+		for i in band.size():
+			band[i] = Vector2(W - band[i].x, band[i].y)
+	var a := minf(1.0, _cut * 2.0)
+	DrawKit.fill(self, band, PackedColorArray([Color(0.3, 0.03, 0.03, 0.92 * a)]))
+	draw_polyline(PackedVector2Array([band[0], band[1]]), Color(GOLD, a), 4.0, true)
+	draw_polyline(PackedVector2Array([band[3], band[2]]), Color(GOLD, a), 4.0, true)
+	# big portrait medallion at the near end
+	var pc := Vector2((150.0 if not rev else W - 150.0) - sx * slide, cy - 8.0)
+	var r := 62.0
+	DrawKit.circle(self, pc, r + 6.0, Color(GOLD_DARK, a))
+	DrawKit.circle(self, pc, r, Color(f.def.cloth.darkened(0.3), a))
+	var face := -1.0 if rev else 1.0
+	(_rigs[f] as ElephantRig).draw_portrait(self, f, Transform2D(0.0, pc + Vector2(-3.0 * face, 6.0)).scaled_local(Vector2(face * 1.05, 1.05)))
+	draw_set_transform_matrix(Transform2D.IDENTITY)
+	draw_arc(pc, r, 0.0, TAU, 48, Color(GOLD, a), 5.0, true)
+	draw_arc(pc, r + 5.0, 0.0, TAU, 48, Color(GOLD_LIGHT, a), 2.0, true)
+	var tx := pc.x + sx * (r + 26.0)
+	var al := RIGHT if rev else LEFT
+	_otext(f.def.display_name, tx, cy - 26.0, 16, 800, Color(1, 1, 1, a), al, 4, Color(0.1, 0.02, 0.02, a))
+	_otext(m.name_th + "!", tx + sx * 3.0, cy + 24.0 + 3.0, 50, 800, Color(GameData.ACC_700, 0.9 * a), al, 0)
+	_otext(m.name_th + "!", tx, cy + 24.0, 50, 800, Color(GOLD_LIGHT, a), al, 9, Color("#3a0d06", a))
+	_otext(m.name_en, tx, cy + 46.0, 15, 800, Color(1, 1, 1, a), al, 4, Color("#3a0d06", a))
+
+
+## Water spout: a wobbling ball of water with a spray trail.
+func _draw_spout(s: Duel.Spout) -> void:
+	var p := Vector2(s.x, s.y)
+	var wob := sin(s.traveled * 0.08) * 2.0
+	for i in 3:
+		var tp := p - Vector2(s.dir * (20.0 + i * 16.0), sin(s.traveled * 0.05 + i) * 4.0)
+		DrawKit.circle(self, tp, 9.0 - i * 2.5, Color(0.55, 0.85, 1.0, 0.6 - i * 0.15))
+	DrawKit.ellipse(self, p, 20.0 + wob, 16.0 - wob, Color("#3fa9e8"))
+	DrawKit.ellipse(self, p + Vector2(s.dir * 2.0, -1.0), 15.0 + wob, 11.0 - wob, Color("#8fd8ff"))
+	DrawKit.circle(self, p + Vector2(s.dir * 5.0, -6.0), 4.5, Color(1, 1, 1, 0.9))
+	draw_arc(p, 21.0, 0.0, TAU, 20, Color(1, 1, 1, 0.5), 2.0, true)
+
+
 ## Earthquake shockwave: jagged earth spikes bursting out of the ground as it travels.
 func _draw_wave(w: Duel.Wave) -> void:
 	var earth := _backdrop.col("ground_bot").darkened(0.2)
@@ -272,7 +398,7 @@ func _draw_callouts() -> void:
 			_band(c.t, c.th, c.en)
 		else:
 			var a := clampf((1.3 - c.t) * 4.0, 0.0, 1.0)
-			var x := c.x + view_x()
+			var x := (_cam() * Vector2(c.x + view_x(), 0.0)).x
 			var y := 178.0 - minf(c.t, 0.3) * 40.0
 			_otext(c.th, x, y, 28, 800, Color(GOLD_LIGHT, a), CENTER, 8, Color(GameData.ACC_700, a))
 			_otext(c.en, x, y + 18, 12, 800, Color(1, 1, 1, a), CENTER, 4, Color(INK, a))

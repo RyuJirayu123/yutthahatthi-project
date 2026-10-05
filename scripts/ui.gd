@@ -41,6 +41,7 @@ func _ready() -> void:
 	_build_title()
 	_build_select()
 	_build_howto()
+	_build_combos()
 	_build_pause()
 	_build_stage_clear()
 	_build_game_over()
@@ -218,6 +219,10 @@ func _build_title() -> void:
 	hi.add_child(hv)
 	_dyn["title_hi"] = hv
 	row.add_child(hi)
+	var ver := _label("v" + str(ProjectSettings.get_setting("application/config/version", "")), 10, 600, MUTED_INK, 1)
+	ver.size_flags_vertical = SIZE_SHRINK_END
+	row.add_child(ver)
+	row.add_theme_constant_override("separation", 14)
 	var sb := _sound_button()
 	sb.size_flags_vertical = SIZE_SHRINK_END
 	row.add_child(sb)
@@ -418,6 +423,11 @@ func _build_howto() -> void:
 	titles.add_child(_label("วิธีเล่น", 34, 800))
 	titles.add_child(_label("HOW TO PLAY", 12, 800, INK, 1))
 	hrow.add_child(titles)
+	hrow.add_theme_constant_override("separation", 10)
+	var combos := _button("ท่าคอมโบ", "COMBOS & TECHNIQUES", "PrimaryButton", "combos", "", false)
+	combos.custom_minimum_size.x = 190
+	combos.size_flags_vertical = SIZE_SHRINK_END
+	hrow.add_child(combos)
 	var back := _button("กลับ", "BACK", "SecondaryButton", "back", "", false)
 	back.custom_minimum_size.x = 134
 	back.size_flags_vertical = SIZE_SHRINK_END
@@ -496,6 +506,138 @@ func _build_howto() -> void:
 		row.add_child(txt)
 		rv.add_child(_pad(row, 4, 4))
 	cols.add_child(rules)
+
+
+## Combo techniques and special moves: what to press for each player and when it works.
+func _build_combos() -> void:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _flat(BG))
+	p.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	add_child(p)
+	_screens["combos"] = p
+	var v := _vbox(0)
+	p.add_child(v)
+
+	var head := _margin(29, 10, 29, 10)
+	var hrow := HBoxContainer.new()
+	var titles := _vbox(0)
+	titles.size_flags_horizontal = SIZE_EXPAND_FILL
+	titles.add_child(_label("คู่มือ · MANUAL", 11, 600, ACC_700, 1))
+	titles.add_child(_label("ท่าคอมโบ · ท่าพิเศษ", 30, 800))
+	titles.add_child(_label("COMBOS & SPECIAL MOVES", 11, 800, INK, 1))
+	hrow.add_child(titles)
+	var back := _button("กลับ", "BACK", "SecondaryButton", "howto", "", false)
+	back.custom_minimum_size.x = 134
+	back.size_flags_vertical = SIZE_SHRINK_END
+	hrow.add_child(back)
+	_first["combos"] = back
+	head.add_child(hrow)
+	v.add_child(head)
+	v.add_child(_pattern_strip(false))
+
+	var cols := HBoxContainer.new()
+	cols.size_flags_vertical = SIZE_EXPAND_FILL
+	cols.add_theme_constant_override("separation", 0)
+	v.add_child(cols)
+	cols.add_child(_combo_column("คอมโบ", "COMBOS", [
+		["คอมโบงวง 3 จังหวะ", "TRUNK STRING", ["F", ">", "F", ">", "F"], [",", ">", ",", ">", ","],
+			"กดต่อทุกครั้งที่ตีโดน ครั้งที่ 3 ทุบงวงให้ลอย"],
+		["ต่อท่าประจำตัว", "CANCEL", ["F", ">", "G"], [",", ">", "."],
+			"ท่างวงตีโดนแล้วกด G (หรือท่าพิเศษ) ตัดเข้าทันที"],
+		["ต่ออัลติ", "SUPER CANCEL", ["G", ">", "H"], [".", ">", "/"],
+			"ท่าประจำตัว ท่าพิเศษ หรือท่างวงโดน แล้วกด H ตอนพลังเต็ม"],
+		["ทิ้งตัวแทงงา", "DIVING GORE", ["W", ">", "F"], ["↑", ">", ","],
+			"กด F กลางอากาศ พุ่งลงแทง ลงพื้นแล้วต่อคอมโบได้"],
+		["ตีลอยฟ้า", "JUGGLE", ["F ×3", ">", "J"], [", ×3", ">", ";"],
+			"ช้างที่ลอยอยู่โดนตีซ้ำได้ ไม่เกิน 3 ครั้ง"],
+		["พุ่งตัว · ถอยหลบ", "DASH · BACKSTEP", ["D D", "|", "A A"], ["→ →", "|", "← ←"],
+			"แตะทิศ 2 ครั้งเร็วๆ เข้าหา = พุ่ง ถอยออก = ถอยหลบ"],
+	]))
+	cols.add_child(_vrule(DIVIDER))
+	cols.add_child(_combo_column("ท่าพิเศษ", "SPECIALS", [
+		["งวงพ่นน้ำ", "WATER SPOUT", ["↓ ↘ →", "+", "F"], ["↓ ↘ →", "+", ","],
+			"พ่นลูกน้ำวิ่งไปตามพื้น กระโดดข้ามหรือป้องกันได้"],
+		["งวงเสย", "TRUNK UPPERCUT", ["→ ↓ ↘", "+", "F"], ["→ ↓ ↘", "+", ","],
+			"ตอนเริ่มท่าไม่โดนอะไร สวนคนกระโดดเข้ามา แต่ถ้าพลาดโดนสวนหนัก"],
+		["ท่า EX", "EX SIGNATURE", ["G", "+", "H"], [".", "+", "/"],
+			"กดพร้อมกัน ใช้พลังครึ่งหลอด ท่าประจำตัวแรงขึ้น ไม่สะดุ้งตอนง้าง"],
+		["ปัดสวน", "GUARD COUNTER", ["S", "+", "G"], ["↓", "+", "."],
+			"ตอนป้องกันโดนตี กด G ผลักสวนกลับ ใช้พลัง 1 ช่อง"],
+		["สวนจังหวะ", "COUNTER HIT", [], [],
+			"ตีโดนตอนอีกฝ่ายกำลังออกท่า แรงขึ้นและมึนนานขึ้น ต่อท่าได้ยาวขึ้น"],
+		["อัลติ", "ULTIMATE", ["H"], ["/"],
+			"พลังเต็มหลอด เวลาหยุด กล้องซูมเข้า แล้วปล่อยท่าไม้ตาย"],
+	]))
+	var tip := _label("→ = ทิศที่หันหน้าไป (หันซ้ายก็กลับทิศ) · คอมโบยิ่งยาว แต่ละฮิตยิ่งเบาลง · จอย: X = F · Y = G · B = H · RB = J", 10, 600, ACC_700)
+	v.add_child(_pad(_margin_wrap(tip, 29), 0, 8))
+
+
+func _margin_wrap(c: Control, side: int) -> MarginContainer:
+	var m := _margin(side, 0, side, 0)
+	m.add_child(c)
+	return m
+
+
+func _combo_column(title: String, sub: String, rows: Array) -> Control:
+	var col := _margin(18, 10, 18, 0)
+	col.size_flags_horizontal = SIZE_EXPAND_FILL
+	var v := _vbox(0)
+	col.add_child(v)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	head.add_child(_label(title, 16, 800))
+	var sub_label := _label(sub, 10, 600, MUTED_INK, 1)
+	sub_label.size_flags_vertical = SIZE_SHRINK_CENTER
+	head.add_child(sub_label)
+	head.add_child(_spacer_h())
+	for t in ["P1", "P2"]:
+		var l := _label(t, 10, 800, MUTED_INK, 1)
+		l.custom_minimum_size.x = 136
+		l.size_flags_vertical = SIZE_SHRINK_CENTER
+		head.add_child(l)
+	v.add_child(_pad(head, 0, 6))
+	for r in rows:
+		v.add_child(_rule(DIVIDER))
+		var cell := _vbox(1)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 0)
+		var name := _label(r[0], 13, 800)
+		name.size_flags_horizontal = SIZE_EXPAND_FILL
+		name.size_flags_vertical = SIZE_SHRINK_CENTER
+		row.add_child(name)
+		for k in 2:
+			var keys := _combo_keys(r[2 + k])
+			keys.custom_minimum_size.x = 136
+			row.add_child(keys)
+		cell.add_child(row)
+		var how := _label(r[4] + "  · " + r[1], 10, 600, MUTED_INK)
+		how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		how.custom_minimum_size.x = 200
+		cell.add_child(how)
+		v.add_child(_pad(cell, 4, 4))
+	return col
+
+
+func _spacer_h() -> Control:
+	var c := Control.new()
+	c.size_flags_horizontal = SIZE_EXPAND_FILL
+	c.mouse_filter = MOUSE_FILTER_IGNORE
+	return c
+
+
+## Key caps for one input sequence; ">" is "then", "+" is "together", "|" separates alternatives.
+func _combo_keys(tokens: Array) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 4)
+	h.size_flags_vertical = SIZE_SHRINK_CENTER
+	for t in tokens:
+		if t in [">", "+", "|"]:
+			var l := _label({">": "›", "+": "+", "|": "/"}[t], 14, 800, MUTED_INK if t == "|" else ACC_700)
+			l.size_flags_vertical = SIZE_SHRINK_CENTER
+			h.add_child(l)
+		else:
+			h.add_child(_keycap(t, "accent" if t in ["H", "/"] else "key"))
+	return h
 
 
 func _build_pause() -> void:

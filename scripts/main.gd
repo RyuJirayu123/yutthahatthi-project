@@ -101,10 +101,10 @@ func _on_ui_action(action: String) -> void:
 			_begin("vs", 0)
 		"next":
 			_begin("arcade", stage + 1)
-		"howto":
+		"howto", "combos":
 			Sfx.play("select", true)
-			screen = "howto"
-			ui.show_screen("howto")
+			screen = action
+			ui.show_screen(action)
 		"back", "menu":
 			_to_title()
 		"resume":
