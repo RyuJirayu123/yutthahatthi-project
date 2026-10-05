@@ -176,8 +176,10 @@ func think(o: Fighter, dt: float) -> Dictionary:
 		if ai_t <= 0.0:
 			ai_t = ai.tick * (0.6 + randf() * 0.8)
 			var r := randf()
-			if o.dazed > 0.0 and dazed <= 0.0 and dist < 260.0 and r < ai.rider:
+			if o.dazed > 0.0 and dazed <= 0.0 and dist < 260.0 and r < minf(0.9, ai.rider * 2.5):
 				ai_act = "rider"
+			elif o.dazed > 0.0 and o.stun > 0.0 and dazed <= 0.0 and dist >= 220.0 and r < ai.aggr:
+				ai_act = "toward"      # close in on a reeling opponent for the decisive strike
 			elif dazed > 0.0 and dist < 300.0 and r < ai.block:
 				ai_act = "away"
 			elif meter >= 100.0 and _ultimate_ok(dist) and r < ai.special:

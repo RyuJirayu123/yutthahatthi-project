@@ -151,6 +151,7 @@ static func _build_moves() -> void:
 const BALANCE_REGEN := 10.0     ## per second, after BALANCE_DELAY without hits
 const BALANCE_DELAY := 1.2
 const DAZE_TIME := 1.4          ## off-balance duration
+const BREAK_STUN := 1.0         ## the elephant reels this long when its rider loses balance
 const FINISHER_DMG := 30.0
 
 ## Ultimates

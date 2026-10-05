@@ -468,7 +468,7 @@ func _build_howto() -> void:
 		["01", "rule1", "", ""],
 		["02", "", "ช้างแต่ละเชือกมีท่าประจำตัว (G) และอัลติ (H) ของตัวเอง โดนตีหรือตีโดนจะเติมหลอดพลัง", "Each elephant has its own signature (G) and ultimate (H, full power bar)."],
 		["03", "", "ของ้าวข้ามการป้องกันได้แต่ช้า กดพร้อมท่าช้างเป็นคอมโบได้", "Glaive beats guard but is slow; press it with elephant moves to combo."],
-		["04", "", "ควาญหมดหลอดทรงตัวจะเสียหลัก ฟันของ้าวซ้ำ = ฟันปิดฉาก", "Drain the rider's balance, then land the glaive for a Decisive Strike."],
+		["04", "", "หลอดทรงตัวหมด = ควาญเสียหลัก ช้างมึน 1 วิ ฟันของ้าวซ้ำ = ฟันปิดฉาก", "Empty the balance bar to stun them, then land the glaive for a Decisive Strike."],
 		["05", "rule4", "", ""],
 		["06", "", "จอย: X งวง · Y ท่าประจำตัว · B อัลติ · RB ของ้าว · A กระโดด", "Gamepad: stick/D-pad move · LB block · Start pause."],
 	]

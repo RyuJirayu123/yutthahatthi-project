@@ -179,6 +179,8 @@ func update(f: Fighter, duel_phase: String, dt: float) -> void:
 	var over := duel_phase == "ko" or duel_phase == "done"
 	if f.ko:
 		_mood = "ko"
+	elif f.stun > 0.0 and f.dazed > 0.0:
+		_mood = "dizzy"
 	elif f.stun > 0.0:
 		_mood = "hurt"
 	elif over and f.win:
@@ -231,6 +233,11 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 		_trunk(p, "hurt")
 	if f.dazed > 0.0 and not f.ko:
 		_apply(p, {"lean": sin(tm * 9.0) * 16.0, "glaive": 70.0 + sin(tm * 5.0) * 12.0})
+		if f.stun > 0.0:
+			# reeling from the balance break: head lolls, body sways, trunk hangs
+			_apply(p, {"head": 16.0 + sin(tm * 5.5) * 9.0, "pitch": sin(tm * 4.0) * 4.0, "shift": sin(tm * 4.0) * 6.0, "ear": 0.7, "bob": 4.0})
+			_trunk(p, "droop")
+			p["tb"] += sin(tm * 5.5) * 10.0
 	if f.blocking:
 		_apply(p, {"bob": 7.0, "head": 12.0, "pitch": 3.0, "ear": 0.6, "glaive": -95.0, "lean": -4.0})
 		_trunk(p, "guard")
@@ -677,6 +684,11 @@ func _draw_head(c: CanvasItem, B: Color, D: Color, d: ElephantDef, portrait := f
 		DrawKit.shape(c, &"crown", CROWN, d.trim)
 		DrawKit.circle(c, Vector2(20, -50), 2.5, GameData.ACC)
 	_draw_eye(c)
+	if _mood == "dizzy" and not portrait:
+		for i in 4:
+			var a := _time * 4.0 + TAU * i / 4.0
+			var sp := Vector2(18, -58) + Vector2(cos(a) * 26.0, sin(a) * 7.0)
+			_fill(c, _star(sp, 5.0 if sin(a) > 0.0 else 3.8), GameData.GOLD_LIGHT if i % 2 == 0 else Color.WHITE)
 	if portrait:
 		# a short, curled trunk keeps the medallion tidy
 		var a := deg_to_rad(80.0)
@@ -712,6 +724,11 @@ func _draw_eye(c: CanvasItem) -> void:
 			c.draw_line(EYE + Vector2(-5, -2), EYE + Vector2(4, 1), INK, 2.5, true)
 		"happy":
 			c.draw_polyline(PackedVector2Array([EYE + Vector2(-5, 2), EYE + Vector2(0, -3), EYE + Vector2(5, 2)]), INK, 2.0, true)
+		"dizzy":
+			DrawKit.circle(c, EYE, 4.6, Color("#fdf8ef"))
+			var a0 := _time * 9.0
+			c.draw_arc(EYE, 3.2, a0, a0 + TAU * 0.8, 10, INK, 1.4, true)
+			c.draw_arc(EYE, 1.4, a0 + PI, a0 + PI + TAU * 0.7, 8, INK, 1.2, true)
 		_:
 			if _blink > 0.0:
 				c.draw_line(EYE + Vector2(-5, 0), EYE + Vector2(5, 0), INK, 2.0, true)

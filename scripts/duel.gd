@@ -288,7 +288,8 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 		_shake_rider(b, shaken * 0.5)
 	else:
 		var big := h.dmg >= 9.0
-		b.stun = h.stun
+		# a hit can't cut short the reel from a balance break
+		b.stun = maxf(b.stun, h.stun) if b.dazed > 0.0 else h.stun
 		b.vx = a.face * h.knock * (-1.0 if h.pull else 1.0)
 		if h.lift != 0.0:
 			b.vy = h.lift
@@ -392,8 +393,14 @@ func _shake_rider(f: Fighter, amount: float) -> void:
 	f.balance_t = 0.0
 	f.balance = maxf(0.0, f.balance - amount)
 	if f.balance <= 0.0:
+		# balance break: the rider is dazed and the elephant reels, open to a decisive strike
 		f.dazed = GameData.DAZE_TIME
-		_callout("เสียหลัก!", "OFF BALANCE", f.x, false)
+		f.stun = maxf(f.stun, GameData.BREAK_STUN)
+		f.atk = ""
+		f.rider_t = -1.0
+		f.blocking = false
+		f.bstun = 0.0
+		_callout("เสียหลัก!", "STUNNED", f.x, false)
 		_sfx("daze")
 
 

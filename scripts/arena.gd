@@ -251,7 +251,7 @@ func _balance(x: float, y: float, f: Fighter, rev: bool) -> void:
 	if k > 0.0:
 		var c := ACC if dazed and on else BALANCE
 		_fill_slant(x, y, mw, 5, 2.0, rev, k, c.lightened(0.25), c.darkened(0.15))
-	var label := "เสียหลัก! · OFF BALANCE" if dazed else "ทรงตัว · BALANCE"
+	var label := ("มึน! · STUNNED" if f.stun > 0.0 else "เสียหลัก! · OFF BALANCE") if dazed else "ทรงตัว · BALANCE"
 	_otext(label, x - 10.0 if rev else x + mw + 10.0, y + 7.0, 10, 800, Color("#ff6a50") if dazed else Color.WHITE, RIGHT if rev else LEFT, 4)
 
 
