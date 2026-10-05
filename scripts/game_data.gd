@@ -1,0 +1,188 @@
+class_name GameData
+extends RefCounted
+## Shared constants: arena size, palette, attack moves and fonts.
+
+const W := 960.0
+const H := 540.0
+const GROUND := 440.0
+const WALL := 80.0
+
+## Thai court palette: lacquer red, gold leaf, cream paper, dark teak.
+const INK := Color("#2a170d")
+const BG := Color("#fbf1dc")
+const SURFACE := Color("#f3e3c3")
+const GRID := Color("#e6d2a8")
+const ACC := Color("#cc1f1f")
+const ACC_100 := Color("#fde6d6")
+const ACC_200 := Color("#f9cdb3")
+const ACC_300 := Color("#f4a487")
+const ACC_600 := Color("#b5181a")
+const ACC_700 := Color("#8e1013")
+const NEUTRAL_700 := Color("#6f5947")
+const DIVIDER := Color(0.165, 0.09, 0.05, 0.3)
+const HURT_DARK := Color("#ff8a70")
+const GOLD := Color("#e8b33a")
+const GOLD_LIGHT := Color("#ffe08a")
+const GOLD_DARK := Color("#9c6a14")
+const JADE := Color("#1f6b4a")
+
+
+## One hit window of a move.
+class Hit:
+	var start: float       ## hitbox opens (s into the move)
+	var stop: float        ## hitbox closes
+	var reach: float
+	var dmg: float
+	var knock: float
+	var stun: float
+	var meter: float       ## power gained by the attacker
+	var balance: float     ## damage to the opposing rider's balance
+	var lift := 0.0        ## launch speed given to the target (negative = up)
+	var offset := 100.0    ## hitbox starts this far in front of the attacker
+	var vreach := 120.0    ## max height difference that still connects
+	var overhead := false  ## can't be guarded
+	var pull := false      ## knocks the target toward the attacker
+	var daze := false      ## unseats the target's rider at once
+	var sound := "heavy"
+
+
+class Move:
+	var id: String
+	var name_th := ""
+	var name_en := ""
+	var desc := ""             ## one-line Thai description for the select screen
+	var dur: float             ## total length (s)
+	var hits: Array[Hit] = []
+	var ultimate := false      ## needs a full power bar
+	var dash_start := 0.0
+	var dash_stop := 0.0
+	var dash_speed := 0.0
+	var dash_until_hit := false
+	var armor := 0.0           ## won't flinch when hit before this time
+	var event := ""            ## "teleport", "wave" or "bless", fired once at event_at
+	var event_at := 0.0
+	var wave: Hit              ## the ground shockwave of an earthquake stomp
+	var ai_range := 240.0      ## CPU uses it when the opponent is closer than this
+	var start_sfx := "whoosh"
+
+
+## Moves by id. "light" and "rider" are shared; each ElephantDef picks a signature (G)
+## and an ultimate (H, full power bar).
+static var MOVES := {}
+
+static func move(id: String) -> Move:
+	if MOVES.is_empty():
+		_build_moves()
+	return MOVES[id]
+
+
+static func _hit(start: float, stop: float, reach: float, dmg: float, knock: float, stun: float, meter: float, balance: float, extra := {}) -> Hit:
+	var h := Hit.new()
+	h.start = start; h.stop = stop; h.reach = reach; h.dmg = dmg
+	h.knock = knock; h.stun = stun; h.meter = meter; h.balance = balance
+	for k in extra:
+		h.set(k, extra[k])
+	return h
+
+
+static func _move(id: String, dur: float, hits: Array, extra := {}) -> Move:
+	var m := Move.new()
+	m.id = id
+	m.dur = dur
+	m.hits.assign(hits)
+	for k in extra:
+		m.set(k, extra[k])
+	MOVES[id] = m
+	return m
+
+
+static func _build_moves() -> void:
+	var glaive := {"overhead": true, "vreach": 200.0, "sound": "clang"}
+	_move("light", 0.30, [_hit(0.07, 0.17, 72, 5, 150, 0.24, 8, 3, {"sound": "hit"})])
+	# rider's glaive: slow overhead chop with long reach, breaks guard, hits jumpers
+	_move("rider", 0.56, [_hit(0.20, 0.30, 110, 7, 120, 0.32, 10, 18, glaive)], {"start_sfx": "glaive"})
+
+	# signature moves (G)
+	_move("gore", 0.62, [_hit(0.22, 0.34, 96, 11, 340, 0.42, 12, 10, {"lift": -220.0})],
+		{"name_th": "แทงงา", "name_en": "TUSK GORE", "desc": "แทงงาหนัก กระเด็นไกล"})
+	_move("hook", 0.60, [_hit(0.20, 0.32, 100, 8, 260, 0.55, 12, 8, {"pull": true})],
+		{"name_th": "งาเกี่ยว", "name_en": "TUSK HOOK", "desc": "เกี่ยวดึงเข้ามาใกล้ แล้วต่อของ้าวได้"})
+	_move("lunge", 0.55, [_hit(0.12, 0.28, 80, 8, 260, 0.38, 10, 6)],
+		{"name_th": "พุ่งแทง", "name_en": "LUNGE", "desc": "พุ่งไปข้างหน้าเร็วพร้อมแทง ระยะไกล",
+		"dash_start": 0.08, "dash_stop": 0.26, "dash_speed": 560.0, "ai_range": 330.0})
+	_move("headbutt", 0.78, [_hit(0.34, 0.44, 90, 14, 520, 0.5, 12, 16, {"lift": -180.0})],
+		{"name_th": "หัวโขก", "name_en": "HEADBUTT", "desc": "ช้า แต่ตอนง้างโดนตีไม่สะดุ้ง กระเด็นไกล", "armor": 0.34})
+	_move("sweep", 0.55, [_hit(0.14, 0.26, 140, 8, 200, 0.3, 22, 4, {"offset": 80.0, "sound": "hit"})],
+		{"name_th": "งวงหวด", "name_en": "TRUNK SWEEP", "desc": "ฟาดกวาดระยะยาว ได้หลอดพลังเยอะ", "ai_range": 280.0})
+	_move("double", 0.80, [_hit(0.18, 0.26, 90, 6, 120, 0.45, 8, 6), _hit(0.40, 0.50, 96, 9, 380, 0.45, 10, 10, {"lift": -200.0})],
+		{"name_th": "งาคู่", "name_en": "TWIN GORE", "desc": "แทงงาสองจังหวะติดกัน"})
+
+	# ultimates (H, full power bar)
+	var u := {"ultimate": true}
+	_move("charge3", 1.05, [
+			_hit(0.10, 0.46, 90, 12, 150, 0.8, 0, 10),
+			_hit(0.56, 0.64, 110, 8, 150, 0.6, 0, 8, {"lift": -100.0}),
+			_hit(0.74, 0.82, 120, 9, 520, 0.7, 0, 12, glaive.merged({"lift": -300.0})),
+		], u.merged({"name_th": "พุ่งชนสามจังหวะ", "name_en": "TRIPLE CHARGE", "desc": "พุ่งชน แล้วต่องาและของ้าวอัตโนมัติ",
+		"dash_start": 0.10, "dash_stop": 0.46, "dash_speed": 640.0, "dash_until_hit": true, "ai_range": 400.0, "start_sfx": "trumpet"}))
+	var spin := glaive.merged({"offset": 70.0})
+	_move("storm", 1.10, [
+			_hit(0.25, 0.33, 150, 6, 40, 0.5, 0, 16, spin),
+			_hit(0.48, 0.56, 150, 6, 40, 0.5, 0, 16, spin),
+			_hit(0.71, 0.80, 150, 7, 420, 0.6, 0, 18, spin.merged({"lift": -200.0})),
+		], u.merged({"name_th": "ของ้าวพายุ", "name_en": "GLAIVE STORM", "desc": "ควาญหมุนของ้าวฟัน 3 ครั้ง ตีหลอดทรงตัวหนัก",
+		"ai_range": 300.0, "start_sfx": "glaive"}))
+	_move("blink", 0.90, [_hit(0.30, 0.40, 96, 20, 480, 0.7, 0, 18, {"lift": -260.0, "overhead": true})],
+		u.merged({"name_th": "ฝีเท้าสายฟ้า", "name_en": "LIGHTNING STEP", "desc": "พุ่งทะลุไปข้างหลังแล้วแทง ป้องกันไม่ได้",
+		"event": "teleport", "event_at": 0.18, "ai_range": 500.0, "start_sfx": "blink"}))
+	var quake := _move("quake", 1.20, [],
+		u.merged({"name_th": "กระทืบธรณี", "name_en": "EARTHQUAKE", "desc": "ยืนสองขาแล้วกระทืบ คลื่นวิ่งไปตามพื้น ต้องกระโดดหลบ",
+		"armor": 0.5, "event": "wave", "event_at": 0.5, "ai_range": 650.0, "start_sfx": "trumpet"}))
+	quake.wave = _hit(0.0, 0.0, 0, 18, 380, 0.8, 0, 20, {"lift": -320.0, "overhead": true})
+	_move("blessing", 0.90, [_hit(0.35, 0.45, 120, 2, 380, 0.3, 0, 0, {"offset": 40.0, "overhead": true, "sound": "hit"})],
+		u.merged({"name_th": "บารมีช้างเผือก", "name_en": "WHITE BLESSING", "desc": "ฟื้นเลือดและทรงตัว แล้วแรงขึ้น 6 วินาที",
+		"event": "bless", "event_at": 0.35, "start_sfx": "bless"}))
+	_move("roar", 1.00, [_hit(0.30, 0.55, 260, 4, 220, 0.6, 0, 0, {"offset": 60.0, "vreach": 220.0, "overhead": true, "daze": true, "sound": "hit"})],
+		u.merged({"name_th": "คชสารคำราม", "name_en": "ROYAL ROAR", "desc": "คำรามให้ควาญฝ่ายตรงข้ามเสียหลักทันที",
+		"ai_range": 330.0, "start_sfx": "roar"}))
+
+
+## Rider balance
+const BALANCE_REGEN := 10.0     ## per second, after BALANCE_DELAY without hits
+const BALANCE_DELAY := 1.2
+const DAZE_TIME := 1.4          ## off-balance duration
+const FINISHER_DMG := 30.0
+
+## Ultimates
+const WAVE_SPEED := 520.0       ## earthquake shockwave
+const WAVE_RANGE := 640.0
+const BLESS_HEAL := 21.0
+const BUFF_TIME := 6.0
+const BUFF_POWER := 1.25
+
+
+# Archivo for Latin text with IBM Plex Sans Thai as the Thai fallback, like the web version.
+static var _fonts := {}
+
+static func font(weight: int, spacing := 0) -> Font:
+	var key := weight * 100 + spacing
+	if _fonts.has(key):
+		return _fonts[key]
+	var fv := FontVariation.new()
+	fv.base_font = load("res://assets/fonts/Archivo-Variable.ttf")
+	fv.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
+	fv.spacing_glyph = spacing
+	var thai: Font = load("res://assets/fonts/IBMPlexSansThai-Bold.ttf" if weight >= 700 else "res://assets/fonts/IBMPlexSansThai-SemiBold.ttf")
+	fv.fallbacks = [thai]
+	_fonts[key] = fv
+	return fv
+
+
+## 12345 -> "12,345"
+static func fmt_num(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.right(3) + out
+		s = s.left(s.length() - 3)
+	return ("-" if n < 0 else "") + s + out

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ElephantDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/elephant_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+display_name = "พญาคชสาร"
+name_en = "PHAYA KHOTCHASAN"
+tagline = "เจ้าแห่งช้างศึก"
+tagline_en = "LORD OF WAR ELEPHANTS"
+body = Color(0.2902, 0.2588, 0.2667, 1)
+dark = Color(0.1843, 0.1608, 0.1686, 1)
+cloth = Color(0.4902, 0.0588, 0.0941, 1)
+trim = Color(0.9412, 0.7608, 0.2902, 1)
+flag = Color(0.9412, 0.7608, 0.2902, 1)
+royal = true
+locked = true
+hp = 125.0
+power = 1.15
+speed = 0.95
+rider_skill = 1.15
+steady = 1.15
+charge = 1.0
+signature = "double"
+ultimate = "roar"

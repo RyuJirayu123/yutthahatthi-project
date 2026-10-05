@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ElephantDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/elephant_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+display_name = "พลายดิน"
+name_en = "PHLAI DIN"
+tagline = "ว่องไว เข้าออกเร็ว"
+tagline_en = "FAST AND NIMBLE"
+body = Color(0.6118, 0.5255, 0.4549, 1)
+dark = Color(0.4667, 0.3843, 0.3137, 1)
+cloth = Color(0.1843, 0.5412, 0.2431, 1)
+trim = Color(0.9098, 0.7020, 0.2275, 1)
+flag = Color(0.1843, 0.5412, 0.2431, 1)
+royal = false
+locked = false
+hp = 94.0
+power = 0.97
+speed = 1.22
+rider_skill = 1.0
+steady = 0.9
+charge = 1.1
+signature = "lunge"
+ultimate = "blink"

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ElephantDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/elephant_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+display_name = "พลายแสง"
+name_en = "PHLAI SAENG"
+tagline = "สมดุลรอบด้าน"
+tagline_en = "BALANCED ALL-ROUNDER"
+body = Color(0.5843, 0.5529, 0.5451, 1)
+dark = Color(0.4314, 0.4000, 0.3922, 1)
+cloth = Color(0.7843, 0.0980, 0.1176, 1)
+trim = Color(0.9098, 0.7020, 0.2275, 1)
+flag = Color(0.7843, 0.0980, 0.1176, 1)
+royal = false
+locked = false
+hp = 104.0
+power = 1.04
+speed = 1.0
+rider_skill = 1.0
+steady = 1.0
+charge = 1.0
+signature = "gore"
+ultimate = "charge3"

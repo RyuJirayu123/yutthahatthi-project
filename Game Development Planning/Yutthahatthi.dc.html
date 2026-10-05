@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-7b8fe965-4ffa-4875-bba5-5f0935dcb34a/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap">
+<style>
+html,body{margin:0;background:#f3f2f2;color:#201e1d;font-family:'Archivo','IBM Plex Sans Thai',system-ui,sans-serif}
+button:focus-visible{outline:2px solid #ec3013;outline-offset:2px}
+a{color:#ae1800}a:hover{color:#ec3013}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--color-bg);color:var(--color-text);font-family:'Archivo','IBM Plex Sans Thai',system-ui,sans-serif">
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:10px 24px;border-bottom:2px solid var(--color-text)">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="width:18px;height:18px;background:var(--color-accent);display:block"></span>
+      <span style="font-weight:800;font-size:20px;line-height:1.3">ยุทธหัตถี</span>
+      <span style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:var(--color-neutral-700)">YUTTHAHATTHI · ELEPHANT DUEL</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px">
+      <span style="display:flex;align-items:baseline;gap:8px;font-size:12px;font-weight:600;letter-spacing:0.06em;color:var(--color-neutral-700)">สถิติสูงสุด · HI <span style="font-size:16px;font-weight:800;color:var(--color-text);letter-spacing:0">{{ hiscore }}</span></span>
+      <button onClick="{{ toggleSound }}" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;font-size:12px;font-weight:800;letter-spacing:0.06em;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)">
+        <sc-if value="{{ soundOn }}" hint-placeholder-val="{{ true }}"><span>เสียง · SOUND ON</span></sc-if>
+        <sc-if value="{{ muted }}" hint-placeholder-val="{{ false }}"><span>ปิดเสียง · MUTED</span></sc-if>
+      </button>
+    </div>
+  </header>
+
+  <main style="flex:1;padding:20px 24px">
+    <div style="width:min(100%, calc((100vh - 176px) * 16 / 9));min-width:min(100%, 560px)">
+      <div ref="{{ stageRef }}" style="position:relative;width:100%;aspect-ratio:16 / 9;container-type:inline-size;border:2px solid var(--color-text);overflow:hidden;background:#f3f2f2">
+        <canvas ref="{{ canvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+
+        <sc-if value="{{ isTitle }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--color-bg);border-right:2px solid var(--color-text);padding:3cqw;display:flex;flex-direction:column;gap:1cqw">
+            <div style="font-size:1.15cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-accent-700)">เกมต่อสู้ช้างศึก · WAR ELEPHANT FIGHTING</div>
+            <div style="font-size:7cqw;font-weight:800;line-height:1.25;letter-spacing:-0.01em">ยุทธหัตถี</div>
+            <div style="font-size:2cqw;font-weight:800;letter-spacing:0.02em;margin-top:-0.6cqw">ELEPHANT DUEL</div>
+            <div style="flex:1"></div>
+            <div style="display:flex;flex-direction:column;gap:0.8cqw">
+              <button onClick="{{ playArcade }}" style="display:grid;grid-template-columns:3.4cqw 1fr;align-items:baseline;text-align:left;width:100%;padding:1cqw 1.4cqw;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-600);border-color:var(--color-accent-600)">
+                <span style="font-size:1.15cqw;font-weight:800">01</span>
+                <span style="display:flex;flex-direction:column;gap:0.2cqw"><span style="font-size:1.9cqw;font-weight:800;line-height:1.3">เล่นคนเดียว · อาร์เคด</span><span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.06em">1 PLAYER · ARCADE — 3 STAGES</span></span>
+              </button>
+              <button onClick="{{ playVs }}" style="display:grid;grid-template-columns:3.4cqw 1fr;align-items:baseline;text-align:left;width:100%;padding:1cqw 1.4cqw;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)">
+                <span style="font-size:1.15cqw;font-weight:800">02</span>
+                <span style="display:flex;flex-direction:column;gap:0.2cqw"><span style="font-size:1.9cqw;font-weight:800;line-height:1.3">สองคน · ประลอง</span><span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.06em">2 PLAYERS · VERSUS ON ONE KEYBOARD</span></span>
+              </button>
+              <button onClick="{{ showHowto }}" style="display:grid;grid-template-columns:3.4cqw 1fr;align-items:baseline;text-align:left;width:100%;padding:1cqw 1.4cqw;border:2px solid transparent;background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)">
+                <span style="font-size:1.15cqw;font-weight:800">03</span>
+                <span style="display:flex;flex-direction:column;gap:0.2cqw"><span style="font-size:1.9cqw;font-weight:800;line-height:1.3">วิธีเล่น</span><span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.06em">HOW TO PLAY</span></span>
+              </button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isHowto }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:var(--color-bg);display:grid;grid-template-rows:auto 1fr">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:2cqw;padding:2.2cqw 3cqw 1.6cqw;border-bottom:2px solid var(--color-text)">
+              <div style="display:flex;flex-direction:column;gap:0.3cqw">
+                <div style="font-size:1.1cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-accent-700)">คู่มือ · MANUAL</div>
+                <div style="font-size:4cqw;font-weight:800;line-height:1.25">วิธีเล่น</div>
+                <div style="font-size:1.3cqw;font-weight:800;letter-spacing:0.04em">HOW TO PLAY</div>
+              </div>
+              <button onClick="{{ backToTitle }}" style="text-align:left;min-width:14cqw;padding:1cqw 1.4cqw;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0;display:flex;flex-direction:column;gap:0.1cqw" style-hover="background:var(--color-accent-100)"><span style="font-size:1.6cqw;font-weight:800;line-height:1.3">กลับ</span><span style="font-size:1cqw;font-weight:600;letter-spacing:0.06em">BACK</span></button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));min-height:0">
+              <div style="padding:1.8cqw 3cqw;border-right:2px solid var(--color-text);display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:1cqw;padding-bottom:1cqw"><span style="width:1.4cqw;height:1.4cqw;background:var(--color-accent);display:block"></span><span style="font-size:1.8cqw;font-weight:800;line-height:1.3">ผู้เล่น 1</span><span style="font-size:1cqw;font-weight:600;letter-spacing:0.06em;color:var(--color-neutral-700)">PLAYER 1 · พลายแสง</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">เดิน</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">MOVE</span></span><span style="display:flex;gap:0.5cqw"><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">A</span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">D</span></span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">กระโดด</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">JUMP</span></span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">W</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">ป้องกัน (กดค้าง)</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">BLOCK · HOLD</span></span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">S</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">งวงฟาด · เร็ว</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">TRUNK WHIP · FAST</span></span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">F</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">แทงงา · แรง</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">TUSK GORE · HEAVY</span></span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">G</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">ชาร์จ · พลังเต็ม</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">CHARGE · FULL POWER</span></span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">H</span></div>
+              </div>
+              <div style="padding:1.8cqw 3cqw;border-right:2px solid var(--color-text);display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:1cqw;padding-bottom:1cqw"><span style="width:1.4cqw;height:1.4cqw;background:var(--color-text);display:block"></span><span style="font-size:1.8cqw;font-weight:800;line-height:1.3">ผู้เล่น 2</span><span style="font-size:1cqw;font-weight:600;letter-spacing:0.06em;color:var(--color-neutral-700)">PLAYER 2 · พลายเมฆ</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">เดิน</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">MOVE</span></span><span style="display:flex;gap:0.5cqw"><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">←</span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">→</span></span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">กระโดด</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">JUMP</span></span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">↑</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">ป้องกัน (กดค้าง)</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">BLOCK · HOLD</span></span><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">↓</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">งวงฟาด · เร็ว</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">TRUNK WHIP · FAST</span></span><span style="display:flex;gap:0.5cqw"><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">,</span><span style="height:2.6cqw;padding:0 0.6cqw;border:2px solid var(--color-divider);display:flex;align-items:center;font-size:1cqw;font-weight:600">NUM 1</span></span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">แทงงา · แรง</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">TUSK GORE · HEAVY</span></span><span style="display:flex;gap:0.5cqw"><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">.</span><span style="height:2.6cqw;padding:0 0.6cqw;border:2px solid var(--color-divider);display:flex;align-items:center;font-size:1cqw;font-weight:600">NUM 2</span></span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8cqw 0;border-top:2px solid var(--color-divider)"><span style="display:flex;flex-direction:column"><span style="font-size:1.4cqw;font-weight:600;line-height:1.3">ชาร์จ · พลังเต็ม</span><span style="font-size:0.95cqw;letter-spacing:0.06em;color:var(--color-neutral-700)">CHARGE · FULL POWER</span></span><span style="display:flex;gap:0.5cqw"><span style="min-width:2.6cqw;height:2.6cqw;padding:0 0.5cqw;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:800">/</span><span style="height:2.6cqw;padding:0 0.6cqw;border:2px solid var(--color-divider);display:flex;align-items:center;font-size:1cqw;font-weight:600">NUM 3</span></span></div>
+              </div>
+              <div style="padding:1.8cqw 3cqw;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:1cqw;padding-bottom:1cqw"><span style="font-size:1.8cqw;font-weight:800;line-height:1.3">กติกา</span><span style="font-size:1cqw;font-weight:600;letter-spacing:0.06em;color:var(--color-neutral-700)">RULES</span></div>
+                <div style="display:grid;grid-template-columns:2.6cqw 1fr;gap:0.2cqw 0;padding:0.9cqw 0;border-top:2px solid var(--color-divider)"><span style="font-size:1.1cqw;font-weight:800;color:var(--color-accent-700)">01</span><span style="display:flex;flex-direction:column;gap:0.2cqw"><span style="font-size:1.3cqw;font-weight:600;line-height:1.4">ชนะ {{ roundsToWin }} ยกก่อน ชนะแมตช์ ยกละ {{ roundTime }} วินาที</span><span style="font-size:0.95cqw;line-height:1.4;color:var(--color-neutral-700)">First to {{ roundsToWin }} rounds wins. {{ roundTime }} seconds per round.</span></span></div>
+                <div style="display:grid;grid-template-columns:2.6cqw 1fr;gap:0.2cqw 0;padding:0.9cqw 0;border-top:2px solid var(--color-divider)"><span style="font-size:1.1cqw;font-weight:800;color:var(--color-accent-700)">02</span><span style="display:flex;flex-direction:column;gap:0.2cqw"><span style="font-size:1.3cqw;font-weight:600;line-height:1.4">หมดเวลา ฝ่ายที่เหลือพลังชีวิตมากกว่าชนะ</span><span style="font-size:0.95cqw;line-height:1.4;color:var(--color-neutral-700)">On time-out, the elephant with more health wins.</span></span></div>
+                <div style="display:grid;grid-template-columns:2.6cqw 1fr;gap:0.2cqw 0;padding:0.9cqw 0;border-top:2px solid var(--color-divider)"><span style="font-size:1.1cqw;font-weight:800;color:var(--color-accent-700)">03</span><span style="display:flex;flex-direction:column;gap:0.2cqw"><span style="font-size:1.3cqw;font-weight:600;line-height:1.4">โจมตีหรือโดนโจมตีจะเติมหลอดพลัง เต็มแล้วกดชาร์จได้</span><span style="font-size:0.95cqw;line-height:1.4;color:var(--color-neutral-700)">Hitting and getting hit fills the power bar. When full, unleash the charge.</span></span></div>
+                <div style="display:grid;grid-template-columns:2.6cqw 1fr;gap:0.2cqw 0;padding:0.9cqw 0;border-top:2px solid var(--color-divider)"><span style="font-size:1.1cqw;font-weight:800;color:var(--color-accent-700)">04</span><span style="display:flex;flex-direction:column;gap:0.2cqw"><span style="font-size:1.3cqw;font-weight:600;line-height:1.4">อาร์เคด: ล้มช้างศึก 3 เชือก ชนะไวและไม่เสียเลือดได้โบนัส</span><span style="font-size:0.95cqw;line-height:1.4;color:var(--color-neutral-700)">Arcade: beat 3 war elephants. Fast and perfect wins earn bonus points.</span></span></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isPaused }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--color-bg);border-right:2px solid var(--color-text);padding:3cqw;display:flex;flex-direction:column;gap:1cqw">
+            <div style="font-size:1.15cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-accent-700)">ESC · P</div>
+            <div style="font-size:5cqw;font-weight:800;line-height:1.25">หยุดชั่วคราว</div>
+            <div style="font-size:1.8cqw;font-weight:800;letter-spacing:0.02em">PAUSED</div>
+            <div style="flex:1"></div>
+            <button onClick="{{ resume }}" style="display:flex;flex-direction:column;gap:0.2cqw;text-align:left;width:100%;padding:1cqw 1.4cqw;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-600);border-color:var(--color-accent-600)"><span style="font-size:1.9cqw;font-weight:800;line-height:1.3">เล่นต่อ</span><span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.06em">RESUME</span></button>
+            <button onClick="{{ backToTitle }}" style="display:flex;flex-direction:column;gap:0.2cqw;text-align:left;width:100%;padding:1cqw 1.4cqw;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)"><span style="font-size:1.9cqw;font-weight:800;line-height:1.3">เมนูหลัก</span><span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.06em">MAIN MENU</span></button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isStageClear }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--color-bg);border-right:2px solid var(--color-text);padding:3cqw;display:flex;flex-direction:column;gap:1cqw">
+            <div style="font-size:1.15cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-accent-700)">ด่าน {{ stageNo }} / 3 · STAGE {{ stageNo }} OF 3</div>
+            <div style="font-size:6cqw;font-weight:800;line-height:1.25">ชนะ!</div>
+            <div style="font-size:1.8cqw;font-weight:800;letter-spacing:0.02em;margin-top:-0.6cqw">STAGE CLEAR</div>
+            <div style="display:flex;flex-direction:column;gap:0.2cqw;padding-top:1.2cqw;border-top:2px solid var(--color-text);margin-top:1cqw">
+              <span style="font-size:1cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-neutral-700)">คะแนนสะสม · SCORE</span>
+              <span style="font-size:4cqw;font-weight:800;line-height:1.1">{{ score }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.2cqw;padding-top:1.2cqw;border-top:2px solid var(--color-divider)">
+              <span style="font-size:1cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-neutral-700)">คู่ต่อสู้ถัดไป · NEXT OPPONENT</span>
+              <span style="font-size:2.2cqw;font-weight:800;line-height:1.3">{{ nextName }}</span>
+              <span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.06em">{{ nextEn }}</span>
+            </div>
+            <div style="flex:1"></div>
+            <button onClick="{{ nextStage }}" style="display:flex;flex-direction:column;gap:0.2cqw;text-align:left;width:100%;padding:1cqw 1.4cqw;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-600);border-color:var(--color-accent-600)"><span style="font-size:1.9cqw;font-weight:800;line-height:1.3">ด่านต่อไป</span><span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.06em">NEXT STAGE</span></button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isGameOver }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--color-bg);border-right:2px solid var(--color-text);padding:3cqw;display:flex;flex-direction:column;gap:1cqw">
+            <div style="font-size:1.15cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-accent-700)">จบเกม · GAME OVER · ผ่าน {{ stagesCleared }}/3 ด่าน</div>
+            <sc-if value="{{ cleared }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:0.4cqw"><div style="font-size:5cqw;font-weight:800;line-height:1.25">แชมป์ยุทธหัตถี</div><div style="font-size:1.8cqw;font-weight:800;letter-spacing:0.02em">CHAMPION</div></div>
+            </sc-if>
+            <sc-if value="{{ notCleared }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:0.4cqw"><div style="font-size:5cqw;font-weight:800;line-height:1.25">พ่ายแพ้</div><div style="font-size:1.8cqw;font-weight:800;letter-spacing:0.02em">DEFEATED</div></div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:2px solid var(--color-text);margin-top:0.6cqw">
+              <div style="display:flex;flex-direction:column;gap:0.2cqw;padding:1.2cqw 1.2cqw 0 0;border-right:2px solid var(--color-divider)">
+                <span style="font-size:1cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-neutral-700)">คะแนน · SCORE</span>
+                <span style="font-size:3.6cqw;font-weight:800;line-height:1.1">{{ score }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.2cqw;padding:1.2cqw 0 0 1.2cqw">
+                <span style="font-size:1cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-neutral-700)">สถิติสูงสุด · BEST</span>
+                <span style="font-size:3.6cqw;font-weight:800;line-height:1.1">{{ hiscore }}</span>
+              </div>
+            </div>
+            <sc-if value="{{ newHi }}" hint-placeholder-val="{{ false }}">
+              <div style="align-self:flex-start;padding:0.4cqw 0.8cqw;background:var(--color-accent);color:#fff;font-size:1.1cqw;font-weight:800;letter-spacing:0.04em">สถิติใหม่! · NEW RECORD</div>
+            </sc-if>
+            <div style="flex:1"></div>
+            <button onClick="{{ retry }}" style="display:flex;flex-direction:column;gap:0.2cqw;text-align:left;width:100%;padding:0.9cqw 1.4cqw;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-600);border-color:var(--color-accent-600)"><span style="font-size:1.8cqw;font-weight:800;line-height:1.3">เล่นอีกครั้ง</span><span style="font-size:1cqw;font-weight:600;letter-spacing:0.06em">PLAY AGAIN</span></button>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.8cqw">
+              <button onClick="{{ share }}" style="display:flex;flex-direction:column;gap:0.1cqw;text-align:left;padding:0.8cqw 1.2cqw;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)"><span style="font-size:1.5cqw;font-weight:800;line-height:1.3">แชร์ผล</span><span style="font-size:0.95cqw;font-weight:600;letter-spacing:0.06em">SHARE</span></button>
+              <button onClick="{{ backToTitle }}" style="display:flex;flex-direction:column;gap:0.1cqw;text-align:left;padding:0.8cqw 1.2cqw;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)"><span style="font-size:1.5cqw;font-weight:800;line-height:1.3">เมนูหลัก</span><span style="font-size:0.95cqw;font-weight:600;letter-spacing:0.06em">MAIN MENU</span></button>
+            </div>
+            <sc-if value="{{ hasShareMsg }}" hint-placeholder-val="{{ false }}"><div style="font-size:1.05cqw;font-weight:600;color:var(--color-accent-700)">{{ shareMsg }}</div></sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isVsResult }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--color-bg);border-right:2px solid var(--color-text);padding:3cqw;display:flex;flex-direction:column;gap:1cqw">
+            <div style="font-size:1.15cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-accent-700)">ประลอง · VERSUS</div>
+            <div style="font-size:5cqw;font-weight:800;line-height:1.25">{{ winnerTh }}</div>
+            <div style="font-size:1.8cqw;font-weight:800;letter-spacing:0.02em;margin-top:-0.4cqw">{{ winnerEn }}</div>
+            <div style="display:flex;flex-direction:column;gap:0.2cqw;padding-top:1.2cqw;border-top:2px solid var(--color-text);margin-top:0.6cqw">
+              <span style="font-size:1cqw;font-weight:600;letter-spacing:0.08em;color:var(--color-neutral-700)">ผลยก · ROUNDS</span>
+              <span style="font-size:4.4cqw;font-weight:800;line-height:1.1">{{ vsScore }}</span>
+              <span style="font-size:1.05cqw;font-weight:600;letter-spacing:0.04em">{{ winnerName }}</span>
+            </div>
+            <div style="flex:1"></div>
+            <button onClick="{{ rematch }}" style="display:flex;flex-direction:column;gap:0.2cqw;text-align:left;width:100%;padding:0.9cqw 1.4cqw;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-600);border-color:var(--color-accent-600)"><span style="font-size:1.8cqw;font-weight:800;line-height:1.3">แมตช์ใหม่</span><span style="font-size:1cqw;font-weight:600;letter-spacing:0.06em">REMATCH</span></button>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.8cqw">
+              <button onClick="{{ share }}" style="display:flex;flex-direction:column;gap:0.1cqw;text-align:left;padding:0.8cqw 1.2cqw;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)"><span style="font-size:1.5cqw;font-weight:800;line-height:1.3">แชร์ผล</span><span style="font-size:0.95cqw;font-weight:600;letter-spacing:0.06em">SHARE</span></button>
+              <button onClick="{{ backToTitle }}" style="display:flex;flex-direction:column;gap:0.1cqw;text-align:left;padding:0.8cqw 1.2cqw;border:2px solid var(--color-text);background:transparent;color:var(--color-text);font:inherit;cursor:pointer;border-radius:0" style-hover="background:var(--color-accent-100)"><span style="font-size:1.5cqw;font-weight:800;line-height:1.3">เมนูหลัก</span><span style="font-size:0.95cqw;font-weight:600;letter-spacing:0.06em">MAIN MENU</span></button>
+            </div>
+            <sc-if value="{{ hasShareMsg }}" hint-placeholder-val="{{ false }}"><div style="font-size:1.05cqw;font-weight:600;color:var(--color-accent-700)">{{ shareMsg }}</div></sc-if>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));border:2px solid var(--color-text);border-top:0;font-size:12px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px;border-right:2px solid var(--color-text)">
+          <span style="display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:0.04em"><span style="width:10px;height:10px;background:var(--color-accent);display:block"></span>ผู้เล่น 1 · P1</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center">
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">A</span><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">D</span><span>เดิน</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">W</span><span>กระโดด</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">S</span><span>ป้องกัน</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">F</span><span>งวง</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">G</span><span>งา</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800">H</span><span>ชาร์จ</span></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px;border-right:2px solid var(--color-text)">
+          <span style="display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:0.04em"><span style="width:10px;height:10px;background:var(--color-text);display:block"></span>ผู้เล่น 2 · P2</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center">
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">←</span><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">→</span><span>เดิน</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">↑</span><span>กระโดด</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">↓</span><span>ป้องกัน</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">,</span><span>งวง</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-weight:800">.</span><span>งา</span></span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="min-width:22px;height:22px;padding:0 4px;border:2px solid var(--color-accent);background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800">/</span><span>ชาร์จ</span></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px">
+          <span style="display:flex;align-items:center;gap:6px"><span style="height:22px;padding:0 6px;border:2px solid var(--color-text);display:flex;align-items:center;font-weight:800">ESC</span><span style="font-weight:600">หยุดเกม · PAUSE</span></span>
+          <span style="color:var(--color-neutral-700);line-height:1.4">คลิกที่หน้าเกมก่อนกดคีย์บอร์ด · Click the game first to use the keyboard</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;roundTime&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[30,60,99],&quot;default&quot;:60,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;กติกา · Rules&quot;},&quot;roundsToWin&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[1,2,3],&quot;default&quot;:2,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;กติกา · Rules&quot;},&quot;screenShake&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;ความรู้สึก · Feel&quot;}}">
+class Component extends DCLogic {
+  state = { screen: 'title', paused: false, muted: false, hiscore: 0, score: 0, stage: 0, cleared: false, stagesCleared: 0, newHi: false, winner: 0, vsWins: [0, 0], shareMsg: '' };
+  canvasRef = React.createRef();
+  stageRef = React.createRef();
+  W = 960; H = 540; G = 440;
+  F = "'Archivo','IBM Plex Sans Thai',system-ui,sans-serif";
+  INK = '#201e1d'; BG = '#f3f2f2'; ACC = '#ec3013';
+  ROSTER = {
+    p1: { name: 'พลายแสง', en: 'PHLAI SAENG', body: '#ec3013', dark: '#ae1800', flag: '#201e1d', hp: 100, pow: 1 },
+    p2: { name: 'พลายเมฆ', en: 'PHLAI MEK', body: '#201e1d', dark: '#605d5d', flag: '#ec3013', hp: 100, pow: 1 },
+    cpu: [
+      { name: 'พลายดิน', en: 'PHLAI DIN', body: '#7d7979', dark: '#444141', flag: '#201e1d', hp: 90, pow: 0.9, ai: { tick: 0.45, block: 0.12, aggr: 0.45, heavy: 0.25, special: 0.3 } },
+      { name: 'พลายเหล็ก', en: 'PHLAI LEK', body: '#2d2b2b', dark: '#7d7979', flag: '#d7d3d3', hp: 105, pow: 1, ai: { tick: 0.28, block: 0.38, aggr: 0.62, heavy: 0.4, special: 0.6 } },
+      { name: 'พญาคชสาร', en: 'PHAYA KHOTCHASAN', body: '#201e1d', dark: '#ae1800', flag: '#ec3013', hp: 130, pow: 1.15, ai: { tick: 0.15, block: 0.6, aggr: 0.8, heavy: 0.5, special: 0.9 } }
+    ]
+  };
+  MOVES = {
+    light: { start: 0.07, end: 0.17, dur: 0.30, range: 72, dmg: 5, knock: 150, stun: 0.24, meter: 8 },
+    heavy: { start: 0.22, end: 0.34, dur: 0.62, range: 96, dmg: 11, knock: 340, stun: 0.42, meter: 12 },
+    special: { start: 0.10, end: 0.50, dur: 0.80, range: 90, dmg: 22, knock: 560, stun: 0.7, meter: 0, dash: 640 }
+  };
+  K1 = { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], light: ['KeyF'], heavy: ['KeyG'], special: ['KeyH'] };
+  K2 = { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], light: ['Comma', 'Numpad1'], heavy: ['Period', 'Numpad2'], special: ['Slash', 'Numpad3'] };
+  GAMEKEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'Slash', 'Comma', 'Period', 'Quote']);
+  keys = new Set(); pressQ = new Set(); runScore = 0; camX = 0;
+
+  get rtw() { return Number(this.props.roundsToWin ?? 2) || 2; }
+  get rtime() { return Number(this.props.roundTime ?? 60) || 60; }
+
+  componentDidMount() {
+    let hi = 0; try { hi = +localStorage.getItem('yutthahatthi.hiscore') || 0; } catch (e) {}
+    this.setState({ hiscore: hi });
+    this.onKeyDown = e => {
+      const sc = this.state.screen;
+      if (sc === 'fight' && this.GAMEKEYS.has(e.code)) e.preventDefault();
+      if ((e.code === 'Escape' || e.code === 'KeyP') && sc === 'fight' && !e.repeat) { this.setState(s => ({ paused: !s.paused })); return; }
+      if (!e.repeat) this.pressQ.add(e.code);
+      this.keys.add(e.code);
+    };
+    this.onKeyUp = e => this.keys.delete(e.code);
+    this.onBlur = () => this.keys.clear();
+    window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
+    window.addEventListener('blur', this.onBlur);
+    this.startMatch('demo', 0);
+    this.last = performance.now();
+    this.raf = requestAnimationFrame(this.loop);
+  }
+  componentWillUnmount() {
+    cancelAnimationFrame(this.raf);
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener('blur', this.onBlur);
+  }
+
+  // ---------- audio ----------
+  ac() {
+    try {
+      if (!this.actx) {
+        const A = window.AudioContext || window.webkitAudioContext;
+        this.actx = new A(); this.master = this.actx.createGain(); this.master.gain.value = 0.5; this.master.connect(this.actx.destination);
+      }
+      if (this.actx.state === 'suspended') this.actx.resume();
+    } catch (e) {}
+  }
+  tone(f0, f1, dur, type, vol, delay = 0) {
+    const a = this.actx; if (!a) return; const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain(); o.type = type;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+  }
+  noise(dur, vol, freq, delay = 0) {
+    const a = this.actx; if (!a) return; const t = a.currentTime + delay;
+    if (!this.nbuf) { this.nbuf = a.createBuffer(1, a.sampleRate, a.sampleRate); const d = this.nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const s = a.createBufferSource(); s.buffer = this.nbuf;
+    const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8;
+    const g = a.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t); s.stop(t + dur + 0.02);
+  }
+  trumpet(base = 260, delay = 0) {
+    const a = this.actx; if (!a) return; const t = a.currentTime + delay;
+    const o = a.createOscillator(), lfo = a.createOscillator(), lg = a.createGain(), f = a.createBiquadFilter(), g = a.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(base, t); o.frequency.linearRampToValueAtTime(base * 1.9, t + 0.12); o.frequency.linearRampToValueAtTime(base * 1.55, t + 0.75);
+    lfo.frequency.value = 9; lg.gain.value = 14; lfo.connect(lg); lg.connect(o.frequency);
+    f.type = 'lowpass'; f.frequency.value = 2200;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.2, t + 0.04); g.gain.linearRampToValueAtTime(0.16, t + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+    o.connect(f); f.connect(g); g.connect(this.master); o.start(t); lfo.start(t); o.stop(t + 0.9); lfo.stop(t + 0.9);
+  }
+  sfx(n) {
+    if (this.state.muted || !this.actx) return;
+    if (this.g && this.g.mode === 'demo' && n !== 'select') return;
+    switch (n) {
+      case 'select': this.tone(660, 880, 0.06, 'square', 0.06); break;
+      case 'whoosh': this.noise(0.1, 0.25, 1800); break;
+      case 'hit': this.noise(0.14, 0.7, 700); this.tone(160, 60, 0.14, 'square', 0.16); break;
+      case 'heavy': this.noise(0.24, 0.9, 420); this.tone(120, 40, 0.26, 'sawtooth', 0.22); break;
+      case 'block': this.tone(1100, 900, 0.07, 'square', 0.07); this.noise(0.06, 0.4, 3200); break;
+      case 'jump': this.tone(200, 420, 0.12, 'triangle', 0.14); break;
+      case 'trumpet': this.trumpet(260); break;
+      case 'bell': this.tone(1046, 1040, 0.6, 'sine', 0.22); this.tone(1568, 1560, 0.45, 'sine', 0.1); break;
+      case 'ko': this.trumpet(220); this.noise(0.6, 0.6, 180); break;
+      case 'win': [523, 659, 784, 1046].forEach((f, i) => this.tone(f, f, 0.18, 'square', 0.07, i * 0.11)); break;
+      case 'lose': [392, 330, 262].forEach((f, i) => this.tone(f, f * 0.98, 0.25, 'triangle', 0.12, i * 0.18)); break;
+    }
+  }
+
+  // ---------- match flow ----------
+  mkF(def, x, face, ctrl) {
+    return { def, x, y: this.G, vx: 0, vy: 0, face, hp: def.hp, maxHp: def.hp, trail: def.hp, meter: 0, atk: null, stun: 0, bstun: 0, blocking: false, flash: 0, walkT: 0, ko: false, koT: 0, ctrl, buf: null, bufT: 0, win: false, ai: { t: 0.5, act: 'idle', hold: 0, reacted: false } };
+  }
+  startMatch(mode, stage) {
+    const R = this.ROSTER;
+    const right = mode === 'arcade' ? R.cpu[stage] : mode === 'vs' ? R.p2 : R.cpu[1 + Math.floor(Math.random() * 2)];
+    this.g = { mode, stage, defs: [R.p1, right], ctrls: [mode === 'demo' ? 'ai' : 'p1', mode === 'vs' ? 'p2' : 'ai'], wins: [0, 0], round: 1, parts: [], shake: 0, hitstop: 0 };
+    this.resetRound();
+  }
+  resetRound() {
+    const g = this.g;
+    g.f = [this.mkF(g.defs[0], 300, 1, g.ctrls[0]), this.mkF(g.defs[1], 660, -1, g.ctrls[1])];
+    g.phase = 'intro'; g.t = 0; g.timer = g.mode === 'demo' ? 99 : this.rtime; g.belled = false; g.parts = [];
+  }
+  endRound(reason) {
+    const g = this.g; if (g.phase !== 'fight') return;
+    g.phase = 'ko'; g.t = 0; g.reason = reason;
+    const [a, b] = g.f; const ra = a.hp / a.maxHp, rb = b.hp / b.maxHp;
+    g.rw = Math.abs(ra - rb) < 0.001 ? -1 : ra > rb ? 0 : 1;
+    if (g.rw >= 0) { g.wins[g.rw]++; g.f[g.rw].win = true; }
+    if (g.mode === 'arcade' && g.rw === 0) {
+      this.runScore += Math.round((1000 + Math.floor(g.timer) * 20 + (a.hp >= a.maxHp ? 2000 : 0)) * (1 + g.stage * 0.5));
+    }
+    this.sfx(reason === 'ko' ? 'ko' : 'bell');
+  }
+  afterRound() {
+    const g = this.g; const r = this.rtw;
+    if (g.wins[0] >= r || g.wins[1] >= r || g.round >= r * 2 + 1) {
+      const w = g.wins[0] === g.wins[1] ? (g.f[0].hp >= g.f[1].hp ? 0 : 1) : g.wins[0] > g.wins[1] ? 0 : 1;
+      this.matchEnd(w);
+    } else { g.round++; this.resetRound(); }
+  }
+  matchEnd(w) {
+    const g = this.g;
+    if (g.mode === 'demo') { this.startMatch('demo', 0); return; }
+    g.phase = 'done'; g.t = 0; g.f.forEach((f, i) => { f.win = i === w; });
+    if (g.mode === 'vs') { this.sfx('win'); this.setState({ screen: 'vsresult', paused: false, winner: w, vsWins: g.wins.slice(), shareMsg: '' }); return; }
+    if (w === 0 && g.stage < 2) { this.sfx('win'); this.setState({ screen: 'stageclear', paused: false, stage: g.stage, score: this.runScore }); return; }
+    const cleared = w === 0;
+    const hi = Math.max(this.state.hiscore, this.runScore); const newHi = this.runScore > this.state.hiscore;
+    if (newHi) { try { localStorage.setItem('yutthahatthi.hiscore', String(hi)); } catch (e) {} }
+    this.sfx(cleared ? 'win' : 'lose');
+    this.setState({ screen: 'gameover', paused: false, cleared, stagesCleared: cleared ? 3 : g.stage, stage: g.stage, score: this.runScore, hiscore: hi, newHi, shareMsg: '' });
+  }
+
+  // ---------- simulation ----------
+  loop = now => {
+    this.raf = requestAnimationFrame(this.loop);
+    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now;
+    if (this.g && !this.state.paused) this.update(dt);
+    else this.pressQ.clear();
+    this.draw(dt);
+  };
+  update(dt) {
+    const g = this.g;
+    g.t += dt;
+    g.parts = g.parts.filter(p => (p.life -= dt) > 0);
+    g.parts.forEach(p => { p.vy += 1400 * dt; p.x += p.vx * dt; p.y += p.vy * dt; });
+    g.shake = Math.max(0, g.shake - dt * 30);
+    if (g.hitstop > 0) { g.hitstop -= dt; return; }
+    let sdt = dt;
+    if (g.phase === 'ko' && g.t < 0.8) sdt = dt * 0.35;
+    if (g.phase === 'intro') {
+      if (g.t > 1.0 && !g.belled) { g.belled = true; this.sfx('bell'); }
+      if (g.t > 1.7) { g.phase = 'fight'; g.t = 0; }
+    } else if (g.phase === 'fight') {
+      g.timer -= dt;
+      if (g.timer <= 0) { g.timer = 0; this.endRound('time'); }
+    }
+    const inputs = g.f.map((f, i) => g.phase === 'fight' ? this.getInput(f, g.f[1 - i], sdt) : {});
+    this.pressQ.clear();
+    g.f.forEach((f, i) => this.updF(f, g.f[1 - i], inputs[i], sdt));
+    this.separate();
+    if (g.phase === 'fight') { this.checkHit(g.f[0], g.f[1]); this.checkHit(g.f[1], g.f[0]); }
+    if (g.phase === 'ko' && g.t > 2.8) this.afterRound();
+  }
+  getInput(f, o, dt) {
+    if (f.ctrl === 'ai') return this.aiInput(f, o, dt);
+    const K = f.ctrl === 'p1' ? this.K1 : this.K2;
+    const has = a => a.some(c => this.keys.has(c)), pr = a => a.some(c => this.pressQ.has(c));
+    return { left: has(K.left), right: has(K.right), up: has(K.up), down: has(K.down), light: pr(K.light), heavy: pr(K.heavy), special: pr(K.special) };
+  }
+  aiInput(f, o, dt) {
+    const p = f.def.ai || this.ROSTER.cpu[1].ai, s = f.ai, inp = {};
+    const dist = Math.abs(o.x - f.x), tw = o.x > f.x ? 'right' : 'left', aw = tw === 'right' ? 'left' : 'right';
+    if (o.atk && dist < 300 && !s.reacted) { s.reacted = true; if (Math.random() < p.block) { s.act = 'block'; s.hold = 0.35; } }
+    if (!o.atk) s.reacted = false;
+    if (s.hold > 0) s.hold -= dt;
+    else if ((s.t -= dt) <= 0) {
+      s.t = p.tick * (0.6 + Math.random() * 0.8);
+      const r = Math.random();
+      if (f.meter >= 100 && dist < 400 && r < p.special) s.act = 'special';
+      else if (dist < 240) s.act = r < p.aggr ? (Math.random() < p.heavy ? 'heavy' : 'light') : r < p.aggr + 0.12 ? 'jump' : Math.random() < 0.5 ? 'away' : 'block';
+      else s.act = r < 0.07 ? 'jump' : r < 0.88 ? 'toward' : 'idle';
+    }
+    switch (s.act) {
+      case 'toward': inp[tw] = true; break;
+      case 'away': inp[aw] = true; break;
+      case 'block': inp.down = true; break;
+      case 'jump': inp.up = true; inp[tw] = true; s.act = 'toward'; break;
+      case 'light': case 'heavy': case 'special': inp[s.act] = true; s.act = 'idle'; break;
+    }
+    return inp;
+  }
+  updF(f, o, inp, dt) {
+    const G = this.G, g = this.g;
+    f.flash = Math.max(0, f.flash - dt);
+    f.trail += (f.hp - f.trail) * Math.min(1, dt * 2.5);
+    const grounded = f.y >= G;
+    if (f.ko) { f.koT += dt; }
+    else {
+      if (inp.light || inp.heavy || inp.special) { f.buf = inp.special ? 'special' : inp.heavy ? 'heavy' : 'light'; f.bufT = 0.18; }
+      f.bufT -= dt; if (f.bufT <= 0) f.buf = null;
+      if (f.stun > 0) { f.stun -= dt; f.blocking = false; if (grounded) f.vx *= 0.9; }
+      else if (f.bstun > 0) { f.bstun -= dt; f.blocking = true; f.vx *= 0.85; }
+      else if (f.atk) {
+        f.atk.t += dt; const m = this.MOVES[f.atk.type];
+        if (f.atk.type === 'special' && f.atk.t > m.start && f.atk.t < m.end) f.vx = f.face * m.dash;
+        else if (grounded) f.vx *= 0.8;
+        if (f.atk.t >= m.dur) f.atk = null;
+      } else {
+        if (g.phase !== 'done') f.face = o.x > f.x ? 1 : -1;
+        f.blocking = grounded && !!inp.down;
+        if (f.buf === 'special' && f.meter < 100) f.buf = null;
+        if (f.buf) {
+          f.atk = { type: f.buf, t: 0, hit: false }; f.blocking = false;
+          if (f.buf === 'special') { f.meter = 0; this.sfx('trumpet'); } else this.sfx('whoosh');
+          f.buf = null;
+        } else if (f.blocking) { f.vx = 0; }
+        else if (grounded) {
+          const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+          f.vx = dir * (dir === f.face ? 230 : 170);
+          if (inp.up) { f.vy = -640; f.vx = dir * 260; this.sfx('jump'); }
+        }
+      }
+    }
+    if (grounded && !f.atk && f.stun <= 0 && !f.ko) f.walkT += f.vx * f.face * dt * 0.06;
+    if (f.ko && grounded) f.vx *= 0.88;
+    f.vy += 1800 * dt; f.y += f.vy * dt; f.x += f.vx * dt;
+    if (f.y >= G) { f.y = G; f.vy = 0; }
+    if (g.mode !== 'demo') f.x = Math.max(80, Math.min(this.W - 80, f.x));
+  }
+  separate() {
+    const [a, b] = this.g.f; if (a.ko || b.ko) return;
+    const d = b.x - a.x, min = 195;
+    if (Math.abs(d) < min && Math.abs(a.y - b.y) < 110) {
+      const sg = d === 0 ? 1 : Math.sign(d), push = (min - Math.abs(d)) / 2;
+      a.x -= sg * push; b.x += sg * push;
+      if (this.g.mode !== 'demo') {
+        const lo = 80, hi = this.W - 80;
+        [a, b].forEach(f => { f.x = Math.max(lo, Math.min(hi, f.x)); });
+        if (Math.abs(b.x - a.x) < min) { if (a.x <= lo || a.x >= hi) b.x = a.x + sg * min; else a.x = b.x - sg * min; }
+      }
+    }
+  }
+  checkHit(a, b) {
+    const g = this.g;
+    if (!a.atk || a.atk.hit || b.ko) return;
+    const m = this.MOVES[a.atk.type];
+    if (a.atk.t < m.start || a.atk.t > m.end) return;
+    const cx = a.x + a.face * (100 + m.range / 2);
+    if (Math.abs(b.x - cx) > m.range / 2 + 55 || Math.abs(a.y - b.y) > 120) return;
+    a.atk.hit = true;
+    const blocked = b.blocking && b.face === -a.face && b.stun <= 0 && !b.atk;
+    let dmg = m.dmg * a.def.pow;
+    const px = (a.x + b.x) / 2, py = Math.min(a.y, b.y) - 95;
+    if (blocked) {
+      dmg *= a.atk.type === 'special' ? 0.3 : 0.15;
+      b.vx = a.face * m.knock * 0.5; b.bstun = 0.16; b.meter = Math.min(100, b.meter + 4);
+      this.burst(px, py, this.INK, 6, 0.6); this.sfx('block'); g.hitstop = 0.04;
+    } else {
+      b.stun = m.stun; b.vx = a.face * m.knock; b.atk = null; b.flash = 0.12; b.blocking = false;
+      if (a.atk.type === 'heavy') b.vy = -220; if (a.atk.type === 'special') b.vy = -360;
+      a.meter = Math.min(100, a.meter + m.meter); b.meter = Math.min(100, b.meter + m.meter * 0.6);
+      this.burst(px, py, this.ACC, a.atk.type === 'light' ? 10 : 18, a.atk.type === 'light' ? 1 : 1.6);
+      if (this.props.screenShake ?? true) g.shake = a.atk.type === 'light' ? 3 : 9;
+      g.hitstop = a.atk.type === 'light' ? 0.05 : 0.11;
+      this.sfx(a.atk.type === 'light' ? 'hit' : 'heavy');
+    }
+    b.hp = Math.max(0, b.hp - dmg);
+    if (g.mode === 'arcade' && a === g.f[0]) this.runScore += Math.round(dmg * 10 * (1 + g.stage * 0.5));
+    if (b.hp <= 0) { b.ko = true; b.vy = -420; b.vx = a.face * 300; this.endRound('ko'); }
+  }
+  burst(x, y, color, n, sp) {
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2, v = (150 + Math.random() * 350) * sp;
+      this.g.parts.push({ x, y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v - 200, life: 0.35 + Math.random() * 0.3, size: 4 + Math.random() * 8, color: Math.random() < 0.3 ? this.INK : color });
+    }
+  }
+
+  // ---------- render ----------
+  draw(dt) {
+    const c = this.canvasRef.current; if (!c || !this.g) return;
+    const dpr = window.devicePixelRatio || 1, cw = Math.round(c.clientWidth * dpr), ch = Math.round(c.clientHeight * dpr);
+    if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
+    const ctx = c.getContext('2d'), g = this.g, W = this.W, H = this.H, G = this.G, s = c.width / W;
+    const side = g.mode === 'demo' || g.phase === 'done';
+    const mid = (g.f[0].x + g.f[1].x) / 2;
+    const tgt = side ? 700 - mid : 0;
+    this.camX += (tgt - this.camX) * Math.min(1, dt * (g.mode === 'demo' ? 3 : 4));
+    ctx.setTransform(s, 0, 0, s, 0, 0);
+    ctx.fillStyle = this.BG; ctx.fillRect(0, 0, W, H);
+    const sx = (Math.random() - 0.5) * g.shake * 2, sy = (Math.random() - 0.5) * g.shake * 2;
+    ctx.save(); ctx.translate(sx, sy);
+    ctx.fillStyle = this.ACC; ctx.beginPath(); ctx.arc(790 + this.camX * 0.15, 150, 64, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#d7d3d3'; ctx.lineWidth = 1;
+    const off = ((this.camX % 60) + 60) % 60;
+    ctx.beginPath();
+    for (let x = off - 60; x <= W + 60; x += 60) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, G); }
+    for (let y = 20; y < G; y += 60) { ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5); }
+    ctx.stroke();
+    ctx.fillStyle = '#eae9e9'; ctx.fillRect(0, G, W, H - G);
+    ctx.fillStyle = this.INK; ctx.fillRect(0, G, W, 4);
+    for (let x = off - 60; x <= W + 60; x += 60) ctx.fillRect(x, G + 4, 2, 12);
+    ctx.save(); ctx.translate(this.camX, 0);
+    g.f.forEach(f => this.drawEl(ctx, f));
+    g.parts.forEach(p => { ctx.globalAlpha = Math.min(1, p.life * 3); ctx.fillStyle = p.color; ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); });
+    ctx.globalAlpha = 1;
+    ctx.restore(); ctx.restore();
+    if (g.mode !== 'demo') { this.drawHUD(ctx); this.drawAnnounce(ctx); }
+  }
+  drawEl(ctx, f) {
+    const G = this.G, d = f.def, g = this.g;
+    let B = d.body, D = d.dark;
+    if (f.flash > 0) { B = '#ffc4b8'; D = '#ff9783'; }
+    const m = f.atk ? this.MOVES[f.atk.type] : null, at = f.atk ? f.atk.t : 0;
+    let lean = 0, trunk = 'rest', crouch = 0;
+    if (m) {
+      const pre = at < m.start, act = at >= m.start && at <= m.end;
+      if (f.atk.type === 'light') trunk = pre ? 'wind' : act ? 'whip' : 'rest';
+      else if (f.atk.type === 'heavy') { lean = pre ? -8 * (at / m.start) : act ? 22 : 22 * Math.max(0, 1 - (at - m.end) / (m.dur - m.end)); trunk = act ? 'tuck' : 'rest'; }
+      else { lean = act ? 14 : 0; trunk = 'up'; }
+    }
+    if (f.stun > 0 && !f.ko) lean = -12;
+    if (f.blocking) { crouch = 8; trunk = 'guard'; lean = 6; }
+    if (f.win && (g.phase === 'ko' || g.phase === 'done') && !f.atk) { trunk = 'up'; lean = -6; }
+    const air = f.y < G - 1;
+    const sw = 160 * (1 - Math.min(0.5, (G - f.y) / 400));
+    ctx.fillStyle = 'rgba(32,30,29,0.14)'; ctx.fillRect(f.x - sw / 2, G - 2, sw, 6);
+    ctx.save(); ctx.translate(f.x, f.y); ctx.scale(f.face, 1);
+    if (f.ko) { const k = Math.min(1, f.koT * 2.2); ctx.translate(-70, 0); ctx.rotate(-k * 0.55); ctx.translate(70, 0); }
+    if (m && f.atk.type === 'special' && at > m.start && at < m.end) {
+      ctx.fillStyle = this.INK; for (let i = 0; i < 4; i++) ctx.fillRect(-170 - i * 18, -130 + i * 26, 70 - i * 8, 4);
+    }
+    const ph = f.walkT;
+    const l1 = air ? 16 : Math.max(0, Math.sin(ph)) * 10, l2 = air ? 16 : Math.max(0, -Math.sin(ph)) * 10;
+    const bob = (air ? 0 : Math.abs(Math.sin(ph)) * 2) + crouch;
+    ctx.fillStyle = D; ctx.fillRect(-54, -58 + bob, 22, 58 - bob - l2); ctx.fillRect(22, -58 + bob, 22, 58 - bob - l1);
+    ctx.save(); ctx.translate(0, bob);
+    ctx.strokeStyle = D; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-74, -116); ctx.lineTo(-88, -78 + Math.sin(ph * 2) * 4); ctx.stroke();
+    ctx.fillStyle = B; ctx.fillRect(-76, -132, 128, 80);
+    ctx.fillStyle = this.BG; ctx.fillRect(-54, -154, 60, 22); ctx.strokeStyle = this.INK; ctx.lineWidth = 2; ctx.strokeRect(-54, -154, 60, 22);
+    ctx.fillStyle = this.INK; ctx.fillRect(-54, -146, 60, 3);
+    ctx.fillRect(-26, -204, 3, 50);
+    ctx.fillStyle = d.flag; ctx.beginPath(); ctx.moveTo(-23, -204); ctx.lineTo(12 + Math.sin(ph * 3 + performance.now() / 200) * 3, -194); ctx.lineTo(-23, -182); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = B; ctx.fillRect(-68, -60 + bob, 24, 60 - bob - l1); ctx.fillRect(12, -60 + bob, 24, 60 - bob - l2);
+    ctx.save(); ctx.translate(44, -104 + bob); ctx.rotate(lean * Math.PI / 180); ctx.translate(-44, 104);
+    ctx.fillStyle = B; ctx.fillRect(36, -148, 54, 66);
+    ctx.fillStyle = D; ctx.fillRect(28, -140, 26, 50);
+    ctx.fillStyle = this.BG; ctx.fillRect(72, -130, 7, 7);
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = this.INK; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(82, -90); ctx.lineTo(126, -82); ctx.lineTo(82, -80); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const sway = Math.sin(performance.now() / 300 + f.x) * 3;
+    const P = {
+      rest: [[98, -72], [96 + sway, -36], [108 + sway, -22]],
+      wind: [[104, -122], [96, -150], [82, -156]],
+      whip: [[124, -106], [162, -102], [186, -112]],
+      tuck: [[98, -84], [92, -60], [80, -54]],
+      up: [[100, -134], [114, -164], [134, -176]],
+      guard: [[100, -84], [92, -58], [74, -62]]
+    }[trunk];
+    ctx.strokeStyle = B; ctx.lineWidth = 16; ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.moveTo(86, -106); P.forEach(p => ctx.lineTo(p[0], p[1])); ctx.stroke();
+    ctx.restore();
+    if (f.blocking) { ctx.fillStyle = this.INK; ctx.fillRect(132, -156, 6, 140); ctx.fillRect(132, -156, 16, 6); ctx.fillRect(132, -22, 16, 6); }
+    ctx.restore();
+  }
+  drawHUD(ctx) {
+    const g = this.g, W = this.W, [a, b] = g.f, bw = 360, bh = 24, y = 26, F = this.F;
+    this.bar(ctx, 32, y, bw, bh, a, false);
+    this.bar(ctx, W - 32 - bw, y, bw, bh, b, true);
+    ctx.fillStyle = this.BG; ctx.fillRect(W / 2 - 46, 16, 92, 58);
+    ctx.strokeStyle = this.INK; ctx.lineWidth = 2; ctx.strokeRect(W / 2 - 46, 16, 92, 58);
+    ctx.fillStyle = g.timer < 10 && g.phase === 'fight' ? this.ACC : this.INK; ctx.textAlign = 'center';
+    ctx.font = `800 40px ${F}`; ctx.fillText(String(Math.ceil(g.timer)), W / 2, 60);
+    if (g.mode === 'arcade') { ctx.fillStyle = this.INK; ctx.font = `600 13px ${F}`; ctx.fillText('SCORE ' + this.runScore.toLocaleString('en-US'), W / 2, 94); }
+    ctx.fillStyle = this.INK; ctx.font = `800 16px ${F}`;
+    ctx.textAlign = 'left'; ctx.fillText(a.def.name, 32, y + bh + 22);
+    const aw = ctx.measureText(a.def.name).width; ctx.font = `600 11px ${F}`; ctx.fillText(a.def.en, 40 + aw, y + bh + 22);
+    ctx.font = `800 16px ${F}`; ctx.textAlign = 'right'; ctx.fillText(b.def.name, W - 32, y + bh + 22);
+    const bwn = ctx.measureText(b.def.name).width; ctx.font = `600 11px ${F}`; ctx.fillText(b.def.en, W - 40 - bwn, y + bh + 22);
+    const r = this.rtw;
+    for (let i = 0; i < r; i++) {
+      [[32 + bw - (i + 1) * 18, g.wins[0] > i], [W - 32 - bw + i * 18 + 6, g.wins[1] > i]].forEach(([x, on]) => {
+        ctx.fillStyle = on ? this.ACC : this.BG; ctx.fillRect(x, y + bh + 10, 12, 12); ctx.strokeStyle = this.INK; ctx.lineWidth = 2; ctx.strokeRect(x, y + bh + 10, 12, 12);
+      });
+    }
+    const mw = 200, my = y + bh + 34;
+    [[32, a, false], [W - 32 - mw, b, true]].forEach(([x, f, rev]) => {
+      const full = f.meter >= 100, blink = full && Math.floor(performance.now() / 160) % 2 === 0;
+      ctx.fillStyle = this.BG; ctx.fillRect(x, my, mw, 8);
+      ctx.fillStyle = full ? (blink ? this.ACC : this.INK) : this.INK;
+      const w = mw * f.meter / 100; ctx.fillRect(rev ? x + mw - w : x, my, w, 8);
+      ctx.strokeStyle = this.INK; ctx.lineWidth = 2; ctx.strokeRect(x, my, mw, 8);
+      ctx.font = `600 11px ${F}`; ctx.fillStyle = full ? this.ACC : this.INK;
+      ctx.textAlign = rev ? 'right' : 'left';
+      ctx.fillText(full ? 'พลังเต็ม · CHARGE READY' : 'พลัง · POWER', rev ? x - 10 : x + mw + 10, my + 8);
+    });
+  }
+  bar(ctx, x, y, w, h, f, rev) {
+    ctx.fillStyle = this.BG; ctx.fillRect(x, y, w, h);
+    const r = f.hp / f.maxHp, tr = Math.max(r, f.trail / f.maxHp);
+    ctx.fillStyle = '#ffc4b8'; ctx.fillRect(rev ? x + w - w * tr : x, y, w * tr, h);
+    ctx.fillStyle = f.def.body; ctx.fillRect(rev ? x + w - w * r : x, y, w * r, h);
+    ctx.strokeStyle = this.INK; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
+  }
+  drawAnnounce(ctx) {
+    const g = this.g, t = g.t;
+    const band = (lt, th, en) => {
+      const k = Math.min(1, lt * 6), W = this.W, F = this.F;
+      ctx.fillStyle = this.ACC; ctx.fillRect(0, 200, W * k, 124);
+      if (k < 1) return;
+      ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left';
+      ctx.font = `800 64px ${F}`; ctx.fillText(th, 48, 274);
+      ctx.font = `800 20px ${F}`; ctx.fillText(en, 52, 306);
+    };
+    if (g.phase === 'intro') {
+      const fin = g.wins[0] === this.rtw - 1 && g.wins[1] === this.rtw - 1 && this.rtw > 1;
+      if (t < 1.0) band(t, fin ? 'ยกตัดสิน' : 'ยกที่ ' + g.round, fin ? 'FINAL ROUND' : 'ROUND ' + g.round);
+      else band(t - 1.0, 'สู้!', 'FIGHT');
+    } else if (g.phase === 'ko' && t > 0.15) {
+      if (t < 1.4) band(t - 0.15, g.reason === 'ko' ? 'น็อก!' : 'หมดเวลา', g.reason === 'ko' ? 'K.O.' : 'TIME UP');
+      else { const w = g.rw >= 0 ? g.f[g.rw].def : null; band(t - 1.4, w ? w.name + ' ชนะ' : 'เสมอ', w ? w.en + ' WINS THE ROUND' : 'DRAW'); }
+    }
+  }
+
+  // ---------- actions ----------
+  begin(mode, stage) {
+    this.ac(); this.sfx('select');
+    if (mode === 'arcade' && stage === 0) this.runScore = 0;
+    this.startMatch(mode, stage);
+    this.keys.clear(); this.pressQ.clear();
+    this.setState({ screen: 'fight', paused: false, stage, shareMsg: '', newHi: false });
+  }
+  doShare() {
+    const s = this.state, fmt = n => n.toLocaleString('en-US');
+    let text;
+    if (s.screen === 'vsresult') { const w = s.winner === 0 ? this.ROSTER.p1 : this.ROSTER.p2; text = `ยุทธหัตถี · Elephant Duel — ${w.name} (ผู้เล่น ${s.winner + 1}) ชนะ ${s.vsWins[0]}–${s.vsWins[1]}`; }
+    else text = `ยุทธหัตถี · Elephant Duel — ${fmt(s.score)} คะแนน · ผ่าน ${s.stagesCleared}/3 ด่าน${s.cleared ? ' · แชมป์!' : ''}`;
+    const done = msg => this.setState({ shareMsg: msg });
+    const copy = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => done('คัดลอกผลแล้ว · Copied to clipboard'), () => fallback());
+      else fallback();
+    };
+    const fallback = () => {
+      try { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done('คัดลอกผลแล้ว · Copied to clipboard'); }
+      catch (e) { done(text); }
+    };
+    if (navigator.share) navigator.share({ title: 'ยุทธหัตถี', text }).then(() => done('แชร์แล้ว · Shared'), () => copy());
+    else copy();
+  }
+
+  renderVals() {
+    const s = this.state, fmt = n => (n || 0).toLocaleString('en-US');
+    const next = this.ROSTER.cpu[Math.min(2, s.stage + 1)];
+    const wDef = s.winner === 0 ? this.ROSTER.p1 : this.ROSTER.p2;
+    return {
+      stageRef: this.stageRef, canvasRef: this.canvasRef,
+      isTitle: s.screen === 'title', isHowto: s.screen === 'howto', isPaused: s.screen === 'fight' && s.paused,
+      isStageClear: s.screen === 'stageclear', isGameOver: s.screen === 'gameover', isVsResult: s.screen === 'vsresult',
+      muted: s.muted, soundOn: !s.muted,
+      hiscore: fmt(s.hiscore), score: fmt(s.score),
+      cleared: s.cleared, notCleared: !s.cleared, newHi: s.newHi, stagesCleared: s.stagesCleared,
+      stageNo: s.stage + 1, nextName: next.name, nextEn: next.en,
+      winnerTh: `ผู้เล่น ${s.winner + 1} ชนะ`, winnerEn: `PLAYER ${s.winner + 1} WINS`, winnerName: `${wDef.name} · ${wDef.en}`,
+      vsScore: `${s.vsWins[0]} – ${s.vsWins[1]}`,
+      roundsToWin: this.rtw, roundTime: this.rtime,
+      shareMsg: s.shareMsg, hasShareMsg: !!s.shareMsg,
+      playArcade: () => this.begin('arcade', 0),
+      playVs: () => this.begin('vs', 0),
+      showHowto: () => { this.ac(); this.sfx('select'); this.setState({ screen: 'howto' }); },
+      backToTitle: () => { this.ac(); this.sfx('select'); this.startMatch('demo', 0); this.setState({ screen: 'title', paused: false }); },
+      nextStage: () => this.begin('arcade', s.stage + 1),
+      retry: () => this.begin('arcade', 0),
+      rematch: () => this.begin('vs', 0),
+      resume: () => this.setState({ paused: false }),
+      share: () => this.doShare(),
+      toggleSound: () => { this.ac(); this.setState(st => ({ muted: !st.muted })); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Normalize line endings (Godot convention)
+* text=auto eol=lf
+*.ttf binary
+*.png binary
+*.jpg binary

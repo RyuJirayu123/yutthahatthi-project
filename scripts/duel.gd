@@ -1,0 +1,449 @@
+class_name Duel
+extends RefCounted
+## One match between two elephants: rounds, timer, hit detection, particles.
+## Pure simulation — Arena draws it, Main reacts to `finished`.
+
+signal finished(winner: int)
+
+## Short text that pops up during a fight ("เสียหลัก!", "ฟันปิดฉาก!").
+class Callout:
+	var th: String
+	var en: String
+	var x: float
+	var t := 0.0
+	var big: bool
+
+## Earthquake shockwave running along the ground.
+class Wave:
+	var x: float
+	var dir: int
+	var owner: Fighter
+	var traveled := 0.0
+	var hit := false
+
+class Particle:
+	var x: float
+	var y: float
+	var vx: float
+	var vy: float
+	var life: float
+	var size: float
+	var color: Color
+
+const INK := GameData.INK
+const ACC := GameData.ACC
+const MIN_GAP := 195.0
+
+var mode: String          ## "arcade", "vs" or "demo"
+var stage: int
+var defs: Array[ElephantDef]
+var ctrls: Array[String]
+var round_time: float
+var rounds_to_win: int
+var screen_shake: bool
+var ai: AIProfile
+
+var wins: Array[int] = [0, 0]
+var round_no := 1
+var fighters: Array[Fighter] = []
+var parts: Array[Particle] = []
+var phase := "intro"      ## intro, fight, ko, done
+var t := 0.0
+var timer := 0.0
+var belled := false
+var reason := ""
+var round_winner := -1
+var shake := 0.0
+var hitstop := 0.0
+var white := 0.0          ## full-screen flash on a decisive strike
+var callouts: Array[Callout] = []
+var waves: Array[Wave] = []
+var run_score := 0
+var _presses := {}
+
+
+func _init(p_mode: String, p_stage: int, left: ElephantDef, right: ElephantDef, p_ai: AIProfile, p_round_time: float, p_rounds_to_win: int, p_screen_shake: bool) -> void:
+	ai = p_ai
+	mode = p_mode
+	stage = p_stage
+	defs = [left, right]
+	ctrls = ["ai" if mode == "demo" else "p1", "p2" if mode == "vs" else "ai"]
+	round_time = p_round_time
+	rounds_to_win = p_rounds_to_win
+	screen_shake = p_screen_shake
+	Sfx.quiet = mode == "demo"
+	reset_round()
+
+
+## Queue a just-pressed attack action ("p1_light", …) for the next simulated frame.
+func press(action: String) -> void:
+	_presses[action] = true
+
+
+func clear_presses() -> void:
+	_presses.clear()
+
+
+func reset_round() -> void:
+	fighters = [Fighter.new(defs[0], 300.0, 1, ctrls[0]), Fighter.new(defs[1], 660.0, -1, ctrls[1])]
+	for f in fighters:
+		f.ai = ai
+	phase = "intro"
+	t = 0.0
+	timer = 99.0 if mode == "demo" else round_time
+	belled = false
+	parts.clear()
+	waves.clear()
+
+
+func update(dt: float) -> void:
+	t += dt
+	var alive: Array[Particle] = []
+	for p in parts:
+		p.life -= dt
+		if p.life > 0.0:
+			p.vy += 1400.0 * dt
+			p.x += p.vx * dt
+			p.y += p.vy * dt
+			alive.append(p)
+	parts = alive
+	shake = maxf(0.0, shake - dt * 30.0)
+	white = maxf(0.0, white - dt)
+	var live: Array[Callout] = []
+	for c in callouts:
+		c.t += dt
+		if c.t < 1.3:
+			live.append(c)
+	callouts = live
+	if hitstop > 0.0:
+		hitstop -= dt
+		return
+	var sdt := dt
+	if phase == "ko" and t < 0.8:
+		sdt = dt * 0.35
+	if phase == "intro":
+		if t > 1.0 and not belled:
+			belled = true
+			_sfx("bell")
+		if t > 1.7:
+			phase = "fight"
+			t = 0.0
+	elif phase == "fight":
+		timer -= dt
+		if timer <= 0.0:
+			timer = 0.0
+			_end_round("time")
+	for i in 2:
+		fighters[i].wave_warning = _wave_near(fighters[i])
+	var inputs: Array[Dictionary] = []
+	for i in 2:
+		inputs.append(_input_for(fighters[i], fighters[1 - i], sdt) if phase == "fight" else {})
+	_presses.clear()
+	for i in 2:
+		var f := fighters[i]
+		f.step(fighters[1 - i], inputs[i], sdt, phase == "done")
+		if mode != "demo":
+			f.x = clampf(f.x, GameData.WALL, GameData.W - GameData.WALL)
+	for i in 2:
+		_move_events(fighters[i], fighters[1 - i])
+	_separate()
+	_update_waves(sdt)
+	if phase == "fight":
+		_check_hit(fighters[0], fighters[1])
+		_check_hit(fighters[1], fighters[0])
+	if phase == "ko" and t > 2.8:
+		_after_round()
+
+
+func _input_for(f: Fighter, o: Fighter, dt: float) -> Dictionary:
+	if f.ctrl == "ai":
+		return f.think(o, dt)
+	var p := f.ctrl + "_"
+	return {
+		"left": Input.is_action_pressed(p + "left"),
+		"right": Input.is_action_pressed(p + "right"),
+		"up": Input.is_action_pressed(p + "up"),
+		"down": Input.is_action_pressed(p + "down"),
+		"light": _presses.has(p + "light"),
+		"heavy": _presses.has(p + "heavy"),
+		"special": _presses.has(p + "special"),
+		"rider": _presses.has(p + "rider"),
+	}
+
+
+func _end_round(why: String) -> void:
+	if phase != "fight":
+		return
+	phase = "ko"
+	t = 0.0
+	reason = why
+	var a := fighters[0]
+	var b := fighters[1]
+	var ra := a.hp / a.max_hp
+	var rb := b.hp / b.max_hp
+	round_winner = -1 if absf(ra - rb) < 0.001 else (0 if ra > rb else 1)
+	if round_winner >= 0:
+		wins[round_winner] += 1
+		fighters[round_winner].win = true
+	if mode == "arcade" and round_winner == 0:
+		run_score += roundi((1000 + floorf(timer) * 20 + (2000 if a.hp >= a.max_hp else 0)) * (1 + stage * 0.5))
+	_sfx("ko" if why == "ko" else "bell")
+
+
+func _after_round() -> void:
+	var r := rounds_to_win
+	if wins[0] >= r or wins[1] >= r or round_no >= r * 2 + 1:
+		var w: int
+		if wins[0] == wins[1]:
+			w = 0 if fighters[0].hp >= fighters[1].hp else 1
+		else:
+			w = 0 if wins[0] > wins[1] else 1
+		if mode != "demo":
+			phase = "done"
+			t = 0.0
+			for i in 2:
+				fighters[i].win = i == w
+		finished.emit(w)
+	else:
+		round_no += 1
+		reset_round()
+
+
+func _separate() -> void:
+	var a := fighters[0]
+	var b := fighters[1]
+	if a.ko or b.ko:
+		return
+	var d := b.x - a.x
+	if absf(d) < MIN_GAP and absf(a.y - b.y) < 110.0:
+		var sg := 1.0 if d == 0.0 else signf(d)
+		var push := (MIN_GAP - absf(d)) / 2.0
+		a.x -= sg * push
+		b.x += sg * push
+		if mode != "demo":
+			var lo := GameData.WALL
+			var hi := GameData.W - GameData.WALL
+			a.x = clampf(a.x, lo, hi)
+			b.x = clampf(b.x, lo, hi)
+			if absf(b.x - a.x) < MIN_GAP:
+				if a.x <= lo or a.x >= hi:
+					b.x = a.x + sg * MIN_GAP
+				else:
+					a.x = b.x - sg * MIN_GAP
+
+
+func _check_hit(a: Fighter, b: Fighter) -> void:
+	if b.ko:
+		return
+	if a.atk != "":
+		var m := GameData.move(a.atk)
+		for i in m.hits.size():
+			var h := m.hits[i]
+			if a.atk_mask & (1 << i) == 0 and _connects(a, b, h, a.atk_t):
+				a.atk_mask |= 1 << i
+				_land(a, b, m, h)
+				if b.ko:
+					return
+	if a.rider_t >= 0.0 and not a.rider_hit:
+		var rm := GameData.move("rider")
+		if _connects(a, b, rm.hits[0], a.rider_t):
+			a.rider_hit = true
+			_land(a, b, rm, rm.hits[0])
+
+
+func _connects(a: Fighter, b: Fighter, h: GameData.Hit, t: float) -> bool:
+	if t < h.start or t > h.stop:
+		return false
+	var cx := a.x + a.face * (h.offset + h.reach / 2.0)
+	return absf(b.x - cx) <= h.reach / 2.0 + 55.0 and absf(a.y - b.y) <= h.vreach
+
+
+func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
+	var finisher := m.id == "rider" and b.dazed > 0.0
+	var blocked := b.blocking and b.face == -a.face and b.stun <= 0.0 and b.atk == "" and not h.overhead
+	var armored := not finisher and b.atk != "" and b.atk_t < GameData.move(b.atk).armor
+	var skill := a.def.rider_skill if m.id == "rider" or m.id == "storm" else 1.0
+	var dmg := h.dmg * a.def.power * skill * (GameData.BUFF_POWER if a.buff_t > 0.0 else 1.0)
+	var shaken := h.balance * skill / b.def.steady
+	var px := (a.x + b.x) / 2.0
+	var py := minf(a.y, b.y) - 95.0
+	if finisher:
+		_finisher(a, b)
+		dmg = GameData.FINISHER_DMG * a.def.power
+	elif blocked:
+		dmg *= 0.3 if m.ultimate else 0.15
+		b.vx = a.face * h.knock * 0.5
+		b.bstun = 0.16
+		b.meter = minf(100.0, b.meter + 4.0 * b.def.charge)
+		_burst(px, py, Color.WHITE, 6, 0.6)
+		_sfx("block")
+		hitstop = 0.04
+		_shake_rider(b, shaken * 0.3)
+	elif armored:
+		# super armor: takes the damage but keeps going
+		b.flash = 0.12
+		_burst(px, py, GameData.GOLD_LIGHT, 10, 1.0)
+		_sfx("block")
+		hitstop = 0.08
+		_shake_rider(b, shaken * 0.5)
+	else:
+		var big := h.dmg >= 9.0
+		b.stun = h.stun
+		b.vx = a.face * h.knock * (-1.0 if h.pull else 1.0)
+		if h.lift != 0.0:
+			b.vy = h.lift
+		b.atk = ""
+		b.rider_t = -1.0
+		b.flash = 0.12
+		b.blocking = false
+		a.meter = minf(100.0, a.meter + h.meter * a.def.charge)
+		b.meter = minf(100.0, b.meter + h.meter * 0.6 * b.def.charge)
+		_burst(px, py, ACC, 18 if big else 10, 1.6 if big else 1.0)
+		if screen_shake:
+			shake = 9.0 if big else 3.0
+		hitstop = 0.11 if big else 0.05
+		_sfx(h.sound)
+		_shake_rider(b, shaken)
+		if h.daze:
+			_shake_rider(b, 1000.0)
+	b.hp = maxf(0.0, b.hp - dmg)
+	if mode == "arcade" and a == fighters[0]:
+		run_score += roundi(dmg * 10 * (1 + stage * 0.5))
+	if b.hp <= 0.0:
+		b.ko = true
+		b.vy = -420.0
+		b.vx = a.face * 300.0
+		_end_round("ko")
+
+
+## One-off moments inside a move: the ultimate's name pops up, then teleport / stomp / blessing.
+func _move_events(f: Fighter, o: Fighter) -> void:
+	if f.atk == "":
+		return
+	var m := GameData.move(f.atk)
+	if f.atk_new:
+		f.atk_new = false
+		if m.ultimate and mode != "demo":
+			_callout(m.name_th + "!", m.name_en, f.x, false)
+	if m.event == "" or f.event_done or f.atk_t < m.event_at:
+		return
+	f.event_done = true
+	match m.event:
+		"teleport":
+			# lightning step: reappear behind the opponent (or in front if a wall is in the way)
+			var dir := signf(o.x - f.x) if o.x != f.x else float(f.face)
+			var lo := GameData.WALL if mode != "demo" else -INF
+			var hi := GameData.W - GameData.WALL if mode != "demo" else INF
+			var to := clampf(o.x + dir * 175.0, lo, hi)
+			if absf(to - o.x) < 150.0:
+				to = clampf(o.x - dir * 175.0, lo, hi)
+			_burst(f.x, f.y - 60.0, INK, 8, 0.8)
+			f.x = to
+			f.vx = 0.0
+			f.face = 1 if o.x > f.x else -1
+			_burst(f.x, f.y - 60.0, INK, 8, 0.8)
+			_sfx("blink")
+		"wave":
+			var w := Wave.new()
+			w.x = f.x + f.face * 90.0
+			w.dir = f.face
+			w.owner = f
+			waves.append(w)
+			if screen_shake:
+				shake = 10.0
+			_sfx("quake")
+		"bless":
+			f.hp = minf(f.max_hp, f.hp + GameData.BLESS_HEAL)
+			f.balance = 100.0
+			f.dazed = 0.0
+			f.buff_t = GameData.BUFF_TIME
+			_sfx("bless")
+
+
+func _update_waves(dt: float) -> void:
+	var live: Array[Wave] = []
+	for w in waves:
+		var step := GameData.WAVE_SPEED * dt
+		w.x += w.dir * step
+		w.traveled += step
+		if randf() < 0.5:
+			_burst(w.x, GameData.GROUND - 6.0, INK, 1, 0.35)
+		var target := fighters[1] if w.owner == fighters[0] else fighters[0]
+		if phase == "fight" and not w.hit and not target.ko and target.y >= GameData.GROUND - 12.0 and absf(target.x - w.x) < 50.0:
+			w.hit = true
+			var m := GameData.move("quake")
+			_land(w.owner, target, m, m.wave)
+		if w.traveled < GameData.WAVE_RANGE and not w.hit:
+			live.append(w)
+	waves = live
+
+
+## True when an enemy shockwave is close and heading this way (the CPU jumps it).
+func _wave_near(f: Fighter) -> bool:
+	for w in waves:
+		if w.owner != f and signf(f.x - w.x) == w.dir and absf(f.x - w.x) < 150.0:
+			return true
+	return false
+
+
+func _shake_rider(f: Fighter, amount: float) -> void:
+	if f.dazed > 0.0:
+		return
+	f.balance_t = 0.0
+	f.balance = maxf(0.0, f.balance - amount)
+	if f.balance <= 0.0:
+		f.dazed = GameData.DAZE_TIME
+		_callout("เสียหลัก!", "OFF BALANCE", f.x, false)
+		_sfx("daze")
+
+
+## Glaive strike on a dazed rider — the duel's decisive blow.
+func _finisher(a: Fighter, b: Fighter) -> void:
+	b.dazed = 0.0
+	b.balance = 50.0
+	b.balance_t = 0.0
+	b.stun = 0.9
+	b.vx = a.face * 520.0
+	b.vy = -300.0
+	b.atk = ""
+	b.rider_t = -1.0
+	b.flash = 0.2
+	b.blocking = false
+	_burst((a.x + b.x) / 2.0, minf(a.y, b.y) - 150.0, ACC, 30, 2.0)
+	if screen_shake:
+		shake = 14.0
+	hitstop = 0.3
+	white = 0.3
+	_callout("ฟันปิดฉาก!", "DECISIVE STRIKE", b.x, true)
+	_sfx("finisher")
+	if mode == "arcade" and a == fighters[0]:
+		run_score += roundi(1500 * (1 + stage * 0.5))
+
+
+func _callout(th: String, en: String, x: float, big: bool) -> void:
+	var c := Callout.new()
+	c.th = th
+	c.en = en
+	c.x = x
+	c.big = big
+	callouts.append(c)
+
+
+func _burst(x: float, y: float, color: Color, n: int, sp: float) -> void:
+	for i in n:
+		var ang := randf() * TAU
+		var v := (150.0 + randf() * 350.0) * sp
+		var p := Particle.new()
+		p.x = x
+		p.y = y
+		p.vx = cos(ang) * v
+		p.vy = sin(ang) * v - 200.0
+		p.life = 0.35 + randf() * 0.3
+		p.size = 4.0 + randf() * 8.0
+		p.color = GameData.GOLD_LIGHT if randf() < 0.3 else color
+		parts.append(p)
+
+
+func _sfx(n: String) -> void:
+	if mode != "demo":
+		Sfx.play(n)

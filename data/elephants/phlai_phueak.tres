@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ElephantDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/elephant_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+display_name = "พลายเผือก"
+name_en = "PHLAI PHUEAK"
+tagline = "ช้างเผือก ชาร์จพลังไว"
+tagline_en = "WHITE ELEPHANT · FAST CHARGE"
+body = Color(0.9294, 0.8745, 0.8431, 1)
+dark = Color(0.7882, 0.6863, 0.6471, 1)
+cloth = Color(0.8784, 0.6588, 0.1647, 1)
+trim = Color(0.7843, 0.0980, 0.1176, 1)
+flag = Color(0.7843, 0.0980, 0.1176, 1)
+royal = false
+locked = false
+hp = 100.0
+power = 1.0
+speed = 1.0
+rider_skill = 1.0
+steady = 1.0
+charge = 1.4
+signature = "sweep"
+ultimate = "blessing"

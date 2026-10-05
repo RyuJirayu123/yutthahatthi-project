@@ -1,0 +1,38 @@
+[gd_scene load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/arena.gd" id="2_arena"]
+[ext_resource type="Script" path="res://scripts/ui.gd" id="3_ui"]
+[ext_resource type="Script" path="res://scripts/elephant_def.gd" id="4_def"]
+[ext_resource type="Script" path="res://scripts/ai_profile.gd" id="5_ai"]
+[ext_resource type="Resource" path="res://data/elephants/phlai_saeng.tres" id="6_saeng"]
+[ext_resource type="Resource" path="res://data/elephants/phlai_mek.tres" id="7_mek"]
+[ext_resource type="Resource" path="res://data/elephants/phlai_din.tres" id="8_din"]
+[ext_resource type="Resource" path="res://data/elephants/phlai_lek.tres" id="9_lek"]
+[ext_resource type="Resource" path="res://data/elephants/phlai_phueak.tres" id="10_phueak"]
+[ext_resource type="Resource" path="res://data/elephants/phaya_khotchasan.tres" id="11_khot"]
+[ext_resource type="Resource" path="res://data/ai/easy.tres" id="12_easy"]
+[ext_resource type="Resource" path="res://data/ai/normal.tres" id="13_normal"]
+[ext_resource type="Resource" path="res://data/ai/hard.tres" id="14_hard"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_main")
+roster = Array[ExtResource("4_def")]([ExtResource("6_saeng"), ExtResource("7_mek"), ExtResource("8_din"), ExtResource("9_lek"), ExtResource("10_phueak"), ExtResource("11_khot")])
+boss = ExtResource("11_khot")
+stage_ai = Array[ExtResource("5_ai")]([ExtResource("12_easy"), ExtResource("13_normal"), ExtResource("14_hard")])
+demo_ai = ExtResource("13_normal")
+
+[node name="Arena" type="Node2D" parent="."]
+script = ExtResource("2_arena")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Root" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_ui")

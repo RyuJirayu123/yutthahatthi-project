@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AIProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ai_profile.gd" id="1_ai"]
+
+[resource]
+script = ExtResource("1_ai")
+tick = 0.15
+block = 0.6
+aggr = 0.8
+heavy = 0.5
+special = 0.9
+rider = 0.35
