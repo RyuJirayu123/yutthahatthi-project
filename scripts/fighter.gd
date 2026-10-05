@@ -23,7 +23,9 @@ var buff_t := 0.0         ## blessing: damage boost time left
 var wave_warning := false ## an enemy shockwave is about to arrive
 var stun := 0.0
 var bstun := 0.0
-var blocking := false
+var guarding := false     ## holding back (standing) or down-back (crouching): hits from the front are guarded
+var crouching := false    ## holding down; a crouching guard stops low hits, a standing one stops high hits
+var blocking := false     ## guarding while an attack is coming: stands still in the guard pose
 var flash := 0.0
 var ko := false
 var buf := ""
@@ -61,6 +63,7 @@ var ai_chained := false   ## already decided how to follow up the move that conn
 var ai_dove := false
 var ai_countered := false
 var ai_aa := false        ## already decided whether to swat this jump-in
+var ai_low := false       ## guard crouching (down-back) rather than standing
 
 
 func _init(p_def: ElephantDef, p_x: float, p_face: int, p_ctrl: String) -> void:
@@ -114,17 +117,19 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 		if inp.get("special", false) and inp.get("heavy", false):
 			pressed = "ex"
 		else:
-			for a in ["special", "heavy", "light"]:
+			for a in ["special", "heavy", "medium", "light"]:
 				if inp.get(a, false):
 					pressed = a
 					break
 		if pressed != "":
 			if _buf_age < GameData.EX_WINDOW and ((pressed == "special" and buf == "heavy") or (pressed == "heavy" and buf == "special")):
 				pressed = "ex"
-			elif pressed == "light":
+			elif pressed == "light" or pressed == "medium":
 				var mo := _motion(inp)
 				if mo != "" and not (mo == "spout" and spout_live):
 					pressed = mo
+				elif inp.get("down", false) and y >= G:
+					pressed = "c" + pressed     # crouching (low) version
 			if pressed == "ex" and meter < GameData.EX_COST:
 				pressed = "heavy"
 			buf = pressed
@@ -151,6 +156,8 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 			if juggled and not grounded and juggle <= GameData.JUGGLE_MAX:
 				stun = maxf(stun, 0.05)    # no recovering in mid-air: a launched elephant is open until it lands
 			blocking = false
+			guarding = false
+			crouching = false
 			if grounded:
 				vx *= 0.9
 		elif bstun > 0.0:
@@ -176,20 +183,24 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 				if atk_t >= m.dur:
 					atk = ""
 		else:
-			if not facing_locked:
-				face = 1 if o.x > x else -1
-			blocking = grounded and inp.get("down", false) and dash_t <= 0.0
+			if not facing_locked and grounded:
+				face = 1 if o.x > x else -1    # keeps facing through a jump, turns on landing
+			# Street Fighter guard: hold back to guard standing, down-back to guard crouching
+			var free := grounded and dash_t <= 0.0
+			crouching = free and inp.get("down", false)
+			guarding = free and dir == -face
+			blocking = guarding and (o.atk != "" or o.rider_t >= 0.0 or wave_warning)
 			if buf == "special" and meter < 100.0 and not _ex_pending():
 				buf = ""
 			if buf != "" and not _ex_pending():
-				# F dives when airborne; G and H are this elephant's own signature move and ultimate
+				# F / R dive when airborne; G and H are this elephant's own signature move and ultimate
 				var kind := buf
-				if not grounded and kind in ["light", "spout", "uppercut"]:
+				if not grounded and kind in ["light", "medium", "clight", "cmedium", "spout", "uppercut"]:
 					kind = "dive"
 				elif kind == "spout" and spout_live:
 					kind = "light"
 				_begin(kind)
-			elif blocking:
+			elif blocking or crouching:
 				vx = 0.0
 			elif grounded and dash_t > 0.0:
 				vx = dash_dir * (GameData.DASH_SPEED if dash_dir == face else GameData.BACKSTEP_SPEED) * sqrt(def.speed)
@@ -201,8 +212,9 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 			elif grounded:
 				vx = dir * (230.0 if dir == face else 170.0) * def.speed
 				if inp.get("up", false):
-					vy = -640.0 * lerpf(1.0, def.speed, 0.4)
-					vx = dir * 260.0 * def.speed
+					# high and long enough to clear the other elephant and land behind it
+					vy = -780.0 * lerpf(1.0, def.speed, 0.25)
+					vx = dir * 345.0 * lerpf(1.0, def.speed, 0.5)
 					Sfx.play("jump")
 	if ko and grounded:
 		vx *= 0.88
@@ -226,6 +238,9 @@ func _begin(kind: String) -> void:
 		"heavy": _start(def.signature)
 		"ex": _start(def.signature, true)
 		"special": _start(def.ultimate)
+		"medium": _start("mid")
+		"clight": _start("clow")
+		"cmedium": _start("cmid")
 		_: _start(kind)
 
 
@@ -240,6 +255,8 @@ func _start(id: String, ex := false) -> void:
 	atk_new = true
 	event_done = false
 	blocking = false
+	guarding = false
+	crouching = id == "clow" or id == "cmid"
 	dash_t = 0.0
 	buf = ""
 	if m.ultimate:
@@ -253,11 +270,13 @@ func _start(id: String, ex := false) -> void:
 ## The move that cuts this one short once it has connected: the next link of the F string,
 ## the signature move (G) or the ultimate (H).
 func _follow_up(m: GameData.Move) -> String:
-	if buf == "" or atk_mask == 0 or atk_t < m.hits[0].stop or _ex_pending():
+	if buf == "" or m.hits.is_empty() or atk_t < m.hits[0].stop or _ex_pending():
+		return ""
+	if m.links.has(buf):
+		return m.links[buf]      # chains come out hit or miss: mashing still strings the moves together
+	if atk_mask == 0:
 		return ""
 	match buf:
-		"light":
-			return m.chain
 		"heavy", "ex", "spout", "uppercut":
 			return buf if m.cancel_heavy else ""
 		"special":
@@ -310,8 +329,11 @@ func think(o: Fighter, dt: float) -> Dictionary:
 		var m := GameData.move(atk)
 		if m.cancel_super and meter >= 100.0 and _ultimate_ok(dist) and randf() < ai.special:
 			inp["special"] = true
-		elif m.chain != "" and randf() < ai.combo:
-			inp["light"] = true
+		elif not m.links.is_empty() and randf() < ai.combo:
+			var keys: Array = m.links.keys()
+			var k: String = keys[randi() % keys.size()]
+			inp["medium" if k.ends_with("medium") else "light"] = true
+			inp["down"] = k.begins_with("c")
 		elif m.cancel_heavy and randf() < ai.combo * 0.6:
 			inp["heavy"] = true
 			if meter >= GameData.EX_COST and meter < 100.0 and randf() < ai.special * 0.4:
@@ -351,6 +373,7 @@ func think(o: Fighter, dt: float) -> Dictionary:
 			else:
 				ai_act = "block"
 				ai_hold = 0.35
+				ai_low = _ai_guard_low(o)
 	if not threat:
 		ai_reacted = false
 	if wave_warning and not ai_wave_seen:
@@ -375,13 +398,13 @@ func think(o: Fighter, dt: float) -> Dictionary:
 				ai_act = "backstep" if randf() < 0.4 else "away"
 			elif meter >= 100.0 and _ultimate_ok(dist) and r < ai.special:
 				ai_act = "special"
-			elif dist < 240.0:
+			elif dist < 270.0:
 				if r < ai.aggr:
 					var pick := randf()
 					if pick < ai.rider:
 						ai_act = "rider"
 					else:
-						ai_act = "heavy" if randf() < ai.heavy else "light"
+						ai_act = "heavy" if randf() < ai.heavy else _ai_normal(dist)
 				elif r < ai.aggr + 0.12:
 					ai_act = "jump"
 				else:
@@ -405,7 +428,8 @@ func think(o: Fighter, dt: float) -> Dictionary:
 			inp[tw if ai_act == "dash" else aw] = true
 			ai_act = "toward" if ai_act == "dash" else "away"
 		"block":
-			inp["down"] = true
+			inp[aw] = true
+			inp["down"] = ai_low
 		"jump":
 			inp["up"] = true
 			inp[tw] = true
@@ -414,7 +438,13 @@ func think(o: Fighter, dt: float) -> Dictionary:
 			inp["light"] = true
 			inp["qcf"] = true
 			ai_act = "idle"
-		"light", "heavy", "special", "rider":
+		"light", "medium", "clight", "cmedium":
+			inp["medium" if ai_act.ends_with("medium") else "light"] = true
+			inp["down"] = ai_act.begins_with("c")
+			if randf() < ai.rider * 0.5:
+				inp["rider"] = true
+			ai_act = "idle"
+		"heavy", "special", "rider":
 			inp[ai_act] = true
 			if ai_act == "heavy" and meter >= GameData.EX_COST and meter < 100.0 and randf() < ai.special * 0.35:
 				inp["special"] = true
@@ -423,6 +453,30 @@ func think(o: Fighter, dt: float) -> Dictionary:
 				inp["rider"] = true
 			ai_act = "idle"
 	return inp
+
+
+## Short-range whip up close, the tusk poke further out; sometimes the crouching (low) version.
+func _ai_normal(dist: float) -> String:
+	var kind := "medium" if dist > 215.0 or randf() < 0.25 else "light"
+	return ("c" + kind) if randf() < 0.3 else kind
+
+
+## Read the incoming attack: crouch for lows, stand for highs (a harder CPU guesses right more often).
+func _ai_guard_low(o: Fighter) -> bool:
+	if o.atk == "":
+		return randf() < 0.4
+	var m := GameData.move(o.atk)
+	var low := false
+	var high := false
+	for h in m.hits:
+		low = low or h.low
+		high = high or h.high
+	var right := randf() < 0.45 + ai.block * 0.6
+	if low:
+		return right
+	if high:
+		return not right
+	return randf() < 0.4
 
 
 func _ultimate_ok(dist: float) -> bool:

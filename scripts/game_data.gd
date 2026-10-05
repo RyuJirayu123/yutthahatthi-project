@@ -6,6 +6,8 @@ const W := 960.0
 const H := 540.0
 const GROUND := 440.0
 const WALL := 80.0
+## Speed of the whole fight (moves, walking, jumps, effects); 1.0 = original pace. The round timer stays in real seconds.
+const GAME_SPEED := 0.8
 
 ## Thai court palette: lacquer red, gold leaf, cream paper, dark teak.
 const INK := Color("#2a170d")
@@ -40,7 +42,9 @@ class Hit:
 	var lift := 0.0        ## launch speed given to the target (negative = up)
 	var offset := 100.0    ## hitbox starts this far in front of the attacker
 	var vreach := 120.0    ## max height difference that still connects
-	var overhead := false  ## can't be guarded
+	var overhead := false  ## can't be guarded at all
+	var low := false       ## only a crouching guard (down + back) stops it
+	var high := false      ## only a standing guard (back) stops it
 	var pull := false      ## knocks the target toward the attacker
 	var daze := false      ## unseats the target's rider at once
 	var sound := "heavy"
@@ -65,7 +69,7 @@ class Move:
 	var wave: Hit              ## the ground shockwave of an earthquake stomp, or the water spout projectile
 	var ai_range := 240.0      ## CPU uses it when the opponent is closer than this
 	var start_sfx := "whoosh"
-	var chain := ""            ## pressing F again after this move connects goes into this move
+	var links := {}            ## next attack button -> move it chains into ("light", "medium", "clight" / "cmedium" = crouching)
 	var cancel_heavy := false  ## once it connects, G cuts its recovery short with the signature move
 	var cancel_super := false  ## once it connects, H (full power bar) cuts it short with the ultimate
 
@@ -102,15 +106,28 @@ static func _move(id: String, dur: float, hits: Array, extra := {}) -> Move:
 
 static func _build_moves() -> void:
 	var glaive := {"overhead": true, "vreach": 200.0, "sound": "clang"}
-	# F string: whip -> backhand -> slam. Each link (and G / H) only comes out once the last one connected.
+	# Normals. F = short range, R = mid range, holding down makes them low (crouch to guard).
+	# Pressing the next button during a move chains along `links`, hit or miss, so mashing still makes a combo;
+	# G / specials / H only cut a move short once it connected.
 	var string := {"cancel_heavy": true, "cancel_super": true}
-	_move("light", 0.30, [_hit(0.07, 0.17, 72, 5, 150, 0.30, 8, 3, {"sound": "hit"})], string.merged({"chain": "light2"}))
+	_move("light", 0.30, [_hit(0.07, 0.17, 72, 5, 150, 0.30, 8, 3, {"sound": "hit"})],
+		string.merged({"links": {"light": "light2", "medium": "mid", "clight": "clow", "cmedium": "cmid"}}))
 	_move("light2", 0.34, [_hit(0.08, 0.18, 76, 6, 170, 0.34, 8, 4, {"sound": "hit"})],
-		string.merged({"chain": "light3", "name_th": "ตวัดงวง", "name_en": "BACKHAND", "dash_stop": 0.10, "dash_speed": 300.0}))
+		string.merged({"links": {"light": "light3", "medium": "mid", "cmedium": "cmid"}, "name_th": "ตวัดงวง", "name_en": "BACKHAND",
+		"dash_stop": 0.10, "dash_speed": 300.0}))
 	_move("light3", 0.50, [_hit(0.16, 0.26, 84, 9, 330, 0.50, 10, 8, {"lift": -460.0})],
 		string.merged({"name_th": "ทุบงวง", "name_en": "TRUNK SLAM", "dash_stop": 0.14, "dash_speed": 320.0}))
-	# F in the air: dive down tusks first; lands into the F string
-	_move("dive", 0.90, [_hit(0.06, 0.90, 120, 7, 140, 0.45, 8, 6, {"offset": 60.0, "vreach": 170.0})],
+	# R: a long tusk poke for mid range
+	_move("mid", 0.46, [_hit(0.13, 0.24, 110, 7, 220, 0.38, 9, 5, {"sound": "hit"})],
+		string.merged({"links": {"cmedium": "cmid"}, "name_th": "แทงงาตรง", "name_en": "TUSK POKE", "dash_stop": 0.12, "dash_speed": 200.0}))
+	# down + F: quick whip at the feet
+	_move("clow", 0.30, [_hit(0.06, 0.15, 76, 4, 120, 0.30, 6, 2, {"offset": 90.0, "low": true, "sound": "hit"})],
+		string.merged({"links": {"light": "light2", "medium": "mid", "cmedium": "cmid"}, "name_th": "ย่อฟาดขา", "name_en": "LOW WHIP"}))
+	# down + R: sweeps the legs and trips the opponent; ends a combo
+	_move("cmid", 0.62, [_hit(0.15, 0.27, 120, 8, 160, 0.5, 10, 6, {"offset": 90.0, "low": true, "lift": -300.0})],
+		{"name_th": "กวาดขา", "name_en": "LEG SWEEP", "dash_stop": 0.12, "dash_speed": 180.0})
+	# F or R in the air: dive down tusks first (guard it standing); lands into the F string
+	_move("dive", 0.90, [_hit(0.06, 0.90, 120, 7, 140, 0.45, 8, 6, {"offset": 60.0, "vreach": 170.0, "high": true})],
 		{"name_th": "ทิ้งตัวแทงงา", "name_en": "DIVING GORE"})
 	# G while blocking a hit (costs COUNTER_COST power): shove the attacker away
 	_move("counter", 0.42, [_hit(0.05, 0.15, 96, 4, 480, 0.36, 0, 10, {"offset": 70.0})],

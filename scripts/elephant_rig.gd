@@ -128,7 +128,7 @@ func update(f: Fighter, duel_phase: String, dt: float) -> void:
 		return
 	_time += dt
 	var air := f.y < G - 1.0
-	var walking := not air and not f.ko and f.stun <= 0.0 and not f.blocking
+	var walking := not air and not f.ko and f.stun <= 0.0 and not f.blocking and not f.crouching
 	if walking:
 		_phase += f.vx * f.face * dt * 0.06
 	_move = move_toward(_move, clampf(absf(f.vx) / 200.0, 0.0, 1.0) if walking else 0.0, dt * 5.0)
@@ -252,7 +252,11 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 			_apply(p, {"head": 16.0 + sin(tm * 5.5) * 9.0, "pitch": sin(tm * 4.0) * 4.0, "shift": sin(tm * 4.0) * 6.0, "ear": 0.7, "bob": 4.0})
 			_trunk(p, "droop")
 			p["tb"] += sin(tm * 5.5) * 10.0
-	if f.blocking:
+	if f.crouching and f.atk == "" and not f.ko:
+		# hunkered down: knees bent, head low
+		_apply(p, {"bob": 20.0, "head": 14.0, "pitch": 2.0, "ear": 0.75, "glaive": -80.0, "lean": 6.0})
+		_trunk(p, "guard" if f.blocking else "tuck")
+	elif f.blocking:
 		_apply(p, {"bob": 7.0, "head": 12.0, "pitch": 3.0, "ear": 0.6, "glaive": -95.0, "lean": -4.0})
 		_trunk(p, "guard")
 	if over and f.atk == "" and not f.ko:
@@ -289,6 +293,25 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 			elif act:
 				_apply(p, {"head": 6.0, "shift": 6.0, "glaive": -8.0, "lean": 8.0})
 				_trunk(p, "whip")
+		"mid":
+			# rocks back, then drives both tusks straight ahead
+			if pre:
+				_apply(p, {"shift": -10.0, "head": -10.0, "pitch": -3.0, "ear": 1.15})
+			else:
+				_apply(p, {"shift": 20.0 * k, "head": 16.0 * k, "pitch": 6.0 * k, "lean": 8.0 * k, "ear": 1.1})
+			_trunk(p, "tuck")
+		"clow":
+			# from a crouch, flicks the trunk along the ground
+			_apply(p, {"bob": 18.0, "head": 20.0 if act else 10.0, "pitch": 4.0, "shift": 6.0 if act else 0.0, "ear": 0.8, "glaive": -80.0})
+			_trunk(p, "sweep" if act else "tuck")
+		"cmid":
+			# low sweep at the legs
+			if pre:
+				_apply(p, {"bob": 16.0, "head": 8.0, "shift": -6.0, "ear": 1.2, "glaive": -90.0})
+				_trunk(p, "wind")
+			else:
+				_apply(p, {"bob": 16.0 * maxf(k, 0.4), "head": 26.0 * k, "pitch": 6.0 * k, "shift": 12.0 * k, "ear": 1.1, "glaive": -80.0})
+				_trunk(p, "sweep" if k > 0.3 else "tuck")
 		"spout":
 			# draws water up the trunk, then sprays it forward
 			if t < m.event_at:
@@ -547,10 +570,12 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 	c.draw_set_transform_matrix(head * Transform2D(0.0, EAR_ANCHOR).scaled_local(Vector2(_g("ear"), 1.0)))
 	_draw_ear(c, D, d)
 
-	if f.blocking:
+	if f.blocking or f.bstun > 0.0:
+		# guard shield: low and wide when crouching
 		c.draw_set_transform_matrix(root)
-		c.draw_arc(Vector2(70, -86), 90.0, -0.75, 0.75, 20, Color(GameData.GOLD_LIGHT, 0.85), 5.0, true)
-		c.draw_arc(Vector2(70, -86), 98.0, -0.6, 0.6, 16, Color(GameData.GOLD, 0.5), 3.0, true)
+		var gy := -58.0 if f.crouching else -86.0
+		c.draw_arc(Vector2(70, gy), 90.0, -0.75, 0.75, 20, Color(GameData.GOLD_LIGHT, 0.85), 5.0, true)
+		c.draw_arc(Vector2(70, gy), 98.0, -0.6, 0.6, 16, Color(GameData.GOLD, 0.5), 3.0, true)
 
 
 ## Head-and-shoulders view for the HUD medallion, in the same pose as the fighter.

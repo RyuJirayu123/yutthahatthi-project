@@ -47,7 +47,7 @@ func _process(delta: float) -> void:
 	if not frozen:
 		_time += delta
 	# animation runs on the same clock as the simulation: frozen in hitstop, slowed after a K.O.
-	var adt := minf(delta, 0.05)
+	var adt := minf(delta, 0.05) * GameData.GAME_SPEED
 	if frozen or duel.hitstop > 0.0:
 		adt = 0.0
 	elif duel.phase == "ko" and duel.t < 0.8:

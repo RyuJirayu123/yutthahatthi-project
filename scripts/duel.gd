@@ -42,6 +42,7 @@ class Particle:
 const INK := GameData.INK
 const ACC := GameData.ACC
 const MIN_GAP := 195.0
+const AIR_GAP := 100.0     ## narrower while someone is airborne, so a jump can pass over
 
 var mode: String          ## "arcade", "vs" or "demo"
 var stage: int
@@ -116,11 +117,12 @@ func update(dt: float) -> void:
 	t += dt
 	var alive: Array[Particle] = []
 	for p in parts:
-		p.life -= dt
+		var pdt := dt * GameData.GAME_SPEED
+		p.life -= pdt
 		if p.life > 0.0:
-			p.vy += 1400.0 * dt
-			p.x += p.vx * dt
-			p.y += p.vy * dt
+			p.vy += 1400.0 * pdt
+			p.x += p.vx * pdt
+			p.y += p.vy * pdt
 			alive.append(p)
 	parts = alive
 	shake = maxf(0.0, shake - dt * 30.0)
@@ -137,9 +139,9 @@ func update(dt: float) -> void:
 	if hitstop > 0.0:
 		hitstop -= dt
 		return
-	var sdt := dt
+	var sdt := dt * GameData.GAME_SPEED
 	if phase == "ko" and t < 0.8:
-		sdt = dt * 0.35
+		sdt *= 0.35
 	if phase == "intro":
 		if t > 1.0 and not belled:
 			belled = true
@@ -185,6 +187,7 @@ func _input_for(f: Fighter, o: Fighter, dt: float) -> Dictionary:
 		"up": Input.is_action_pressed(p + "up"),
 		"down": Input.is_action_pressed(p + "down"),
 		"light": _presses.has(p + "light"),
+		"medium": _presses.has(p + "medium"),
 		"heavy": _presses.has(p + "heavy"),
 		"special": _presses.has(p + "special"),
 		"rider": _presses.has(p + "rider"),
@@ -235,9 +238,11 @@ func _separate() -> void:
 	if a.ko or b.ko:
 		return
 	var d := b.x - a.x
-	if absf(d) < MIN_GAP and absf(a.y - b.y) < 110.0:
+	var air := a.y < GameData.GROUND - 1.0 or b.y < GameData.GROUND - 1.0
+	var gap := AIR_GAP if air else MIN_GAP
+	if absf(d) < gap and absf(a.y - b.y) < (90.0 if air else 110.0):
 		var sg := 1.0 if d == 0.0 else signf(d)
-		var push := (MIN_GAP - absf(d)) / 2.0
+		var push := (gap - absf(d)) / 2.0
 		a.x -= sg * push
 		b.x += sg * push
 		if mode != "demo":
@@ -245,11 +250,11 @@ func _separate() -> void:
 			var hi := GameData.W - GameData.WALL
 			a.x = clampf(a.x, lo, hi)
 			b.x = clampf(b.x, lo, hi)
-			if absf(b.x - a.x) < MIN_GAP:
+			if absf(b.x - a.x) < gap:
 				if a.x <= lo or a.x >= hi:
-					b.x = a.x + sg * MIN_GAP
+					b.x = a.x + sg * gap
 				else:
-					a.x = b.x - sg * MIN_GAP
+					a.x = b.x - sg * gap
 
 
 func _check_hit(a: Fighter, b: Fighter) -> void:
@@ -292,7 +297,9 @@ func _armor(f: Fighter) -> float:
 
 func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 	var finisher := m.id == "rider" and b.dazed > 0.0
-	var blocked := b.blocking and b.face == -a.face and b.stun <= 0.0 and b.atk == "" and not h.overhead
+	# guard: holding back with the attacker in front; lows need a crouching guard, highs a standing one
+	var guard := (b.guarding or b.bstun > 0.0) and signf(a.x - b.x) != -b.face and b.stun <= 0.0 and b.atk == "" and not h.overhead
+	var blocked := guard and not (h.low and not b.crouching) and not (h.high and b.crouching)
 	var armored := not finisher and b.atk != "" and b.atk_t < _armor(b)
 	var skill := a.def.rider_skill if m.id == "rider" or m.id == "storm" else 1.0
 	var ex := a.atk_ex and m.id == a.atk

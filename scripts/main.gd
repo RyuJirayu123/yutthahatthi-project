@@ -3,7 +3,7 @@ extends Node
 ## Duel simulates a match, Arena draws it, GameUI shows the menus.
 
 const SAVE_PATH := "user://save.cfg"
-const ATTACKS := ["light", "heavy", "special", "rider"]
+const ATTACKS := ["light", "medium", "heavy", "special", "rider"]
 const STAGES := 3
 
 @export_group("Roster")
