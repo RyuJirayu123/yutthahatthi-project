@@ -1274,6 +1274,9 @@ static func _build(v: String) -> Dictionary:
 				if near:
 					_ln("M -20 8 C -8 12, 8 12, 21 7", "skinD", 1.6, 0.5)
 				_sh("M -23.4 18 L 22.6 18 L 23 24 L -23.8 24 Z M -24 28 L 23.5 28 L 24.3 37 L -24.7 37 Z" if B else "M -24 28 L 23.5 28 L 24.3 36 L -24.6 36 Z", gold, gold_d)
+				if near:
+					for jx in [-13.0, 0.0, 13.0]:
+						_dot(jx, 32.3, 2.3, JEWEL, JEWEL_D, 0.8)
 				_el(-9, 47, 5, nry, nail, nail_d)
 				_el(2, 47.5, 5, nry, nail, nail_d)
 				_el(13, 47, 5, nry, nail, nail_d)
@@ -1282,6 +1285,9 @@ static func _build(v: String) -> Dictionary:
 				if near:
 					_ln("M -22 12 C -10 16, 6 16, 20 12", "skinD", 1.6, 0.5)
 				_sh("M -25.6 24 L 23.6 24 L 24 30 L -26 30 Z M -26.2 34 L 24.4 34 L 24.9 43 L -26.7 43 Z" if B else "M -26.2 34 L 24.4 34 L 24.8 42 L -26.6 42 Z", gold, gold_d)
+				if near:
+					for jx in [-14.0, -1.0, 12.0]:
+						_dot(jx, 38.3, 2.3, JEWEL, JEWEL_D, 0.8)
 				_el(-6, 54, 5, nry, nail, nail_d)
 				_el(6, 54, 5, nry, nail, nail_d)
 				_el(16, 53, 4.5, nry, nail, nail_d)
@@ -1329,11 +1335,28 @@ static func _build(v: String) -> Dictionary:
 	for i in 12:
 		var p := _bez(hb, (i + 0.5) / 12.0)
 		_poly(PackedVector2Array([p + Vector2(-6, -1), p + Vector2(6, -1), p + Vector2(0, 11)]), "gold", "goldD", 1.1)
-		_dot(p.x, p.y + 14.0, 2.8, "clothL", "clothD", 1.0)
-	_sh("M 206 184 L 224 202 L 206 220 L 188 202 Z", "gold", "goldD")
-	_sh("M 206 191 L 217 202 L 206 213 L 195 202 Z", "clothD", "goldD", 1.0)
-	_dot(206, 202, 3.6, JEWEL, JEWEL_D, 1.0)
-	_sh("M 184 140 C 188 124, 244 122, 250 138 C 238 146, 196 148, 184 140 Z", "clothD", "gold", 2.5, 1.0, true)
+		# tassel: gold knot and a cloth tuft
+		_poly(PackedVector2Array([p + Vector2(-2.6, 13), p + Vector2(2.6, 13), p + Vector2(3.4, 22), p + Vector2(0, 25), p + Vector2(-3.4, 22)]), "cloth", "clothD", 1.0)
+		_dot(p.x, p.y + 12.5, 2.4, "gold", "goldD", 0.8)
+	# round medallion: gold petals, a ring and a red jewel
+	var mc := Vector2(206, 206)
+	for i in 8:
+		var dv := Vector2.from_angle(TAU * i / 8.0 - PI / 2.0)
+		_poly(PackedVector2Array([mc + dv * 14.0 + dv.orthogonal() * 6.0, mc + dv * 25.0, mc + dv * 14.0 - dv.orthogonal() * 6.0]), "gold", "goldD", 1.0)
+	_dot(mc.x, mc.y, 16.0, "gold", "goldD", 1.4)
+	_dot(mc.x, mc.y, 11.5, "clothD", "goldD", 1.0)
+	_dot(mc.x, mc.y, 7.0, JEWEL, JEWEL_D, 1.2)
+	_dot(mc.x - 2.2, mc.y - 2.4, 2.2, Color.WHITE, null, 0.0, 0.7)
+	# domed saddle on top, studded along its gold rim
+	_sh("M 164 152 C 168 112, 270 108, 278 148 C 252 160, 190 162, 164 152 Z", "clothD", "gold", 3.0, 1.0, true)
+	_el(198, 128, 15, 7, "clothL", null, 0.0, 0.4)
+	for rib in ["M 221 124 C 220 136, 220 148, 221 158", "M 195 131 C 188 139, 185 147, 185 156", "M 248 129 C 255 137, 258 146, 258 156"]:
+		_ln(rib, "goldD", 3.6)
+		_ln(rib, "gold", 2.0)
+	var rim := [Vector2(166, 151), Vector2(190, 161), Vector2(252, 160), Vector2(277, 148)]
+	for i in 9:
+		var q := _bez(rim, (i + 0.5) / 9.0)
+		_dot(q.x, q.y - 3.0, 2.4, "gold", "goldD", 0.8)
 
 	_begin(P, "pole")
 	_ln("M 233 152 L 233 -8", Color("#5b3a1f"), 3.5, 1.0, true)
@@ -1371,6 +1394,8 @@ static func _build(v: String) -> Dictionary:
 	if B:
 		_sh("M 420 262 C 432 256, 440 248, 446 238 C 442 254, 434 262, 422 268 Z", "gold", "goldD", 1.6, 1.0, true)
 		_sh("M 404 260 L 411 258 L 413 268 L 406 269 Z", "gold", "goldD")
+	else:
+		_sh("M 412 256 C 422 252, 428 248, 432 240 C 428 252, 420 260, 412 263 Z", "gold", "goldD", 1.6, 1.0, true)
 	_sh("M 361 237 L 371 231 L 377 244 L 366 250 Z", "gold", "goldD")
 	_set_pre(Transform2D.IDENTITY)
 	if B:
@@ -1378,15 +1403,24 @@ static func _build(v: String) -> Dictionary:
 		_sh("M 326 136 C 342 124, 366 128, 378 146 C 386 160, 388 190, 387 214 C 382 220, 377 222, 372 220 C 374 196, 372 178, 364 166 C 352 156, 336 150, 326 136 Z", "clothD", "gold", 3.0, 1.0, true)
 		for p in [Vector2(338, 139), Vector2(352, 140), Vector2(364, 148), Vector2(373, 162), Vector2(379, 180), Vector2(381, 198)]:
 			_dot(p.x, p.y, 2.4, "gold")
+		_dot(379, 212, 3.0, JEWEL, JEWEL_D, 0.8)
 	else:
+		_sh("M 338 128 L 342 110 L 347 128 Z", "gold", "goldD", 1.4, 1.0, true)
+		_dot(342.5, 120, 1.8, JEWEL)
 		_sh("M 300 168 C 302 142, 320 126, 342 126 C 352 126, 357 129, 361 132 C 373 137, 380 150, 382 166 C 372 160, 364 158, 356 160 C 342 163, 330 160, 322 156 C 312 153, 304 160, 300 168 Z", "cloth", "clothD", 1.6, 1.0, true)
+		_sh("M 310 150 C 316 136, 330 130, 344 130 C 358 131, 368 138, 374 150 C 360 142, 330 140, 310 150 Z", "clothL", null, 0.0, 0.45)
+		_ln("M 303 160 C 306 141, 322 129.5, 342 129.5 C 358 129.5, 372 138, 378.5 156", "gold", 2.2)
+		# strip down the front of the face
+		_sh("M 371 160 C 379 163, 384 171, 386 184 C 388 198, 387 210, 384 219 L 379 226 L 374 219 C 376 204, 376 186, 371 170 Z", "cloth", "gold", 2.2, 1.0, true)
+		_dot(379, 228, 2.4, "gold", "goldD", 0.8)
+		_dot(380, 196, 2.4, JEWEL, JEWEL_D, 0.8)
 		var hem := "M 300 168 C 304 160, 312 153, 322 156 C 330 160, 342 163, 356 160 C 364 158, 372 160, 382 166"
 		_ln(hem, "goldD", 6.0)
 		_ln(hem, "gold", 3.6)
-		for p in [Vector2(318, 140), Vector2(332, 133), Vector2(346, 131), Vector2(360, 137), Vector2(371, 147), Vector2(312, 152), Vector2(326, 146), Vector2(340, 144), Vector2(354, 147), Vector2(366, 155)]:
-			_dot(p.x, p.y, 2.2, "gold")
-		_sh("M 377 164 L 382 174 L 377 186 L 372 174 Z", "gold", "goldD", 1.2)
-		_dot(377, 175, 2.0, JEWEL)
+		for p in [Vector2(316, 147), Vector2(330, 141), Vector2(356, 141), Vector2(368, 149)]:
+			_dot(p.x, p.y, 2.0, "gold")
+		_dot(343, 144, 6.0, "gold", "goldD", 1.2)
+		_dot(343, 144, 3.4, JEWEL, JEWEL_D, 0.8)
 
 	_begin(P, "crown", HK)
 	_sh("M 328 132 L 334 110 L 341 92 L 348 110 L 354 130 Z", "gold", "goldD", 1.6, 1.0, true)
@@ -1395,7 +1429,7 @@ static func _build(v: String) -> Dictionary:
 
 	_begin(P, "ear", HK)
 	_sh("M 316 158 C 336 152, 352 166, 352 190 C 352 212, 344 228, 334 240 C 330 242, 326 238, 324 232 C 322 222, 316 216, 310 210 C 300 198, 302 168, 316 158 Z", "skin", "skinD", 1.6, 1.0, true)
-	_sh("M 318 170 C 330 168, 338 178, 338 192 C 338 204, 332 214, 326 220 C 320 212, 312 204, 310 194 C 308 182, 310 174, 318 170 Z", "skinD", null, 0.0, 0.3)
+	_sh("M 318 170 C 330 168, 338 178, 338 192 C 338 204, 332 214, 326 220 C 320 212, 312 204, 310 194 C 308 182, 310 174, 318 170 Z", "pink", null, 0.0, 0.6)
 	_ln("M 320 165 C 334 163, 345 176, 344 192 C 343 206, 337 218, 331 226", "skinD", 1.6, 0.55)
 	_dot(347, 207, 2.6, "pink")
 	_dot(342, 220, 2.0, "pink")
@@ -1409,10 +1443,11 @@ static func _build(v: String) -> Dictionary:
 	_el(366, 201, 8, 4.5, Color("#ec8f97"), null, 0.0, 0.5)
 
 	_begin(P, "eye", HK)
-	_el(362, 180, 7.5, 8.5, Color.WHITE, EYE_INK, 1.4)
-	_dot(363.5, 181, 5.6, EYE_INK)
-	_dot(365.6, 178.4, 2.1, Color.WHITE)
-	_dot(361.4, 183.6, 1.0, Color.WHITE)
-	_ln("M 355.5 173.5 C 353 172, 351.5 170, 351.5 168 M 359.5 172 C 358.5 170, 358.5 168, 359.5 166", EYE_INK, 1.4)
+	_el(362, 180, 8.6, 9.8, Color.WHITE, EYE_INK, 1.5)
+	_dot(363.8, 181.2, 6.6, Color("#4a2a18"))
+	_dot(364.2, 181.8, 3.8, EYE_INK)
+	_dot(366.4, 177.8, 2.7, Color.WHITE)
+	_dot(361.2, 185.0, 1.3, Color.WHITE)
+	_ln("M 352.5 166.5 C 358 162, 365 162.5, 371 167.5", EYE_INK, 2.6)
 
 	return P
