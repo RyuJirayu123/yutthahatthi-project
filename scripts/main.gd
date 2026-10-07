@@ -152,10 +152,15 @@ func _on_ui_action(action: String) -> void:
 				_online_request({"t": "join", "code": code}, "กำลังเข้าห้อง %s… · JOINING" % code)
 		"next":
 			_begin("arcade", stage + 1)
-		"howto", "combos":
+		"howto", "combos", "controls":
 			Sfx.play("select", true)
 			screen = action
+			if action == "controls":
+				ui.refresh_controls()
 			ui.show_screen(action)
+		"c_reset":
+			Controls.reset()
+			ui.refresh_controls()
 		"back", "menu":
 			_to_title()
 		"resume":

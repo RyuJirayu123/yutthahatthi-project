@@ -276,9 +276,9 @@ func _log_input(inp: Dictionary) -> void:
 	elif fwd != 0:
 		arrow = "→" if fwd > 0 else "←"
 	var buttons := ""
-	for b in [["light", "F"], ["medium", "R"], ["heavy", "G"], ["special", "H"]]:
-		if inp.get(b[0], false):
-			buttons += b[1]
+	for b in ["light", "medium", "heavy", "special"]:
+		if inp.get(b, false):
+			buttons += Controls.key_name("p1_" + b)
 	if buttons != "":
 		inputs.append((arrow + " + " if arrow != "" else "") + buttons)
 	elif arrow != _last_input and arrow != "":

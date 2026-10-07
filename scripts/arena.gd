@@ -354,9 +354,10 @@ func _draw_training() -> void:
 	_panel(x0, y0, x1, H - 10.0)
 	_otext("บทที่ %d/%d" % [tr.lesson + 1, Training.LESSONS.size()], x0 + 14.0, y0 + 22.0, 11, 800, GOLD, LEFT, 0)
 	_otext(L[0], x0 + 84.0, y0 + 23.0, 17, 800, GOLD_LIGHT, LEFT, 0)
-	_otext(L[3], x1 - 14.0, y0 + 26.0, 20, 800, Color.WHITE, RIGHT, 4, Color(GameData.ACC_700, 0.9))
-	_otext(L[1], x0 + 14.0, y0 + 48.0, 13, 600, Color.WHITE, LEFT, 0)
-	_otext(L[2], x0 + 14.0, y0 + 66.0, 10, 600, Color(1, 1, 1, 0.7), LEFT, 0)
+	# lesson texts name the default keys; show the player's own
+	_otext(Controls.resolve(L[3], 1), x1 - 14.0, y0 + 26.0, 20, 800, Color.WHITE, RIGHT, 4, Color(GameData.ACC_700, 0.9))
+	_otext(Controls.resolve(L[1], 1), x0 + 14.0, y0 + 48.0, 13, 600, Color.WHITE, LEFT, 0)
+	_otext(Controls.resolve(L[2], 1), x0 + 14.0, y0 + 66.0, 10, 600, Color(1, 1, 1, 0.7), LEFT, 0)
 	var need := int(L[8])
 	for i in need:
 		var c := Vector2(x1 - 14.0 - (need - 1 - i) * 18.0, y0 + 46.0)

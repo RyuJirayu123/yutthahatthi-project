@@ -33,15 +33,21 @@ var _card_row: HBoxContainer
 var _cards: Array[PanelContainer] = []
 var _details: Array[Dictionary] = []
 var _shown_ms := 0
+var _key_rows := []       ## [HBoxContainer, player, action suffixes, accent]: controls lists
+var _combo_caps := []     ## [Label, default text, player]: key caps and texts that name keys
+var _bind_buttons := {}   ## action -> Button on the Controls screen
+var _listen := ""         ## action waiting for a new key on the Controls screen
 
 
 func _ready() -> void:
+	Controls.setup()
 	theme = _make_theme()
 	mouse_filter = MOUSE_FILTER_IGNORE
 	_build_title()
 	_build_select()
 	_build_howto()
 	_build_combos()
+	_build_controls()
 	_build_online()
 	_build_pause()
 	_build_stage_clear()
@@ -442,6 +448,10 @@ func _build_howto() -> void:
 	combos.custom_minimum_size.x = 190
 	combos.size_flags_vertical = SIZE_SHRINK_END
 	hrow.add_child(combos)
+	var binds := _button("ตั้งปุ่ม", "CONTROLS · KEYS", "SecondaryButton", "controls", "", false)
+	binds.custom_minimum_size.x = 150
+	binds.size_flags_vertical = SIZE_SHRINK_END
+	hrow.add_child(binds)
 	var back := _button("กลับ", "BACK", "SecondaryButton", "back", "", false)
 	back.custom_minimum_size.x = 134
 	back.size_flags_vertical = SIZE_SHRINK_END
@@ -455,23 +465,17 @@ func _build_howto() -> void:
 	cols.size_flags_vertical = SIZE_EXPAND_FILL
 	cols.add_theme_constant_override("separation", 0)
 	v.add_child(cols)
-	cols.add_child(_controls_column("ผู้เล่น 1", "PLAYER 1", ACC, [
-		["เดิน", "MOVE", [["A"], ["D"]]],
-		["กระโดด · ย่อ = ป้องกัน", "JUMP · CROUCH TO GUARD", [["W"], ["S"]]],
-		["งวงฟาด · ระยะสั้น", "TRUNK WHIP · SHORT", [["F"]]],
-		["แทงงา · ระยะกลาง", "TUSK POKE · MID", [["R"]]],
-		["ท่าประจำตัว", "SIGNATURE MOVE", [["G"]]],
-		["อัลติ · พลังเต็ม", "ULTIMATE · FULL POWER", [["H", "accent"]]],
-	]))
+	var rows := [
+		["เดิน", "MOVE", ["left", "right"], false],
+		["กระโดด · ย่อ = ป้องกัน", "JUMP · CROUCH TO GUARD", ["up", "down"], false],
+		["งวงฟาด · ระยะสั้น", "TRUNK WHIP · SHORT", ["light"], false],
+		["แทงงา · ระยะกลาง", "TUSK POKE · MID", ["medium"], false],
+		["ท่าประจำตัว", "SIGNATURE MOVE", ["heavy"], false],
+		["อัลติ · พลังเต็ม", "ULTIMATE · FULL POWER", ["special"], true],
+	]
+	cols.add_child(_controls_column("ผู้เล่น 1", "PLAYER 1", ACC, 1, rows))
 	cols.add_child(_vrule())
-	cols.add_child(_controls_column("ผู้เล่น 2", "PLAYER 2", INK, [
-		["เดิน", "MOVE", [["←"], ["→"]]],
-		["กระโดด · ย่อ = ป้องกัน", "JUMP · CROUCH TO GUARD", [["↑"], ["↓"]]],
-		["งวงฟาด · ระยะสั้น", "TRUNK WHIP · SHORT", [[","], ["NUM 1", "alt"]]],
-		["แทงงา · ระยะกลาง", "TUSK POKE · MID", [["L"], ["NUM 5", "alt"]]],
-		["ท่าประจำตัว", "SIGNATURE MOVE", [["."], ["NUM 2", "alt"]]],
-		["อัลติ · พลังเต็ม", "ULTIMATE · FULL POWER", [["/", "accent"], ["NUM 3", "alt"]]],
-	]))
+	cols.add_child(_controls_column("ผู้เล่น 2", "PLAYER 2", INK, 2, rows))
 	cols.add_child(_vrule())
 
 	var rules := _margin(24, 14, 24, 0)
@@ -504,8 +508,10 @@ func _build_howto() -> void:
 		row.add_child(num)
 		var txt := _vbox(2)
 		txt.size_flags_horizontal = SIZE_EXPAND_FILL
-		var th := _label(it[2], 12, 600)
-		var en := _label(it[3], 9, 600, MUTED_INK)
+		var th := _label(Controls.resolve(it[2], 1), 12, 600)
+		var en := _label(Controls.resolve(it[3], 1), 9, 600, MUTED_INK)
+		_combo_caps.append([th, it[2], 1])
+		_combo_caps.append([en, it[3], 1])
 		for l in [th, en]:
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			l.custom_minimum_size.x = 200
@@ -580,7 +586,9 @@ func _build_combos() -> void:
 		["ป้องกัน", "GUARD", ["↓"], ["↓"],
 			"ย่อค้าง = กันได้ทุกท่า ยกเว้นอัลติบางท่า · ระหว่างย่อเดินไม่ได้"],
 	]))
-	var tip := _label("→ = ทิศที่หันหน้าไป (หันซ้ายก็กลับทิศ) · คอมโบยิ่งยาว แต่ละฮิตยิ่งเบาลง · จอย: X = F · Y = G · B = H", 10, 600, ACC_700)
+	var tip_text := "→ = ทิศที่หันหน้าไป (หันซ้ายก็กลับทิศ) · คอมโบยิ่งยาว แต่ละฮิตยิ่งเบาลง · จอย: X = F · Y = G · B = H"
+	var tip := _label(Controls.resolve(tip_text, 1), 10, 600, ACC_700)
+	_combo_caps.append([tip, tip_text, 1])
 	v.add_child(_pad(_margin_wrap(tip, 29), 0, 8))
 
 
@@ -618,11 +626,12 @@ func _combo_column(title: String, sub: String, rows: Array) -> Control:
 		name.size_flags_vertical = SIZE_SHRINK_CENTER
 		row.add_child(name)
 		for k in 2:
-			var keys := _combo_keys(r[2 + k])
+			var keys := _combo_keys(r[2 + k], k + 1)
 			keys.custom_minimum_size.x = 136
 			row.add_child(keys)
 		cell.add_child(row)
-		var how := _label(r[4] + "  · " + r[1], 10, 600, MUTED_INK)
+		var how := _label(Controls.resolve(r[4], 1) + "  · " + r[1], 10, 600, MUTED_INK)
+		_combo_caps.append([how, r[4], 1, "  · " + r[1]])
 		how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		how.custom_minimum_size.x = 200
 		cell.add_child(how)
@@ -638,7 +647,7 @@ func _spacer_h() -> Control:
 
 
 ## Key caps for one input sequence; ">" is "then", "+" is "together", "|" separates alternatives.
-func _combo_keys(tokens: Array) -> HBoxContainer:
+func _combo_keys(tokens: Array, player: int) -> HBoxContainer:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 4)
 	h.size_flags_vertical = SIZE_SHRINK_CENTER
@@ -648,8 +657,154 @@ func _combo_keys(tokens: Array) -> HBoxContainer:
 			l.size_flags_vertical = SIZE_SHRINK_CENTER
 			h.add_child(l)
 		else:
-			h.add_child(_keycap(t, "accent" if t in ["H", "/"] else "key"))
+			var cap := _keycap(Controls.resolve(t, player), "accent" if t in ["H", "/"] else "key")
+			_combo_caps.append([cap.get_child(0), t, player])
+			h.add_child(cap)
 	return h
+
+
+## The players' keys: one row per action, press a key button then the new key.
+func _build_controls() -> void:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _flat(BG))
+	p.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	add_child(p)
+	_screens["controls"] = p
+	var v := _vbox(0)
+	p.add_child(v)
+	var head := _margin(29, 14, 29, 12)
+	var hrow := HBoxContainer.new()
+	hrow.add_theme_constant_override("separation", 10)
+	var titles := _vbox(2)
+	titles.size_flags_horizontal = SIZE_EXPAND_FILL
+	titles.add_child(_label("คู่มือ · MANUAL", 11, 600, ACC_700, 1))
+	titles.add_child(_label("ตั้งปุ่ม", 34, 800))
+	titles.add_child(_label("CONTROLS · KEYBOARD", 12, 800, INK, 1))
+	hrow.add_child(titles)
+	var reset := _button("คืนค่าเริ่มต้น", "RESET TO DEFAULT", "GhostButton", "c_reset", "", false)
+	reset.custom_minimum_size.x = 170
+	reset.size_flags_vertical = SIZE_SHRINK_END
+	hrow.add_child(reset)
+	var back := _button("กลับ", "BACK", "SecondaryButton", "howto", "", false)
+	back.custom_minimum_size.x = 134
+	back.size_flags_vertical = SIZE_SHRINK_END
+	hrow.add_child(back)
+	head.add_child(hrow)
+	v.add_child(head)
+	v.add_child(_pattern_strip(false))
+	var cols := HBoxContainer.new()
+	cols.size_flags_vertical = SIZE_EXPAND_FILL
+	cols.add_theme_constant_override("separation", 0)
+	v.add_child(cols)
+	var first: Button
+	for player in [1, 2]:
+		if player == 2:
+			cols.add_child(_vrule(DIVIDER))
+		var col := _margin(29, 12, 29, 0)
+		col.size_flags_horizontal = SIZE_EXPAND_FILL
+		var cv := _vbox(0)
+		col.add_child(cv)
+		var ph := HBoxContainer.new()
+		ph.add_theme_constant_override("separation", 10)
+		var sq := ColorRect.new()
+		sq.color = ACC if player == 1 else INK
+		sq.custom_minimum_size = Vector2(13, 13)
+		sq.size_flags_vertical = SIZE_SHRINK_CENTER
+		ph.add_child(sq)
+		ph.add_child(_label("ผู้เล่น %d" % player, 17, 800))
+		var sub := _label("PLAYER %d" % player, 10, 600, MUTED_INK, 1)
+		sub.size_flags_vertical = SIZE_SHRINK_CENTER
+		ph.add_child(sub)
+		cv.add_child(_pad(ph, 0, 8))
+		for a in Controls.ACTIONS:
+			var action := "p%d_%s" % [player, a[0]]
+			cv.add_child(_rule(DIVIDER))
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 10)
+			var th := _label(a[1], 13, 600)
+			th.size_flags_vertical = SIZE_SHRINK_CENTER
+			row.add_child(th)
+			var en := _label(a[2], 9, 600, MUTED_INK, 1)
+			en.size_flags_vertical = SIZE_SHRINK_CENTER
+			en.size_flags_horizontal = SIZE_EXPAND_FILL
+			row.add_child(en)
+			var b := Button.new()
+			b.theme_type_variation = "GhostButton"
+			b.custom_minimum_size = Vector2(130, 26)
+			b.add_theme_font_override("font", GameData.font(800))
+			b.add_theme_font_size_override("font_size", 14)
+			b.pressed.connect(_start_listen.bind(action))
+			_bind_buttons[action] = b
+			if first == null:
+				first = b
+			row.add_child(b)
+			cv.add_child(_pad(row, 1, 1))
+		cols.add_child(col)
+	_first["controls"] = first
+	var status := _label("", 12, 600, ACC_700)
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dyn["controls_status"] = status
+	v.add_child(_pad(_margin_wrap(status, 29), 6, 12))
+	_refresh_keys()
+
+
+func _start_listen(action: String) -> void:
+	_listen = action
+	_refresh_keys()
+	_set_text("controls_status", "กดปุ่มใหม่บนคีย์บอร์ดสำหรับ \"%s\" · Esc ยกเลิก · PRESS THE NEW KEY" % _action_label(action))
+
+
+func _action_label(action: String) -> String:
+	for a in Controls.ACTIONS:
+		if action.ends_with("_" + a[0]):
+			return "ผู้เล่น %s %s" % [action.substr(1, 1), a[1]]
+	return action
+
+
+## While waiting for a key, the next key press is the new binding (it doesn't reach the menus).
+func _input(event: InputEvent) -> void:
+	if _listen == "" or not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	get_viewport().set_input_as_handled()
+	var k := event as InputEventKey
+	var code: int = k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode
+	var action := _listen
+	_listen = ""
+	if code == KEY_ESCAPE:
+		_set_text("controls_status", "ยกเลิกแล้ว · CANCELLED")
+	elif Controls.reserved(code):
+		_set_text("controls_status", "ปุ่ม %s ใช้กับเมนูของเกมอยู่ เลือกปุ่มอื่น · THAT KEY IS TAKEN BY THE GAME" % Controls.label(code))
+	else:
+		Controls.rebind(action, code)
+		_set_text("controls_status", "%s = %s  (ถ้าปุ่มนี้เคยใช้กับท่าอื่น ท่านั้นได้ปุ่มเดิมของคุณไปแทน)" % [_action_label(action), Controls.label(code)])
+	_refresh_keys()
+	(_bind_buttons[action] as Button).grab_focus()
+
+
+## Shows the current keys everywhere they are listed.
+func refresh_controls() -> void:
+	_listen = ""
+	_set_text("controls_status", "กดปุ่มของท่าที่จะเปลี่ยน แล้วกดปุ่มใหม่บนคีย์บอร์ด · จอยเกมใช้ปุ่มเดิม · CLICK A KEY, THEN PRESS THE NEW ONE")
+	_refresh_keys()
+
+
+func _refresh_keys() -> void:
+	for action in _bind_buttons:
+		(_bind_buttons[action] as Button).text = "กดปุ่มใหม่…" if action == _listen else "   ".join(Controls.keys(action).map(Controls.label))
+	for e in _key_rows:
+		_fill_keys(e)
+	for c in _combo_caps:
+		(c[0] as Label).text = Controls.resolve(c[1], c[2]) + (c[3] if c.size() > 3 else "")
+
+
+func _fill_keys(e: Array) -> void:
+	var h: HBoxContainer = e[0]
+	for c in h.get_children():
+		c.queue_free()
+	for suffix in e[2]:
+		var ks := Controls.keys("p%d_%s" % [e[1], suffix])
+		for i in ks.size():
+			h.add_child(_keycap(Controls.label(ks[i]), "alt" if i > 0 else ("accent" if e[3] else "key")))
 
 
 func _build_online() -> void:
@@ -905,7 +1060,7 @@ func _pattern_strip(vertical: bool) -> Control:
 	return c
 
 
-func _controls_column(title: String, sub: String, swatch: Color, rows: Array) -> Control:
+func _controls_column(title: String, sub: String, swatch: Color, player: int, rows: Array) -> Control:
 	var col := _margin(24, 14, 24, 0)
 	col.size_flags_horizontal = SIZE_EXPAND_FILL
 	var v := _vbox(0)
@@ -933,8 +1088,9 @@ func _controls_column(title: String, sub: String, swatch: Color, rows: Array) ->
 		var keys := HBoxContainer.new()
 		keys.add_theme_constant_override("separation", 5)
 		keys.size_flags_vertical = SIZE_SHRINK_CENTER
-		for k in r[2]:
-			keys.add_child(_keycap(k[0], k[1] if k.size() > 1 else "key"))
+		var entry := [keys, player, r[2], r[3]]
+		_key_rows.append(entry)
+		_fill_keys(entry)
 		row.add_child(keys)
 		v.add_child(_pad(row, 3, 3))
 	return col
