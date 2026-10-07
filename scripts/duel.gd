@@ -79,6 +79,7 @@ var events: Array[Dictionary] = []   ## training: every hit / guard this frame, 
 var last_p1 := {}         ## player 1's input this frame (training input log)
 var injected := [{}, {}]  ## online: both players' inputs for the tick being simulated
 var net_wait := 0.0       ## online: seconds spent waiting for the other player's input
+var replaying := false    ## online rollback: re-simulating ticks already shown, so no new particles or callouts
 var run_score := 0
 var _presses := {}
 
@@ -124,24 +125,8 @@ func reset_round() -> void:
 
 func update(dt: float) -> void:
 	t += dt
-	var alive: Array[Particle] = []
-	for p in parts:
-		var pdt := dt * GameData.GAME_SPEED
-		p.life -= pdt
-		if p.life > 0.0:
-			p.vy += 1400.0 * pdt
-			p.x += p.vx * pdt
-			p.y += p.vy * pdt
-			alive.append(p)
-	parts = alive
-	shake = maxf(0.0, shake - dt * 30.0)
-	white = maxf(0.0, white - dt)
-	var live: Array[Callout] = []
-	for c in callouts:
-		c.t += dt
-		if c.t < 1.3:
-			live.append(c)
-	callouts = live
+	if not replaying:
+		_update_fx(dt)
 	if super_t > 0.0:
 		super_t -= dt
 		return
@@ -185,6 +170,28 @@ func update(dt: float) -> void:
 		_check_hit(fighters[1], fighters[0])
 	if phase == "ko" and t > 2.8:
 		_after_round()
+
+
+## Particles, screen shake and callouts: visual only, so a rollback doesn't replay them.
+func _update_fx(dt: float) -> void:
+	var alive: Array[Particle] = []
+	for p in parts:
+		var pdt := dt * GameData.GAME_SPEED
+		p.life -= pdt
+		if p.life > 0.0:
+			p.vy += 1400.0 * pdt
+			p.x += p.vx * pdt
+			p.y += p.vy * pdt
+			alive.append(p)
+	parts = alive
+	shake = maxf(0.0, shake - dt * 30.0)
+	white = maxf(0.0, white - dt)
+	var live: Array[Callout] = []
+	for c in callouts:
+		c.t += dt
+		if c.t < 1.3:
+			live.append(c)
+	callouts = live
 
 
 func _input_for(f: Fighter, o: Fighter, dt: float) -> Dictionary:
@@ -578,6 +585,8 @@ func _finisher(a: Fighter, b: Fighter) -> void:
 
 
 func _callout(th: String, en: String, x: float, big: bool) -> void:
+	if replaying:
+		return
 	var c := Callout.new()
 	c.th = th
 	c.en = en
@@ -587,6 +596,8 @@ func _callout(th: String, en: String, x: float, big: bool) -> void:
 
 
 func _burst(x: float, y: float, color: Color, n: int, sp: float) -> void:
+	if replaying:
+		return
 	for i in n:
 		var ang := randf() * TAU
 		var v := (150.0 + randf() * 350.0) * sp

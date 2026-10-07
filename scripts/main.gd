@@ -494,11 +494,12 @@ func _on_net_message(msg: Dictionary) -> void:
 				online.on_message(msg)
 
 
-## The left player starts the match once both elephants are picked; the delay covers the round trip.
+## The left player starts the match once both elephants are picked. Rollback hides up to a few
+## ticks of the one-way trip; only longer trips add input delay (2 ticks at least, for jitter).
 func _try_go() -> void:
 	if online_side != 0 or _picks[0] < 0 or _picks[1] < 0:
 		return
-	var delay := clampi(ceili(_rtt / 2.0 / 16.7) + 2, 3, 12)
+	var delay := clampi(ceili(_rtt / 2.0 / 16.7) - 4, 2, 8)
 	var seed_v := randi() % 100000
 	net.send({"t": "go", "seed": seed_v, "p0": _picks[0], "p1": _picks[1], "delay": delay})
 	_start_online(seed_v, _picks[0], _picks[1], delay)
