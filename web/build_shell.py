@@ -1,7 +1,7 @@
 """Builds web/shell.html (the custom HTML shell used by the Web export preset).
 
 Edit shell_src.html, then run:  python web/build_shell.py
-The elephant images and the backdrop are inlined as data URIs so the shell stays a single file
+The elephant images (rendered from the game, transparent WebP) and the backdrop are inlined as data URIs so the shell stays a single file
 (Godot's exporter copies only the HTML, not files next to it).
 """
 import base64
@@ -14,8 +14,10 @@ html = (here / "shell_src.html").read_text(encoding="utf-8")
 project = (here.parent / "project.godot").read_text(encoding="utf-8")
 html = html.replace("{{VERSION}}", re.search(r'config/version="([^"]+)"', project).group(1))
 for key, name, mime in [
-    ("{{ELEPHANT_STAND}}", "elephant_stand.png", "image/png"),
-    ("{{ELEPHANT_REAR}}", "elephant_rear.png", "image/png"),
+    ("{{SAENG_IDLE}}", "saeng_idle.webp", "image/webp"),
+    ("{{SAENG_HAPPY}}", "saeng_happy.webp", "image/webp"),
+    ("{{MEK_IDLE}}", "mek_idle.webp", "image/webp"),
+    ("{{MEK_HAPPY}}", "mek_happy.webp", "image/webp"),
     ("{{SCENE}}", "scene_day.jpg", "image/jpeg"),
 ]:
     data = base64.b64encode((here / name).read_bytes()).decode("ascii")
