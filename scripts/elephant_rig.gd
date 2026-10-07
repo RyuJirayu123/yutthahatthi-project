@@ -1443,11 +1443,13 @@ static func _build(v: String) -> Dictionary:
 	_el(366, 201, 8, 4.5, Color("#ec8f97"), null, 0.0, 0.5)
 
 	_begin(P, "eye", HK)
-	_el(362, 180, 8.6, 9.8, Color.WHITE, EYE_INK, 1.5)
-	_dot(363.8, 181.2, 6.6, Color("#4a2a18"))
-	_dot(364.2, 181.8, 3.8, EYE_INK)
-	_dot(366.4, 177.8, 2.7, Color.WHITE)
-	_dot(361.2, 185.0, 1.3, Color.WHITE)
-	_ln("M 352.5 166.5 C 358 162, 365 162.5, 371 167.5", EYE_INK, 2.6)
+	_el(362, 180.5, 7.6, 8.4, Color.WHITE, EYE_INK, 1.5)
+	_dot(364, 182, 5.6, Color("#4a2a18"))
+	_dot(364.4, 182.4, 3.2, EYE_INK)
+	_dot(366, 180.6, 1.7, Color.WHITE)
+	# heavy upper lid slanting down to the front: a determined look rather than wide-eyed
+	_poly(PackedVector2Array([Vector2(352, 166), Vector2(372, 166), Vector2(372, 178.6), Vector2(353, 172.2)]), "skin")
+	_ln("M 353.5 172.4 L 371.2 178.4", EYE_INK, 2.0)
+	_ln("M 351 163.5 C 358 164.5, 366 168.5, 373.5 175", EYE_INK, 3.2)
 
 	return P
