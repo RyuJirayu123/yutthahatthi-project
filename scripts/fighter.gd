@@ -44,6 +44,7 @@ var dash_t := 0.0         ## time left in a dash (towards the opponent) or backs
 var dash_dir := 0         ## world direction of the dash, +1 / -1
 var atk_ex := false       ## the current signature move is the EX version
 var lag := 0.0            ## stuck recovering from a whiffed attack (hits here count as counter hits)
+var f_cd := 0.0           ## F is resting after the trunk slam ends the F string
 var spout_live := false   ## this elephant's water spout is still flying (one at a time)
 var _held_dir := 0
 var _tap_dir := 0
@@ -86,6 +87,7 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 	buff_t = maxf(0.0, buff_t - dt)
 	combo_t = maxf(0.0, combo_t - dt)
 	dash_t = maxf(0.0, dash_t - dt)
+	f_cd = maxf(0.0, f_cd - dt)
 	balance_t += dt
 	if dazed > 0.0:
 		dazed -= dt
@@ -120,12 +122,15 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 					pressed = mo
 				elif inp.get("down", false) and y >= G:
 					pressed = "c" + pressed     # crouching (low) version
+				if f_cd > 0.0 and (pressed == "light" or pressed == "clight"):
+					pressed = ""                # F string just ended: no mashing straight into a new one
 			if pressed == "ex" and meter < GameData.EX_COST:
 				pressed = "heavy"
-			buf = pressed
-			_buf_age = 0.0
-			# pressed during a move: wait for its combo window (or its end)
-			buf_t = maxf(0.18, GameData.move(atk).dur - atk_t) if atk != "" else 0.18
+			if pressed != "":
+				buf = pressed
+				_buf_age = 0.0
+				# pressed during a move: wait for its combo window (or its end)
+				buf_t = maxf(0.18, GameData.move(atk).dur - atk_t) if atk != "" else 0.18
 		_buf_age += dt
 		buf_t -= dt
 		if buf_t <= 0.0:
@@ -265,6 +270,8 @@ func _start(id: String, ex := false) -> void:
 	buf = ""
 	if m.ultimate:
 		meter = 0.0
+	if id == "light3":
+		f_cd = m.dur + GameData.F_COOLDOWN
 	if id == "dive":
 		vy = maxf(vy, 150.0)
 		vx = face * 260.0 * def.speed
