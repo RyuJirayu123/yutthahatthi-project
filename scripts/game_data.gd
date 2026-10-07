@@ -203,7 +203,7 @@ const COUNTER_COST := 25.0      ## power spent on a guard counter
 const JUGGLE_MAX := 3           ## air hits that still knock the target back up
 const COMBO_SHOW := 1.1         ## the hit counter lingers this long after the last hit
 const WHIFF_LAG := 0.14         ## extra recovery after an attack that touched nothing
-const F_COOLDOWN := 0.2         ## F can't start a new string this long after the trunk slam (3rd F) ends
+const F_COOLDOWN := 0.15        ## F can't start a new string this long after the trunk slam (3rd F) ends
 
 ## Street-fighter style extras
 const MOTION_WINDOW := 0.4      ## a motion (↓↘→ / →↓↘) must be finished this long before the button
