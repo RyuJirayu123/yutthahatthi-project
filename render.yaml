@@ -1,0 +1,12 @@
+# Render blueprint for the online relay (server/relay.js).
+# Render dashboard: New > Blueprint > pick this GitHub repo > Apply. Free plan, Singapore region.
+services:
+  - type: web
+    name: elephant-duel-relay
+    runtime: node
+    rootDir: server
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: node relay.js
+    healthCheckPath: /

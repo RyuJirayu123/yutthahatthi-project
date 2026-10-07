@@ -7,7 +7,7 @@ const H := 540.0
 const GROUND := 440.0
 const WALL := 80.0
 ## Speed of the whole fight (moves, walking, jumps, effects); 1.0 = original pace. The round timer stays in real seconds.
-const GAME_SPEED := 0.8
+const GAME_SPEED := 0.7
 
 ## Thai court palette: lacquer red, gold leaf, cream paper, dark teak.
 const INK := Color("#2a170d")
@@ -110,18 +110,18 @@ static func _build_moves() -> void:
 	# Pressing the next button during a move chains along `links`, hit or miss, so mashing still makes a combo;
 	# G / specials / H only cut a move short once it connected.
 	var string := {"cancel_heavy": true, "cancel_super": true}
-	_move("light", 0.30, [_hit(0.07, 0.17, 72, 5, 150, 0.30, 8, 3, {"sound": "hit"})],
+	_move("light", 0.34, [_hit(0.07, 0.17, 72, 5, 150, 0.26, 8, 3, {"sound": "hit"})],
 		string.merged({"links": {"light": "light2", "medium": "mid", "clight": "clow", "cmedium": "cmid"}}))
-	_move("light2", 0.34, [_hit(0.08, 0.18, 76, 6, 170, 0.34, 8, 4, {"sound": "hit"})],
+	_move("light2", 0.38, [_hit(0.08, 0.18, 76, 6, 170, 0.30, 8, 4, {"sound": "hit"})],
 		string.merged({"links": {"light": "light3", "medium": "mid", "cmedium": "cmid"}, "name_th": "ตวัดงวง", "name_en": "BACKHAND",
 		"dash_stop": 0.10, "dash_speed": 300.0}))
 	_move("light3", 0.50, [_hit(0.16, 0.26, 84, 9, 330, 0.50, 10, 8, {"lift": -460.0})],
 		string.merged({"name_th": "ทุบงวง", "name_en": "TRUNK SLAM", "dash_stop": 0.14, "dash_speed": 320.0}))
 	# R: a long tusk poke for mid range
-	_move("mid", 0.46, [_hit(0.13, 0.24, 110, 7, 220, 0.38, 9, 5, {"sound": "hit"})],
+	_move("mid", 0.50, [_hit(0.13, 0.24, 110, 7, 220, 0.36, 9, 5, {"sound": "hit"})],
 		string.merged({"links": {"cmedium": "cmid"}, "name_th": "แทงงาตรง", "name_en": "TUSK POKE", "dash_stop": 0.12, "dash_speed": 200.0}))
 	# down + F: quick whip at the feet
-	_move("clow", 0.30, [_hit(0.06, 0.15, 76, 4, 120, 0.30, 6, 2, {"offset": 90.0, "low": true, "sound": "hit"})],
+	_move("clow", 0.34, [_hit(0.06, 0.15, 76, 4, 120, 0.26, 6, 2, {"offset": 90.0, "low": true, "sound": "hit"})],
 		string.merged({"links": {"light": "light2", "medium": "mid", "cmedium": "cmid"}, "name_th": "ย่อฟาดขา", "name_en": "LOW WHIP"}))
 	# down + R: sweeps the legs and trips the opponent; ends a combo
 	_move("cmid", 0.62, [_hit(0.15, 0.27, 120, 8, 160, 0.5, 10, 6, {"offset": 90.0, "low": true, "lift": -300.0})],
@@ -204,6 +204,7 @@ const DOUBLE_TAP := 0.25        ## max gap between the two taps
 const COUNTER_COST := 25.0      ## power spent on a guard counter
 const JUGGLE_MAX := 3           ## air hits that still knock the target back up
 const COMBO_SHOW := 1.1         ## the hit counter lingers this long after the last hit
+const WHIFF_LAG := 0.14         ## extra recovery after an attack that touched nothing
 
 ## Street-fighter style extras
 const MOTION_WINDOW := 0.4      ## a motion (↓↘→ / →↓↘) must be finished this long before the button

@@ -1,0 +1,9 @@
+{
+  "name": "elephant-duel-relay",
+  "version": "1.0.0",
+  "description": "Online relay for Elephant Duel: pairs two players and forwards their messages.",
+  "main": "relay.js",
+  "scripts": { "start": "node relay.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}

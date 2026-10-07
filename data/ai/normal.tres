@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_ai")
 tick = 0.28
-block = 0.38
+block = 0.5
 aggr = 0.62
 heavy = 0.4
 special = 0.6

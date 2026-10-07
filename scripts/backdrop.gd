@@ -73,6 +73,7 @@ var _layers: Array[Layer] = []
 var _clouds_n := []      ## [node, x, y, speed]
 var _swayers := []       ## [node, phase, amount, base angle, speed, skew?]
 var _live: Layer
+var _front_layer: Layer   ## grass clumps drawn in front of the elephants
 var _view := 0.0
 var _t := 0.0
 
@@ -256,6 +257,7 @@ func _ready() -> void:
 	_live = _add(0.0, _paint_live)
 	var front := _add(1.25, Callable())
 	front.z_index = 1
+	_front_layer = front
 	for fr in _front:
 		var n := Layer.new()
 		n.position = Vector2(fr[0], H + 2.0)
@@ -298,6 +300,10 @@ func _bake(rect: Rect2, painter: Callable) -> Texture2D:
 
 
 ## Slides every layer for camera offset `view` (the ground moves by it 1:1) plus screen shake.
+func show_front(on: bool) -> void:
+	_front_layer.visible = on
+
+
 func update(view: float, t: float, shake: Vector2) -> void:
 	view = clampf(view, -VIEW_MAX, VIEW_MAX)
 	_view = view

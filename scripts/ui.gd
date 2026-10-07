@@ -42,6 +42,7 @@ func _ready() -> void:
 	_build_select()
 	_build_howto()
 	_build_combos()
+	_build_online()
 	_build_pause()
 	_build_stage_clear()
 	_build_game_over()
@@ -114,9 +115,10 @@ func show_game_over(cleared: bool, stages_cleared: int, stages: int, score: int,
 	show_screen("gameover")
 
 
-func show_vs_result(winner: int, wins: Array[int], def: ElephantDef) -> void:
-	_set_text("vs_th", "ผู้เล่น %d ชนะ" % (winner + 1))
-	_set_text("vs_en", "PLAYER %d WINS" % (winner + 1))
+## `me` is this player's side in an online match (-1 offline).
+func show_vs_result(winner: int, wins: Array[int], def: ElephantDef, me := -1) -> void:
+	_set_text("vs_th", ("คุณชนะ!" if winner == me else "คุณแพ้") if me >= 0 else "ผู้เล่น %d ชนะ" % (winner + 1))
+	_set_text("vs_en", ("YOU WIN" if winner == me else "YOU LOSE") if me >= 0 else "PLAYER %d WINS" % (winner + 1))
 	_set_text("vs_score", "%d – %d" % [wins[0], wins[1]])
 	_set_text("vs_name", def.display_name + " · " + def.name_en)
 	set_share_msg("")
@@ -138,7 +140,12 @@ func setup_roster(roster: Array[ElephantDef], locked: Array[bool]) -> void:
 
 func update_select(mode: String, cursors: Array[int], confirmed: Array[bool]) -> void:
 	var two := mode == "vs"
-	_set_text("select_kicker", "สองคน · ประลอง · VERSUS" if two else "เล่นคนเดียว · อาร์เคด · ARCADE")
+	var kicker := "เล่นคนเดียว · อาร์เคด · ARCADE"
+	match mode:
+		"vs": kicker = "สองคน · ประลอง · VERSUS"
+		"training": kicker = "ฝึกซ้อม · เลือกช้างที่จะฝึก · TRAINING"
+		"online": kicker = "ออนไลน์ · รอคู่ต่อสู้เลือกช้าง… · WAITING FOR OPPONENT" if confirmed[0] else "ออนไลน์ · เลือกช้างของคุณ · PICK YOUR ELEPHANT"
+	_set_text("select_kicker", kicker)
 	(_dyn["select_vrule"] as Control).visible = two
 	for i in _cards.size():
 		var on1 := cursors[0] == i
@@ -207,8 +214,15 @@ func _build_title() -> void:
 	_first["title"] = arcade
 	var menu := _vbox(8)
 	menu.add_child(arcade)
-	menu.add_child(_button("สองคน · ประลอง", "2 PLAYERS · VERSUS ON ONE KEYBOARD", "SecondaryButton", "vs", "02"))
-	menu.add_child(_button("วิธีเล่น", "HOW TO PLAY", "GhostButton", "howto", "03"))
+	for row_spec in [[["สองคน · ประลอง", "2 PLAYERS", "vs", "02"], ["เล่นออนไลน์", "ONLINE", "online", "03"]],
+			[["ฝึกซ้อม · สอนเล่น", "TRAINING", "training", "04"], ["วิธีเล่น", "HOW TO PLAY", "howto", "05"]]]:
+		var row_box := HBoxContainer.new()
+		row_box.add_theme_constant_override("separation", 8)
+		for b in row_spec:
+			var btn := _button(b[0], b[1], "SecondaryButton" if b[3] in ["02", "03"] else "GhostButton", b[2], b[3], false)
+			btn.size_flags_horizontal = SIZE_EXPAND_FILL
+			row_box.add_child(btn)
+		menu.add_child(row_box)
 	v.add_child(menu)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
@@ -442,8 +456,8 @@ func _build_howto() -> void:
 	cols.add_theme_constant_override("separation", 0)
 	v.add_child(cols)
 	cols.add_child(_controls_column("ผู้เล่น 1", "PLAYER 1", ACC, [
-		["เดิน · ถอยหลัง = ป้องกัน", "MOVE · HOLD BACK TO GUARD", [["A"], ["D"]]],
-		["กระโดด · ย่อ", "JUMP · CROUCH", [["W"], ["S"]]],
+		["เดิน", "MOVE", [["A"], ["D"]]],
+		["กระโดด · ย่อ = ป้องกัน", "JUMP · CROUCH TO GUARD", [["W"], ["S"]]],
 		["งวงฟาด · ระยะสั้น", "TRUNK WHIP · SHORT", [["F"]]],
 		["แทงงา · ระยะกลาง", "TUSK POKE · MID", [["R"]]],
 		["ท่าประจำตัว", "SIGNATURE MOVE", [["G"]]],
@@ -452,8 +466,8 @@ func _build_howto() -> void:
 	]))
 	cols.add_child(_vrule())
 	cols.add_child(_controls_column("ผู้เล่น 2", "PLAYER 2", INK, [
-		["เดิน · ถอยหลัง = ป้องกัน", "MOVE · HOLD BACK TO GUARD", [["←"], ["→"]]],
-		["กระโดด · ย่อ", "JUMP · CROUCH", [["↑"], ["↓"]]],
+		["เดิน", "MOVE", [["←"], ["→"]]],
+		["กระโดด · ย่อ = ป้องกัน", "JUMP · CROUCH TO GUARD", [["↑"], ["↓"]]],
 		["งวงฟาด · ระยะสั้น", "TRUNK WHIP · SHORT", [[","], ["NUM 1", "alt"]]],
 		["แทงงา · ระยะกลาง", "TUSK POKE · MID", [["L"], ["NUM 5", "alt"]]],
 		["ท่าประจำตัว", "SIGNATURE MOVE", [["."], ["NUM 2", "alt"]]],
@@ -480,7 +494,7 @@ func _build_howto() -> void:
 		["03", "", "ของ้าวข้ามการป้องกันได้แต่ช้า กดพร้อมท่าช้างเป็นคอมโบได้", "Glaive beats guard but is slow; press it with elephant moves to combo."],
 		["04", "", "หลอดทรงตัวหมด = ควาญเสียหลัก ช้างมึน 1 วิ ฟันของ้าวซ้ำ = ฟันปิดฉาก", "Empty the balance bar to stun them, then land the glaive for a Decisive Strike."],
 		["05", "rule4", "", ""],
-		["06", "", "จอย: X = F · LB = R · Y = G · B = H · RB = J · A กระโดด", "Gamepad: stick/D-pad move, hold back to guard · Start pause."],
+		["06", "", "จอย: X = F · LB = R · Y = G · B = H · RB = J · A กระโดด", "Gamepad: stick/D-pad move, hold down to guard · Start pause."],
 	]
 	for it in items:
 		rv.add_child(_rule(DIVIDER))
@@ -541,7 +555,7 @@ func _build_combos() -> void:
 	v.add_child(cols)
 	cols.add_child(_combo_column("คอมโบ", "COMBOS", [
 		["คอมโบงวง 3 จังหวะ", "TRUNK STRING", ["F", ">", "F", ">", "F"], [",", ">", ",", ">", ","],
-			"กด F รัวๆ ก็ออกครบ ครั้งที่ 3 ทุบงวงให้ลอย"],
+			"ตีโดนแล้วกด F ต่อ (กดรัวได้) ครั้งที่ 3 ทุบงวงให้ลอย"],
 		["สั้น › กลาง › กวาด", "SHORT › MID › SWEEP", ["F", ">", "R", ">", "↓R"], [",", ">", "L", ">", "↓L"],
 			"งวงฟาด ต่อแทงงา แล้วย่อกวาดขาให้ล้ม"],
 		["ยกเลิกท่า", "CANCEL", ["F", ">", "G", ">", "H"], [",", ">", ".", ">", "/"],
@@ -561,12 +575,12 @@ func _build_combos() -> void:
 			"ตอนเริ่มท่าไม่โดนอะไร สวนคนกระโดดเข้ามา แต่ถ้าพลาดโดนสวนหนัก"],
 		["ท่า EX", "EX SIGNATURE", ["G", "+", "H"], [".", "+", "/"],
 			"กดพร้อมกัน ใช้พลังครึ่งหลอด ท่าประจำตัวแรงขึ้น ไม่สะดุ้งตอนง้าง"],
-		["ปัดสวน", "GUARD COUNTER", ["←", "+", "G"], ["←", "+", "."],
+		["ปัดสวน", "GUARD COUNTER", ["↓", "+", "G"], ["↓", "+", "."],
 			"ตอนกันการโจมตีได้ กด G ผลักสวนกลับ ใช้พลัง 1 ช่อง"],
 		["สวนจังหวะ", "COUNTER HIT", [], [],
 			"ตีโดนตอนอีกฝ่ายกำลังออกท่า แรงขึ้นและมึนนานขึ้น ต่อท่าได้ยาวขึ้น"],
-		["ป้องกันสูง-ต่ำ", "HIGH / LOW GUARD", ["←", "|", "↓ ←"], ["←", "|", "↓ ←"],
-			"ถอยหลัง = ยืนกัน · ↓+ถอยหลัง = ย่อกัน · ↓F ↓R ต้องย่อกัน · ทิ้งตัวต้องยืนกัน"],
+		["ป้องกัน", "GUARD", ["↓"], ["↓"],
+			"ย่อค้าง = กันได้ทุกท่า ยกเว้นของ้าว · ระหว่างย่อเดินไม่ได้"],
 	]))
 	var tip := _label("→ = ทิศที่หันหน้าไป (หันซ้ายก็กลับทิศ) · คอมโบยิ่งยาว แต่ละฮิตยิ่งเบาลง · จอย: X = F · Y = G · B = H · RB = J", 10, 600, ACC_700)
 	v.add_child(_pad(_margin_wrap(tip, 29), 0, 8))
@@ -640,19 +654,111 @@ func _combo_keys(tokens: Array) -> HBoxContainer:
 	return h
 
 
+func _build_online() -> void:
+	var v := _side_panel("online")
+	v.add_child(_label("ออนไลน์ · ONLINE", 11, 600, ACC_700, 1))
+	v.add_child(_label("เล่นออนไลน์", 48, 800))
+	v.add_child(_label("PLAY ONLINE", 17, 800))
+	var status := _label("", 13, 600, INK)
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.custom_minimum_size = Vector2(200, 40)
+	_dyn["online_status"] = status
+	v.add_child(_pad(status, 10, 0))
+	v.add_child(_spacer())
+	var quick := _button("สุ่มหาคู่", "QUICK MATCH · ANYONE ONLINE", "PrimaryButton", "o_quick")
+	_first["online"] = quick
+	var menu := _vbox(8)
+	menu.add_child(quick)
+	menu.add_child(_button("สร้างห้องเล่นกับเพื่อน", "CREATE A ROOM · GET A CODE", "SecondaryButton", "o_host", "", false))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var code := LineEdit.new()
+	code.placeholder_text = "รหัสห้อง"
+	code.max_length = 4
+	code.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	code.custom_minimum_size = Vector2(150, 0)
+	code.add_theme_font_override("font", GameData.font(800, 4))
+	code.add_theme_font_size_override("font_size", 20)
+	code.add_theme_color_override("font_color", INK)
+	code.add_theme_color_override("font_placeholder_color", MUTED_INK)
+	code.add_theme_color_override("caret_color", ACC)
+	for st in ["normal", "focus"]:
+		var box := _flat(GameData.SURFACE if st == "normal" else BG)
+		box.set_border_width_all(2 if st == "normal" else 3)
+		box.border_color = INK if st == "normal" else ACC
+		code.add_theme_stylebox_override(st, box)
+	code.text_changed.connect(func(t: String) -> void:
+		var up := t.to_upper()
+		if up != t:
+			code.text = up
+			code.caret_column = up.length())
+	code.text_submitted.connect(func(_t: String) -> void: action_pressed.emit("o_join"))
+	_dyn["room_code"] = code
+	row.add_child(code)
+	var join := _button("เข้าห้อง", "JOIN WITH CODE", "SecondaryButton", "o_join", "", false)
+	join.size_flags_horizontal = SIZE_EXPAND_FILL
+	row.add_child(join)
+	menu.add_child(row)
+	menu.add_child(_button("กลับ", "BACK", "GhostButton", "back", "", false))
+	v.add_child(menu)
+
+
+func set_online_status(text: String) -> void:
+	_set_text("online_status", text)
+
+
+func room_code() -> String:
+	return (_dyn["room_code"] as LineEdit).text.strip_edges().to_upper()
+
+
 func _build_pause() -> void:
 	var v := _side_panel("pause")
 	v.add_child(_label("ESC · P · START", 11, 600, ACC_700, 1))
-	v.add_child(_label("หยุดชั่วคราว", 48, 800))
-	v.add_child(_label("PAUSED", 17, 800))
+	var title := _vbox(0)
+	title.add_child(_label("หยุดชั่วคราว", 48, 800))
+	title.add_child(_label("PAUSED", 17, 800))
+	_dyn["pause_title"] = title
+	v.add_child(title)
 	v.add_child(_spacer())
 	var resume := _button("เล่นต่อ", "RESUME", "PrimaryButton", "resume")
 	_first["pause"] = resume
 	v.add_child(resume)
+	# training options (only shown in training mode)
+	var tb := GridContainer.new()
+	tb.columns = 2
+	tb.add_theme_constant_override("h_separation", 6)
+	tb.add_theme_constant_override("v_separation", 6)
+	for b in [["บทเรียนถัดไป", "NEXT LESSON", "t_next"], ["บทก่อนหน้า", "PREVIOUS LESSON", "t_prev"],
+			["ฝึกอิสระ", "FREE PRACTICE", "t_free"], ["หุ่น", "DUMMY", "t_dummy"], ["พลังเต็มตลอด", "INFINITE POWER", "t_meter"]]:
+		var btn := _button(b[0], b[1], "SecondaryButton", b[2], "", false)
+		btn.size_flags_horizontal = SIZE_EXPAND_FILL
+		_dyn[b[2]] = btn
+		tb.add_child(btn)
+	_dyn["train_box"] = tb
+	tb.visible = false
+	v.add_child(tb)
 	v.add_child(_button("เมนูหลัก", "MAIN MENU", "SecondaryButton", "menu"))
 	var sb := _sound_button()
 	sb.size_flags_horizontal = SIZE_SHRINK_BEGIN
 	v.add_child(sb)
+
+
+## Shows or hides the training options in the pause menu and updates their labels.
+func set_training_menu(on: bool, dummy_name: String, meter_on: bool, in_lesson: bool) -> void:
+	(_dyn["train_box"] as Control).visible = on
+	(_dyn["pause_title"] as Control).visible = not on
+	if not on:
+		return
+	_button_text(_dyn["t_free"], "ฝึกอิสระ" if in_lesson else "กลับไปเรียนบทแรก", "FREE PRACTICE" if in_lesson else "BACK TO LESSON 1")
+	_button_text(_dyn["t_dummy"], "หุ่น: " + dummy_name.get_slice(" · ", 0), "DUMMY: " + dummy_name.get_slice(" · ", 1))
+	_button_text(_dyn["t_meter"], "พลังเต็มตลอด: " + ("เปิด" if meter_on else "ปิด"), "INFINITE POWER: " + ("ON" if meter_on else "OFF"))
+
+
+func _button_text(b: Button, th: String, en: String) -> void:
+	var en_label := b.get_meta("en") as Label
+	en_label.text = en
+	var col := en_label.get_parent()
+	(col.get_child(0) as Label).text = th
 
 
 func _build_stage_clear() -> void:

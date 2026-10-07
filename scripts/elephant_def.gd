@@ -28,6 +28,9 @@ extends Resource
 @export var flag := Color("#c8191e")
 ## Royal regalia: tiered umbrella instead of a flag, crowned rider.
 @export var royal := false
+## Armoured look (design variant B): scale-armour caparison, forehead plate, capped tusks,
+## helmeted rider. Off = the ceremonial look (variant A).
+@export var armored := false
 
 @export_group("Stats")
 @export var hp := 100.0

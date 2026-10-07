@@ -14,6 +14,7 @@ cloth = Color(0.1137, 0.3098, 0.6118, 1)
 trim = Color(0.9098, 0.7020, 0.2275, 1)
 flag = Color(0.1137, 0.3098, 0.6118, 1)
 royal = false
+armored = true
 locked = false
 hp = 91.0
 power = 0.95

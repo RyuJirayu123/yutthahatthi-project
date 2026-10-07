@@ -43,8 +43,10 @@ const INK := GameData.INK
 const ACC := GameData.ACC
 const MIN_GAP := 195.0
 const AIR_GAP := 100.0     ## narrower while someone is airborne, so a jump can pass over
+## Basic attacks: no chip damage when guarded.
+const NO_CHIP := ["light", "light2", "light3", "mid", "clow", "cmid", "dive", "counter"]
 
-var mode: String          ## "arcade", "vs" or "demo"
+var mode: String          ## "arcade", "vs", "online", "training" or "demo"
 var stage: int
 var defs: Array[ElephantDef]
 var ctrls: Array[String]
@@ -72,6 +74,11 @@ var spouts: Array[Spout] = []
 var super_t := 0.0        ## world frozen for an ultimate's cut-in (or the flash of an EX move)
 var super_f: Fighter      ## who is doing it
 var super_ex := false     ## the freeze is an EX flash, not an ultimate
+var dummy_input: Callable ## training: what the dummy (ctrl "dummy") presses
+var events: Array[Dictionary] = []   ## training: every hit / guard this frame, read by Training
+var last_p1 := {}         ## player 1's input this frame (training input log)
+var injected := [{}, {}]  ## online: both players' inputs for the tick being simulated
+var net_wait := 0.0       ## online: seconds spent waiting for the other player's input
 var run_score := 0
 var _presses := {}
 
@@ -81,7 +88,9 @@ func _init(p_mode: String, p_stage: int, left: ElephantDef, right: ElephantDef, 
 	mode = p_mode
 	stage = p_stage
 	defs = [left, right]
-	ctrls = ["ai" if mode == "demo" else "p1", "p2" if mode == "vs" else "ai"]
+	ctrls = ["ai" if mode == "demo" else "p1", "p2" if mode == "vs" else ("dummy" if mode == "training" else "ai")]
+	if mode == "online":
+		ctrls = ["net", "net"]
 	round_time = p_round_time
 	rounds_to_win = p_rounds_to_win
 	screen_shake = p_screen_shake
@@ -150,7 +159,8 @@ func update(dt: float) -> void:
 			phase = "fight"
 			t = 0.0
 	elif phase == "fight":
-		timer -= dt
+		if mode != "training":
+			timer -= dt
 		if timer <= 0.0:
 			timer = 0.0
 			_end_round("time")
@@ -180,8 +190,12 @@ func update(dt: float) -> void:
 func _input_for(f: Fighter, o: Fighter, dt: float) -> Dictionary:
 	if f.ctrl == "ai":
 		return f.think(o, dt)
+	if f.ctrl == "dummy":
+		return dummy_input.call(f, o) if dummy_input.is_valid() else {}
+	if f.ctrl == "net":
+		return injected[fighters.find(f)]
 	var p := f.ctrl + "_"
-	return {
+	var inp := {
 		"left": Input.is_action_pressed(p + "left"),
 		"right": Input.is_action_pressed(p + "right"),
 		"up": Input.is_action_pressed(p + "up"),
@@ -192,6 +206,9 @@ func _input_for(f: Fighter, o: Fighter, dt: float) -> Dictionary:
 		"special": _presses.has(p + "special"),
 		"rider": _presses.has(p + "rider"),
 	}
+	if f == fighters[0]:
+		last_p1 = inp
+	return inp
 
 
 func _end_round(why: String) -> void:
@@ -297,9 +314,9 @@ func _armor(f: Fighter) -> float:
 
 func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 	var finisher := m.id == "rider" and b.dazed > 0.0
-	# guard: holding back with the attacker in front; lows need a crouching guard, highs a standing one
+	# guard: crouching with the attacker in front; nothing stops the glaive
 	var guard := (b.guarding or b.bstun > 0.0) and signf(a.x - b.x) != -b.face and b.stun <= 0.0 and b.atk == "" and not h.overhead
-	var blocked := guard and not (h.low and not b.crouching) and not (h.high and b.crouching)
+	var blocked := guard
 	var armored := not finisher and b.atk != "" and b.atk_t < _armor(b)
 	var skill := a.def.rider_skill if m.id == "rider" or m.id == "storm" else 1.0
 	var ex := a.atk_ex and m.id == a.atk
@@ -311,8 +328,11 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 		_finisher(a, b)
 		dmg = GameData.FINISHER_DMG * a.def.power
 	elif blocked:
-		dmg *= 0.3 if m.ultimate else 0.15
-		b.vx = a.face * h.knock * 0.5
+		# guarded basic attacks do no chip damage (mashing at a guard gets nothing); specials chip a little
+		dmg *= 0.3 if m.ultimate else (0.0 if m.id in NO_CHIP else 0.12)
+		# the push is shared, so the guarding elephant stays close enough to hit back
+		b.vx = a.face * h.knock * 0.3
+		a.vx = -a.face * h.knock * 0.25
 		b.bstun = 0.16
 		b.meter = minf(100.0, b.meter + 4.0 * b.def.charge)
 		_burst(px, py, Color.WHITE, 6, 0.6)
@@ -327,9 +347,10 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 		hitstop = 0.08
 		_shake_rider(b, shaken * 0.5)
 	else:
+		a.atk_hit = a.atk == m.id
 		var big := h.dmg >= 9.0 or ex
 		# counter hit: caught in the middle of an attack -> harder hit, longer stun
-		var counter := b.atk != "" or b.rider_t >= 0.0
+		var counter := b.atk != "" or b.rider_t >= 0.0 or b.lag > 0.0
 		# combo: hits landed before the target recovers; later hits do less damage
 		b.hits_taken = b.hits_taken + 1 if b.stun > 0.0 or b.juggled else 1
 		dmg *= GameData.combo_scale(b.hits_taken)
@@ -352,6 +373,7 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 			b.juggled = true
 			b.vx *= 0.6 if airborne else 1.0
 		b.atk = ""
+		b.lag = 0.0
 		b.rider_t = -1.0
 		b.flash = 0.12
 		b.blocking = false
@@ -368,7 +390,10 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 		_shake_rider(b, shaken)
 		if h.daze:
 			_shake_rider(b, 1000.0)
-	b.hp = maxf(0.0, b.hp - dmg)
+	b.hp = maxf(1.0 if mode == "training" else 0.0, b.hp - dmg)
+	if mode == "training":
+		events.append({"by": fighters.find(a), "move": m.id, "blocked": blocked, "low": h.low, "crouch": b.crouching,
+			"combo": b.hits_taken if not blocked else 0, "dmg": dmg, "ex": ex, "finisher": finisher})
 	if mode == "arcade" and a == fighters[0]:
 		run_score += roundi(dmg * 10 * (1 + stage * 0.5))
 	if b.hp <= 0.0:
@@ -526,6 +551,9 @@ func _shake_rider(f: Fighter, amount: float) -> void:
 		# balance break: the rider is dazed and the elephant reels, open to a decisive strike
 		f.dazed = GameData.DAZE_TIME
 		f.stun = maxf(f.stun, GameData.BREAK_STUN)
+		# it reels on the spot rather than flying off, so the glaive can still reach it
+		f.vx *= 0.25
+		f.vy = maxf(f.vy, -200.0)
 		f.atk = ""
 		f.rider_t = -1.0
 		f.blocking = false

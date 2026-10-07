@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#ece8e0;color:#25211d;font-family:'IBM Plex Sans Thai',sans-serif}a{color:#8a3b1e}a:hover{color:#5e2510}</style>
+</helmet>
+<section id="turn2" style="padding:64px 64px 0;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">รอบที่ 2 · น่ารักขึ้น</div>
+<h1 style="margin:0;font-size:34px;font-weight:600">ช้างศึก · เวอร์ชันน่ารัก</h1>
+<div style="font-size:16px;color:#5c554d;max-width:760px;text-wrap:pretty">ใช้โครงและท่าทางเดิมจากรอบที่ 1 ปรับสัดส่วนให้หัวโต ตัวป้อม ตาโต</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+
+<div id="2a" style="flex:none;width:1120px;box-sizing:border-box;background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;background:#25211d;color:#fbfaf7;padding:3px 9px;border-radius:3px">2a</span>
+<h2 style="margin:0;font-size:24px;font-weight:600">แบบ A · ช้างศึกพิธี น่ารัก</h2>
+<span style="font-size:15px;color:#7a7268">ปรับจาก <a href="#1a">1a</a></span>
+</div>
+<div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
+<div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
+<dc-import name="Elephant" cute="{{ true }}" variant="a" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px">
+<div style="position:relative;height:250px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:12px;background:#e3d7c1"></div>
+<dc-import name="Elephant" cute="{{ true }}" variant="a" team="{{ altTeam }}" pose="idle" flip="{{ true }}" outline="{{ outline }}" hint-size="100%,250px" style="position:absolute;inset:0"></dc-import>
+<div style="position:absolute;left:12px;top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">ฝั่งตรงข้าม · หันซ้าย</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="font-weight:600;color:#25211d">ต่างจาก 1a</div>
+<div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 12px">
+<span style="color:#7a7268">หัว</span><span>โตขึ้น 25% หูกลมใหญ่ขึ้น</span>
+<span style="color:#7a7268">หน้า</span><span>ตากลมโตมีประกาย ขนตา แก้มชมพู</span>
+<span style="color:#7a7268">ตัว</span><span>ขาสั้นป้อม ลำตัวเตี้ยลง</span>
+<span style="color:#7a7268">งวง/งา</span><span>สั้นลง ดูเป็นลูกช้าง</span>
+<span style="color:#7a7268">คนขี่</span><span>หัวโตแบบ chibi เข้ากับตัวช้าง</span>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap">
+<div style="font-size:18px;font-weight:600;white-space:nowrap">เฟรม sprite</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">เฟรม 500×430 · pivot กลางเท้า (235, 423) · เดิน 4 เฟรม 6 fps loop · ชน 3 เฟรม 10 fps</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<sc-for list="{{ frames }}" as="f" hint-placeholder-count="8">
+<div style="background:#f4f0e8;border:1px solid #e4ddd1;border-radius:4px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span style="font-weight:500;white-space:nowrap">{{ f.label }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a8278">{{ f.key }}</span></div>
+<div style="position:relative;height:202px;border-bottom:1px dashed #cfc5b4">
+<dc-import name="Elephant" cute="{{ true }}" variant="a" team="{{ heroTeam }}" pose="{{ f.key }}" outline="{{ outline }}" hint-size="100%,202px" style="position:absolute;inset:0"></dc-import>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div id="2b" style="flex:none;width:1120px;box-sizing:border-box;background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;background:#25211d;color:#fbfaf7;padding:3px 9px;border-radius:3px">2b</span>
+<h2 style="margin:0;font-size:24px;font-weight:600">แบบ B · ช้างศึกเกราะ น่ารัก</h2>
+<span style="font-size:15px;color:#7a7268">ปรับจาก <a href="#1b">1b</a></span>
+</div>
+<div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
+<div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
+<dc-import name="Elephant" cute="{{ true }}" variant="b" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px">
+<div style="position:relative;height:250px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:12px;background:#e3d7c1"></div>
+<dc-import name="Elephant" cute="{{ true }}" variant="b" team="{{ altTeam }}" pose="idle" flip="{{ true }}" outline="{{ outline }}" hint-size="100%,250px" style="position:absolute;inset:0"></dc-import>
+<div style="position:absolute;left:12px;top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">ฝั่งตรงข้าม · หันซ้าย</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="font-weight:600;color:#25211d">ต่างจาก 1b</div>
+<div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 12px">
+<span style="color:#7a7268">หัว</span><span>โตขึ้น 25% หูกลมใหญ่ขึ้น</span>
+<span style="color:#7a7268">หน้า</span><span>ตากลมโตมีประกาย ขนตา แก้มชมพู</span>
+<span style="color:#7a7268">ตัว</span><span>ขาสั้นป้อม ลำตัวเตี้ยลง</span>
+<span style="color:#7a7268">งวง/งา</span><span>สั้นลง ดูเป็นลูกช้าง</span>
+<span style="color:#7a7268">คนขี่</span><span>หัวโตแบบ chibi เข้ากับตัวช้าง</span>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap">
+<div style="font-size:18px;font-weight:600;white-space:nowrap">เฟรม sprite</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">เฟรม 500×430 · pivot กลางเท้า (235, 423) · เดิน 4 เฟรม 6 fps loop · ชน 3 เฟรม 10 fps</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<sc-for list="{{ frames }}" as="f" hint-placeholder-count="8">
+<div style="background:#f4f0e8;border:1px solid #e4ddd1;border-radius:4px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span style="font-weight:500;white-space:nowrap">{{ f.label }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a8278">{{ f.key }}</span></div>
+<div style="position:relative;height:202px;border-bottom:1px dashed #cfc5b4">
+<dc-import name="Elephant" cute="{{ true }}" variant="b" team="{{ heroTeam }}" pose="{{ f.key }}" outline="{{ outline }}" hint-size="100%,202px" style="position:absolute;inset:0"></dc-import>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+<section id="turn1" style="padding:64px;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">รอบที่ 1 · 2 แบบ</div>
+<h1 style="margin:0;font-size:34px;font-weight:600">ช้างศึก · โมเดลใหม่</h1>
+<div style="font-size:16px;color:#5c554d;max-width:760px;text-wrap:pretty">ทั้งสองแบบใช้โครงกระดูกและชุดท่าทางเดียวกัน ต่างกันที่ผิว เครื่องทรง และคนขี่ เฟรมด้านล่างแปลงเป็น sprite sheet สำหรับ AnimatedSprite2D ได้ทันที</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+
+<div id="1a" style="flex:none;width:1120px;box-sizing:border-box;background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;background:#25211d;color:#fbfaf7;padding:3px 9px;border-radius:3px">1a</span>
+<h2 style="margin:0;font-size:24px;font-weight:600">แบบ A · ช้างศึกพิธี</h2>
+<span style="font-size:15px;color:#7a7268">เกลาจากของเดิม</span>
+</div>
+<div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
+<div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
+<dc-import name="Elephant" variant="a" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px">
+<div style="position:relative;height:250px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:12px;background:#e3d7c1"></div>
+<dc-import name="Elephant" variant="a" team="{{ altTeam }}" pose="idle" flip="{{ true }}" outline="{{ outline }}" hint-size="100%,250px" style="position:absolute;inset:0"></dc-import>
+<div style="position:absolute;left:12px;top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">ฝั่งตรงข้าม · หันซ้าย</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="font-weight:600;color:#25211d">สิ่งที่แก้จากตัวเดิม</div>
+<div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 12px">
+<span style="color:#7a7268">สัดส่วน</span><span>หลังโค้งสูงกลางลำตัว หัวสองโหนกแบบช้างเอเชีย หูเล็กลง</span>
+<span style="color:#7a7268">หน้า</span><span>ตาเล็กสีน้ำตาลมีรอยย่น งวงเรียวมีรอยพับ จุดชมพูที่หูและโคนงวง</span>
+<span style="color:#7a7268">ขา</span><span>แยกท่อนบน–ล่าง มีข้อ หัวไหล่และสะโพกนูน ฝ่าเท้ามีเล็บ</span>
+<span style="color:#7a7268">เครื่องทรง</span><span>ผ้าคลุมมีรอยพับ ขอบทอง กระจัง พู่ห้อย สายรัดท้อง กระดิ่งคอ</span>
+<span style="color:#7a7268">คนขี่</span><span>ใหญ่ขึ้นเกือบ 2 เท่า แม่ทัพนั่งคอถือง้าว เท้าสอดหลังหู และกลางช้างถือธง</span>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap">
+<div style="font-size:18px;font-weight:600;white-space:nowrap">เฟรม sprite</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">เฟรม 500×430 · pivot กลางเท้า (235, 423) · เดิน 4 เฟรม 6 fps loop · ชน 3 เฟรม 10 fps</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<sc-for list="{{ frames }}" as="f" hint-placeholder-count="8">
+<div style="background:#f4f0e8;border:1px solid #e4ddd1;border-radius:4px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span style="font-weight:500;white-space:nowrap">{{ f.label }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a8278">{{ f.key }}</span></div>
+<div style="position:relative;height:202px;border-bottom:1px dashed #cfc5b4">
+<dc-import name="Elephant" variant="a" team="{{ heroTeam }}" pose="{{ f.key }}" outline="{{ outline }}" hint-size="100%,202px" style="position:absolute;inset:0"></dc-import>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div id="1b" style="flex:none;width:1120px;box-sizing:border-box;background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;background:#25211d;color:#fbfaf7;padding:3px 9px;border-radius:3px">1b</span>
+<h2 style="margin:0;font-size:24px;font-weight:600">แบบ B · ช้างศึกเกราะ</h2>
+<span style="font-size:15px;color:#7a7268">หนักแน่น สมจริงขึ้น</span>
+</div>
+<div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
+<div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
+<dc-import name="Elephant" variant="b" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px">
+<div style="position:relative;height:250px;background:#f1ece2;border-radius:4px;overflow:hidden">
+<div style="position:absolute;left:0;right:0;bottom:0;height:12px;background:#e3d7c1"></div>
+<dc-import name="Elephant" variant="b" team="{{ altTeam }}" pose="idle" flip="{{ true }}" outline="{{ outline }}" hint-size="100%,250px" style="position:absolute;inset:0"></dc-import>
+<div style="position:absolute;left:12px;top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">ฝั่งตรงข้าม · หันซ้าย</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="font-weight:600;color:#25211d">ต่างจากแบบ A</div>
+<div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px 12px">
+<span style="color:#7a7268">ผิว</span><span>โทนน้ำตาลเทาอุ่น ดูมีน้ำหนักกว่า</span>
+<span style="color:#7a7268">หัว</span><span>เกราะหน้าผากหมุดทองแทนผ้าคลุมหัว มียอดทอง</span>
+<span style="color:#7a7268">งา</span><span>ยาวขึ้น สวมปลอกงาทองที่ปลาย</span>
+<span style="color:#7a7268">เครื่องทรง</span><span>ผ้าคลุมยาวถึงท้อง ลายเกล็ดเกราะ กำไลเท้าสองชั้น</span>
+<span style="color:#7a7268">คนขี่</span><span>แม่ทัพสวมเสื้อเกราะเกล็ด หมวกทรงกลมมีพู่และผ้าปิดท้ายทอย</span>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap">
+<div style="font-size:18px;font-weight:600;white-space:nowrap">เฟรม sprite</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">เฟรม 500×430 · pivot กลางเท้า (235, 423) · เดิน 4 เฟรม 6 fps loop · ชน 3 เฟรม 10 fps</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<sc-for list="{{ frames }}" as="f" hint-placeholder-count="8">
+<div style="background:#f4f0e8;border:1px solid #e4ddd1;border-radius:4px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span style="font-weight:500;white-space:nowrap">{{ f.label }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a8278">{{ f.key }}</span></div>
+<div style="position:relative;height:202px;border-bottom:1px dashed #cfc5b4">
+<dc-import name="Elephant" variant="b" team="{{ heroTeam }}" pose="{{ f.key }}" outline="{{ outline }}" hint-size="100%,202px" style="position:absolute;inset:0"></dc-import>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;anim&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;walk&quot;,&quot;charge&quot;,&quot;idle&quot;],&quot;default&quot;:&quot;walk&quot;,&quot;tsType&quot;:&quot;'walk'|'charge'|'idle'&quot;},&quot;fps&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:24,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;team&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;red&quot;,&quot;green&quot;],&quot;default&quot;:&quot;red&quot;,&quot;tsType&quot;:&quot;'red'|'green'&quot;},&quot;outline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const anim = this.props.anim ?? 'walk';
+    const team = this.props.team === 'green' ? 'green' : 'red';
+    const names = { walk: 'เดิน', charge: 'ชน', idle: 'ยืน' };
+    return {
+      anim, fps: this.props.fps ?? 6,
+      animLabel: `▶ ${names[anim] || 'เดิน'} · ${this.props.fps ?? 6} fps`,
+      heroTeam: team,
+      altTeam: team === 'red' ? 'green' : 'red',
+      outline: this.props.outline ?? true,
+      frames: [
+        { key: 'idle', label: 'ยืน' },
+        { key: 'walk1', label: 'เดิน 1' },
+        { key: 'walk2', label: 'เดิน 2' },
+        { key: 'walk3', label: 'เดิน 3' },
+        { key: 'walk4', label: 'เดิน 4' },
+        { key: 'charge1', label: 'ชน 1 · ตั้งท่า' },
+        { key: 'charge2', label: 'ชน 2 · พุ่ง' },
+        { key: 'charge3', label: 'ชน 3 · ปะทะ' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

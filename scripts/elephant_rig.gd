@@ -1,39 +1,59 @@
 class_name ElephantRig
 extends RefCounted
-## Procedurally animated war elephant, drawn in shaded shapes with gold regalia.
-## Each frame a pose is picked from the fighter's state; springs ease every joint toward it
-## (so moves blend and overshoot instead of snapping) and the legs are placed with 2-bone IK.
+## Procedurally animated war elephant in the cute look from the design project
+## ("ออกแบบช้างเกม Godot/Elephant.dc.html" with cute = true): big head and eyes, short stumpy
+## legs, chibi riders and a dark outline around the whole silhouette. Variant A is the
+## ceremonial caparison, variant B (ElephantDef.armored) the scale-armour one.
+## The design's SVG paths are parsed once and baked into one mesh per body part and colour set.
+## Each frame a pose is picked from the fighter's state, springs ease every joint toward it (so
+## moves blend and overshoot instead of snapping) and the legs are placed with 2-bone IK; then
+## the parts are drawn twice: first every part's outline in ink, then the parts themselves.
 ## Arena keeps one rig per Fighter. Local space faces +x, origin on the ground between the feet.
 
 const G := GameData.GROUND
-const INK := GameData.INK
+const INK := Color("#231c1f")
 const DUST := Color(0.87, 0.77, 0.6)
-const SKIN := Color("#c98d5e")
-const IVORY := Color("#fffaee")
-const IVORY_SHADE := Color("#d9c7a3")
-const STEEL := Color("#eef3f6")
-const STEEL_SHADE := Color("#8c9aa7")
-const WOOD := Color("#5a3720")
+const RIDER_SKIN := Color("#c68a5c")
+const RIDER_SKIN_D := Color("#8a5a37")
+const LINE := Color("#2a2427")
+const EYE_INK := Color("#2a1d17")
+const JEWEL := Color("#e04848")
+const JEWEL_D := Color("#8e1f1f")
 
-const LEG_UPPER := 39.0
-const LEG_LOWER := 39.0
-## [hip in body space, gait phase offset (cycles), front leg]. Far legs first, near legs last.
+## Design units -> game px; the design point SV_ORIGIN (between the feet) is the rig origin.
+const SV := 0.6
+const SV_ORIGIN := Vector2(215, 349)
+## The head turns about this design point and is drawn 1.35x (the cute proportions).
+const HEAD_PIVOT := Vector2(300, 196)
+const HK := SV * 1.35
+const EAR_PIVOT := Vector2(316, 166)
+const TAIL_PIVOT := Vector2(104, 206)
+const RIDER_PIVOT := Vector2(290, 152)
+## Try-out switch: false hides the mahout and the flag bearer (the flag stays on the howdah,
+## glaive attacks show as a slash over the neck). Gameplay is the same either way.
+const RIDERS := false
+const OUT := 2.2          ## outline thickness, game px
+const FEATHER := 0.7      ## antialiased fringe on baked shapes, game px
+## Portrait: design point at the medallion centre, and its scale.
+const PORTRAIT_C := Vector2(352, 200)
+const PK := 0.6
+
+## Legs: [hip, gait phase offset (cycles), front leg, upper length, lower length], game px.
+## Far legs first, near legs last. Lengths follow the design's stumpy legs.
 const LEGS := [
-	[Vector2(-40, -80), 0.0, false],
-	[Vector2(38, -80), 0.25, true],
-	[Vector2(-56, -78), 0.5, false],
-	[Vector2(24, -78), 0.75, true],
+	[Vector2(-31.8, -67.8), 0.0, false, 38.9, 29.1],
+	[Vector2(36.6, -65.4), 0.25, true, 40.6, 25.5],
+	[Vector2(-45.0, -67.8), 0.5, false, 38.9, 29.1],
+	[Vector2(48.6, -66.6), 0.75, true, 40.6, 25.5],
 ]
-const PITCH_PIVOT := Vector2(-10, -95)
-const REAR_PIVOT := Vector2(-62, 0)
-const NECK := Vector2(44, -112)
-const EAR_ANCHOR := Vector2(8, -20)
-const EYE := Vector2(26, -14)
-const TRUNK_ROOT := Vector2(42, 10)
-const TRUNK_SEG := [15.0, 15.0, 14.0, 13.0, 12.0]
-const TRUNK_W := [20.0, 18.0, 15.0, 12.0, 10.0, 8.0]
-const TAIL_ROOT := Vector2(-78, -108)
-const RIDER_HIP := Vector2(32, -140)
+const PITCH_PIVOT := Vector2(0, -80)
+const REAR_PIVOT := Vector2(-45, -8)
+const NECK := Vector2(51, -91.8)          ## HEAD_PIVOT in game px
+const RIDER_HIP := Vector2(45, -118.2)    ## RIDER_PIVOT in game px
+## Trunk in the head's design units: root under the cheek, segment lengths and widths.
+const TRUNK_ROOT := Vector2(372, 224)
+const TRUNK_SEG := [17.0, 17.0, 16.0, 15.0, 14.0]
+const TRUNK_W := [24.0, 21.0, 18.0, 16.0, 14.0, 12.0]
 
 ## Trunk poses: absolute base angle, then four relative bends (degrees, 0 = forward, 90 = down).
 const TRUNK := {
@@ -70,30 +90,157 @@ class Puff:
 	var life: float
 	var max_life: float
 
-static var BODY := PackedVector2Array()
-static var BODY_RIM := PackedVector2Array()
-static var HEAD := PackedVector2Array()
-static var HEAD_RIM := PackedVector2Array()
-static var EAR := PackedVector2Array()
-static var EAR_INNER := PackedVector2Array()
-static var HEADCLOTH := PackedVector2Array()
-static var HEADCLOTH_HEM := PackedVector2Array()
-static var NET := PackedVector2Array()
-static var CLOTH := PackedVector2Array()
-static var CLOTH_HEM := PackedVector2Array()
-static var TASSELS := PackedVector2Array()
-static var TUSK := PackedVector2Array()
-static var TUSK_RINGS := []
-static var BLADE := PackedVector2Array()
-static var PENDANT := PackedVector2Array([Vector2(39, -5), Vector2(46, -5), Vector2(44, 6), Vector2(42.5, 10), Vector2(41, 6)])
-static var CROWN := PackedVector2Array([Vector2(12, -42), Vector2(18, -60), Vector2(20, -70), Vector2(22, -60), Vector2(28, -43)])
-static var HELMET := PackedVector2Array([Vector2(-6.5, -31), Vector2(-5.5, -36), Vector2(0, -38.5), Vector2(5.5, -36), Vector2(6.5, -31)])
-static var CUSHION := PackedVector2Array([Vector2(-54, -143), Vector2(-52, -153), Vector2(-4, -153), Vector2(-2, -143)])
-static var SHIRT := PackedVector2Array([Vector2(-7, 0), Vector2(7, 0), Vector2(6, -23), Vector2(-6, -23)])
-static var TUSK_COLS := PackedColorArray()
-static var TUSK_CLOSED := PackedVector2Array()
-static var BLADE_COLS := PackedColorArray()
-static var BLADE_CLOSED := PackedVector2Array()
+
+## A piece of the elephant that moves as one: filled and stroked shapes in design units.
+class Part:
+	var unit := 0.6       ## game px per unit (outline and antialiasing widths)
+	var ops := []         ## [points, closed, fill (palette key / Color / null), stroke, width, alpha]
+	var sil := []         ## outline pieces: [points, closed, half width of an open line]
+
+
+## Triangle geometry whose vertex colours are resolved later from a palette (so one shape serves
+## every elephant); edges get a thin transparent fringe for antialiasing.
+class Mesher:
+	var v := PackedVector2Array()
+	var ix := PackedInt32Array()
+	var k := PackedInt32Array()      ## colour per vertex: index into `keys`
+	var a := PackedFloat32Array()    ## alpha per vertex
+	var t := PackedFloat32Array()    ## position in the skin gradient per vertex (-1 = flat colour)
+	var keys := []                   ## palette keys and Colors
+
+	func poly(pts: PackedVector2Array, key: Variant, alpha: float, grad: bool, fe: float) -> void:
+		var n := pts.size()
+		var ts := PackedFloat32Array()
+		ts.resize(n)
+		ts.fill(-1.0)
+		if grad:
+			var lo := INF
+			var hi := -INF
+			for p in pts:
+				lo = minf(lo, p.y)
+				hi = maxf(hi, p.y)
+			for i in n:
+				ts[i] = (pts[i].y - lo) / maxf(1.0, hi - lo)
+		var kid := _key(key)
+		var b := v.size()
+		v.append_array(pts)
+		_add(kid, alpha, ts)
+		var tri := Geometry2D.triangulate_polygon(pts)
+		if tri.is_empty():
+			push_warning("ElephantRig: could not triangulate a shape of %d points" % n)
+			for i in range(1, n - 1):
+				ix.append_array([b, b + i, b + i + 1])
+		else:
+			for i in tri:
+				ix.append(b + i)
+		if fe > 0.0:
+			var s := 1.0 if Mesher.area(pts) > 0.0 else -1.0
+			var r := v.size()
+			for i in n:
+				var m := Mesher.normal(pts[(i + n - 1) % n], pts[i], pts[(i + 1) % n]) * s
+				v.append_array([pts[i], pts[i] + m * fe])
+				k.append_array([kid, kid])
+				a.append_array([alpha, 0.0])
+				t.append_array([ts[i], ts[i]])
+			for i in n:
+				var p := r + i * 2
+				var q := r + ((i + 1) % n) * 2
+				ix.append_array([p, q, p + 1, q, q + 1, p + 1])
+
+	func strip(pts: PackedVector2Array, closed: bool, w: float, key: Variant, alpha: float, fe: float) -> void:
+		var n := pts.size()
+		if n < 2:
+			return
+		var hw := w / 2.0
+		var kid := _key(key)
+		var b := v.size()
+		for i in n:
+			var m: Vector2
+			if closed:
+				m = Mesher.normal(pts[(i + n - 1) % n], pts[i], pts[(i + 1) % n])
+			elif i == 0:
+				m = (pts[1] - pts[0]).orthogonal().normalized()
+			elif i == n - 1:
+				m = (pts[i] - pts[i - 1]).orthogonal().normalized()
+			else:
+				m = Mesher.normal(pts[i - 1], pts[i], pts[i + 1])
+			v.append_array([pts[i] + m * (hw + fe), pts[i] + m * hw, pts[i] - m * hw, pts[i] - m * (hw + fe)])
+			k.append_array([kid, kid, kid, kid])
+			a.append_array([0.0, alpha, alpha, 0.0])
+			t.append_array([-1.0, -1.0, -1.0, -1.0])
+		for i in (n if closed else n - 1):
+			var p := b + i * 4
+			var q := b + ((i + 1) % n) * 4
+			for j in 3:
+				ix.append_array([p + j, q + j, p + j + 1, q + j, q + j + 1, p + j + 1])
+
+	## Mesh in the given palette ("skin" is the design's vertical gradient: light top, darker belly).
+	func build(pal: Dictionary) -> ArrayMesh:
+		var m := ArrayMesh.new()
+		if v.is_empty():
+			return m
+		var table := []
+		for key in keys:
+			table.append(key if key is Color else pal[key])
+		var top: Color = pal.get("skin_top", Color.WHITE)
+		var mid: Color = pal.get("skin", Color.WHITE)
+		var bot: Color = pal.get("skin_bot", Color.WHITE)
+		var cols := PackedColorArray()
+		cols.resize(v.size())
+		for i in v.size():
+			var g := t[i]
+			var col: Color = table[k[i]] if g < 0.0 else (top.lerp(mid, g / 0.55) if g < 0.55 else mid.lerp(bot, (g - 0.55) / 0.45))
+			col.a *= a[i]
+			cols[i] = col
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = v
+		arr[Mesh.ARRAY_COLOR] = cols
+		arr[Mesh.ARRAY_INDEX] = ix
+		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		return m
+
+	func _key(key: Variant) -> int:
+		var i := keys.find(key)
+		if i < 0:
+			keys.append(key)
+			i = keys.size() - 1
+		return i
+
+	func _add(kid: int, alpha: float, ts: PackedFloat32Array) -> void:
+		for i in ts.size():
+			k.append(kid)
+			a.append(alpha)
+		t.append_array(ts)
+
+	## Miter normal at `p` (left of a -> p -> b), lengthened so offsets keep their width.
+	static func normal(a: Vector2, p: Vector2, b: Vector2) -> Vector2:
+		var n1 := (p - a).orthogonal().normalized()
+		var n2 := (b - p).orthogonal().normalized()
+		var m := n1 + n2
+		if m.length_squared() < 0.0001:
+			return n1
+		m = m.normalized()
+		return m / maxf(m.dot(n1), 0.5)
+
+	static func area(pts: PackedVector2Array) -> float:
+		var s := 0.0
+		for i in pts.size():
+			var a := pts[i]
+			var b := pts[(i + 1) % pts.size()]
+			s += a.x * b.y - b.x * a.y
+		return s
+
+
+static var _parts := {}        ## "a" / "b" -> {part name: Part}
+static var _geo := {}          ## "variant/part" -> Mesher (shapes, coloured per palette)
+static var _baked := {}        ## "variant/part/palette" -> ArrayMesh
+static var _sil_baked := {}    ## "variant/part" -> ArrayMesh (white; drawn tinted with INK)
+static var _palettes := {}     ## palette id -> {key: Color}
+static var _re: RegEx
+static var _cur: Part          ## part being built
+static var _pre := Transform2D.IDENTITY    ## applied to points while building
+static var _pre_w := 1.0                   ## ...and its scale, applied to stroke widths
 
 var _x := {}
 var _v := {}
@@ -113,12 +260,18 @@ var _last_x := 0.0
 var _last_atk_t := 0.0
 var _streak := Vector3.ZERO     ## lightning-step trail: from x, to x, time left
 var _puffs: Array[Puff] = []
-var _shade_cache := {}          ## static shape key -> {colour: [colour, mesh, closed outline, rim colour]}
 
 
+## The first rig (the select-screen cards, built while the game loads) prepares every shape and
+## outline, so only the colouring (a few ms per elephant) is left for later.
 func _init() -> void:
-	if BODY.is_empty():
-		_build_shapes()
+	if _parts.is_empty():
+		for v in ["a", "b"]:
+			_parts[v] = _build(v)
+			for name in _parts[v]:
+				_geometry(v, name)
+				if not (_parts[v][name] as Part).sil.is_empty():
+					_sil_mesh(v, name)
 
 
 # ---------- animation ----------
@@ -254,7 +407,7 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 			p["tb"] += sin(tm * 5.5) * 10.0
 	if f.crouching and f.atk == "" and not f.ko:
 		# hunkered down: knees bent, head low
-		_apply(p, {"bob": 20.0, "head": 14.0, "pitch": 2.0, "ear": 0.75, "glaive": -80.0, "lean": 6.0})
+		_apply(p, {"bob": 14.0, "head": 14.0, "pitch": 2.0, "ear": 0.75, "glaive": -80.0, "lean": 6.0})
 		_trunk(p, "guard" if f.blocking else "tuck")
 	elif f.blocking:
 		_apply(p, {"bob": 7.0, "head": 12.0, "pitch": 3.0, "ear": 0.6, "glaive": -95.0, "lean": -4.0})
@@ -510,17 +663,14 @@ func draw_dust(c: CanvasItem, base: Transform2D) -> void:
 
 func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 	var d := f.def
-	var B := d.body
-	var D := d.dark
-	if f.flash > 0.0:
-		B = B.lerp(GameData.ACC_300, 0.8)
-		D = D.lerp(GameData.HURT_DARK, 0.8)
+	var v := "b" if d.armored else "a"
+	var pal := _palette(d, f.flash > 0.0)
 	var air := f.y < G - 1.0
 	var root := base.translated_local(Vector2(f.x, f.y)).scaled_local(Vector2(f.face, 1.0))
 
 	c.draw_set_transform_matrix(root)
 	var sw := 180.0 * (1.0 - minf(0.5, (G - f.y) / 400.0))
-	DrawKit.ellipse(c, Vector2(-6.0, G - f.y + 2.0), sw / 2.0, 7.0, Color(0.1, 0.05, 0.0, 0.28))
+	DrawKit.ellipse(c, Vector2(-2.0, G - f.y + 2.0), sw / 2.0, 7.0, Color(0.1, 0.05, 0.0, 0.28))
 	if f.atk != "":
 		var m := GameData.move(f.atk)
 		if m.dash_speed > 0.0 and f.atk_t > m.dash_start and f.atk_t < m.dash_stop and absf(f.vx) > 300.0:
@@ -530,46 +680,76 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 	if f.atk_ex and f.atk != "":
 		# EX move: a pulsing gold aura behind the elephant
 		var pulse := 0.5 + 0.5 * sin(_time * 18.0)
-		DrawKit.ellipse(c, Vector2(-6, -100), 135.0, 100.0, Color(GameData.GOLD_LIGHT, 0.18 + 0.12 * pulse))
-		DrawKit.ellipse(c, Vector2(-6, -100), 112.0, 82.0, Color(GameData.GOLD, 0.16 + 0.1 * pulse))
+		DrawKit.ellipse(c, Vector2(0, -95), 135.0, 100.0, Color(GameData.GOLD_LIGHT, 0.18 + 0.12 * pulse))
+		DrawKit.ellipse(c, Vector2(0, -95), 112.0, 82.0, Color(GameData.GOLD, 0.16 + 0.1 * pulse))
 	if f.buff_t > 0.0:
 		# blessing: gold diamonds circling the elephant while the boost lasts
 		for i in 3:
 			var a := _time * 2.5 + TAU * i / 3.0
-			var sp := Vector2(-10.0 + cos(a) * 95.0, -100.0 + sin(a) * 22.0)
+			var sp := Vector2(cos(a) * 95.0, -95.0 + sin(a) * 22.0)
 			_fill(c, PackedVector2Array([sp + Vector2(0, -7), sp + Vector2(6, 0), sp + Vector2(0, 7), sp + Vector2(-6, 0)]), GameData.GOLD_LIGHT)
 
 	var bx := _body_xform()
 	var legs := []
 	for i in 4:
 		legs.append(_solve_leg(i, bx, f, air))
-	for i in 2:
-		_draw_leg(c, legs[i], D, d.trim.darkened(0.3))
-
 	var body := root * bx
-	c.draw_set_transform_matrix(body)
-	_draw_tail(c, D)
-	_shade_s(c, &"body", BODY, B, 0.14, 0.32)
-	c.draw_polyline(BODY_RIM, Color(B.lightened(0.45), 0.55), 3.0, true)
-	for w in [[Vector2(36, -94), Vector2(42, -78)], [Vector2(44, -96), Vector2(48, -82)], [Vector2(-70, -86), Vector2(-62, -72)]]:
-		c.draw_line(w[0], w[1], Color(B.darkened(0.4), 0.6), 1.5, true)
-	_draw_girth(c, d)
-	_draw_caparison(c, d)
-	_draw_seat(c, d)
+	var bsv := body * Transform2D(0.0, Vector2(SV, SV), 0.0, -SV_ORIGIN * SV)
+	var head := body * Transform2D(deg_to_rad(_g("head")), NECK) * Transform2D(0.0, Vector2(HK, HK), 0.0, -HEAD_PIVOT * HK)
+	var ear := head * _ear_xform()
+	var tail := bsv * _about(TAIL_PIVOT, deg_to_rad(_g("tail")))
+	var lean := _g("lean")
+	var rider := bsv * _about(RIDER_PIVOT, deg_to_rad(lean))
+	# the rider holds the glaive in front of the chest; the second hand sits further up the shaft
+	var wa := deg_to_rad(wrapf(_g("glaive") + 90.0 - lean, -180.0, 180.0))
+	var hand := Vector2(300, 118) + Vector2(sin(wa) * 14.0, 5.0 - cos(wa) * 3.0)
+	var hand2 := hand + Vector2(sin(wa), -cos(wa)) * 24.0
+	var weapon := rider * Transform2D(wa, hand)
+	var trunk := _trunk_chain(false)
 
-	c.draw_set_transform_matrix(root)
-	for i in range(2, 4):
-		_draw_leg(c, legs[i], B, d.trim)
+	for step in 2:
+		var ol := step == 0
+		for i in 2:
+			_draw_leg(c, root, legs[i], i, v, pal, ol)
+		_part(c, tail, v, "tail", pal, ol)
+		_part(c, bsv, v, "torso", pal, ol)
+		for i in range(2, 4):
+			_draw_leg(c, root, legs[i], i, v, pal, ol)
+		_part(c, bsv, v, "body", pal, ol)
+		if RIDERS:
+			_part(c, bsv, v, "bearer", pal, ol)
+		_part(c, bsv, v, "pole", pal, ol)
+		if d.royal:
+			_draw_umbrella(c, bsv, d, ol)
+		else:
+			_draw_flag(c, bsv, d, pal, ol)
+		if RIDERS:
+			_part(c, bsv, v, "bearer_arm", pal, ol)
+			_part(c, bsv, v, "rider_leg", pal, ol)
+		_draw_head(c, head, ear, trunk, v, d, pal, ol)
+		if RIDERS:
+			_part(c, rider, v, "rider", pal, ol)
+			if d.royal:
+				_part(c, rider, v, "wings", pal, ol)
+			_draw_arms(c, rider, hand, hand2, pal, ol)
+			_part(c, rider, v, "rider_collar", pal, ol)
+			_part(c, weapon, v, "weapon", pal, ol)
+	if not RIDERS:
+		_draw_slash(c, bsv, f)
 
-	var head := body * Transform2D(deg_to_rad(_g("head")), NECK)
-	c.draw_set_transform_matrix(head)
-	_draw_head(c, B, D, d)
-
-	_draw_rider(c, body, d)
-
-	c.draw_set_transform_matrix(head * Transform2D(0.0, EAR_ANCHOR).scaled_local(Vector2(_g("ear"), 1.0)))
-	_draw_ear(c, D, d)
-
+	if _mood == "dizzy":
+		c.draw_set_transform_matrix(head)
+		for i in 4:
+			var a := _time * 4.0 + TAU * i / 4.0
+			var sp := Vector2(338, 112) + Vector2(cos(a) * 34.0, sin(a) * 9.0)
+			_fill(c, _star(sp, 7.0 if sin(a) > 0.0 else 5.0), GameData.GOLD_LIGHT if i % 2 == 0 else Color.WHITE)
+	if _dazed and (RIDERS or _mood != "dizzy"):
+		# dizzy rider: three gold stars circling the head (over the elephant's crown without riders)
+		c.draw_set_transform_matrix(rider if RIDERS else head)
+		for i in 3:
+			var a := _time * 6.0 + TAU * i / 3.0
+			var sp := (Vector2(294, 34) if RIDERS else Vector2(338, 100)) + Vector2(cos(a) * 20.0, sin(a) * 6.0)
+			_fill(c, _star(sp, 6.0), GameData.GOLD_LIGHT if i != 0 else Color.WHITE)
 	if f.blocking or f.bstun > 0.0:
 		# guard shield: low and wide when crouching
 		c.draw_set_transform_matrix(root)
@@ -581,11 +761,229 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 ## Head-and-shoulders view for the HUD medallion, in the same pose as the fighter.
 func draw_portrait(c: CanvasItem, f: Fighter, xf: Transform2D) -> void:
 	var d := f.def
-	var B := d.body.lerp(GameData.ACC_300, 0.8) if f.flash > 0.0 else d.body
-	c.draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(-20, 0)))
-	_draw_head(c, B, d.dark, d, true)
-	c.draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(-20, 0) + EAR_ANCHOR))
-	_draw_ear(c, d.dark, d)
+	var v := "b" if d.armored else "a"
+	var pal := _palette(d, f.flash > 0.0)
+	var head := xf * Transform2D(0.0, Vector2(PK, PK), 0.0, -PORTRAIT_C * PK)
+	var trunk := _trunk_chain(true)
+	for step in 2:
+		_draw_head(c, head, head * _ear_xform(), trunk, v, d, pal, step == 0)
+
+
+func _draw_head(c: CanvasItem, head: Transform2D, ear: Transform2D, trunk: Array, v: String, d: ElephantDef, pal: Dictionary, ol: bool) -> void:
+	_part(c, head, v, "tusk_far", pal, ol)
+	_draw_trunk(c, head, trunk, pal, ol)
+	if _g("tb") < 0.0:
+		# trunk raised: the mouth opens (trumpeting)
+		_part(c, head, v, "mouth", pal, ol)
+	_part(c, head, v, "head", pal, ol)
+	if d.royal:
+		_part(c, head, v, "crown", pal, ol)
+	_part(c, ear, v, "ear", pal, ol)
+	if d.royal:
+		_part(c, ear, v, "earring", pal, ol)
+	if not ol:
+		_draw_face(c, head, v, pal)
+
+
+## Ears flare out when the spring value is high (alarmed, attacking) and fold back when low.
+func _ear_xform() -> Transform2D:
+	var e := _g("ear")
+	var sx := 1.12 * lerpf(0.88, 1.1, clampf((e - 0.55) / 0.75, 0.0, 1.0))
+	return Transform2D(0.0, EAR_PIVOT) * Transform2D(deg_to_rad((e - 0.85) * -22.0), Vector2(sx, 1.12), 0.0, Vector2.ZERO) * Transform2D(0.0, -EAR_PIVOT)
+
+
+## One baked part: its ink outline in the first pass, the part itself in the second.
+func _part(c: CanvasItem, xf: Transform2D, v: String, name: String, pal: Dictionary, ol: bool) -> void:
+	c.draw_set_transform_matrix(xf)
+	if ol:
+		c.draw_mesh(_sil_mesh(v, name), null, Transform2D.IDENTITY, INK)
+	else:
+		c.draw_mesh(_mesh(v, name, pal), null)
+
+
+## Leg from the IK solution: upper leg, a knee to cover the joint, lower leg with anklet and nails.
+func _draw_leg(c: CanvasItem, root: Transform2D, leg: Array, i: int, v: String, pal: Dictionary, ol: bool) -> void:
+	var hip: Vector2 = leg[0]
+	var knee: Vector2 = leg[1]
+	var foot: Vector2 = leg[2]
+	var tag: String = ("f" if LEGS[i][2] else "h") + ("n" if i >= 2 else "f")
+	_part(c, root * Transform2D((knee - hip).angle() - PI / 2.0, Vector2(SV, SV), 0.0, hip), v, "up_" + tag, pal, ol)
+	c.draw_set_transform_matrix(root)
+	var kc: Color = INK if ol else ((pal["skin"] as Color).lerp(pal["skin_bot"], 0.6) if i >= 2 else pal["far"])
+	DrawKit.circle(c, knee, 14.0 + (OUT if ol else 0.0), kc)
+	_part(c, root * Transform2D((foot - knee).angle() - PI / 2.0, Vector2(SV, SV), 0.0, knee), v, "lo_" + tag, pal, ol)
+
+
+## Trunk as a smoothed chain of quads, lit on its upper/front side, with creases and a nostril.
+func _draw_trunk(c: CanvasItem, xf: Transform2D, tr: Array, pal: Dictionary, ol: bool) -> void:
+	c.draw_set_transform_matrix(xf)
+	var sm: PackedVector2Array = tr[0]
+	var w: PackedFloat32Array = tr[1]
+	var n := sm.size()
+	var o := OUT / HK if ol else 0.0
+	var lit: Color = INK if ol else (pal["skin_top"] as Color).lerp(pal["skin"], 0.35)
+	var shade: Color = INK if ol else pal["skin_bot"]
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	var dirs := PackedVector2Array()
+	for i in n:
+		var dir := (sm[mini(i + 1, n - 1)] - sm[maxi(i - 1, 0)]).normalized()
+		dirs.append(dir)
+		left.append(sm[i] + dir.orthogonal() * (w[i] / 2.0 + o))
+		right.append(sm[i] - dir.orthogonal() * (w[i] / 2.0 + o))
+	for i in n - 1:
+		c.draw_primitive(PackedVector2Array([left[i], left[i + 1], right[i + 1], right[i]]),
+			PackedColorArray([lit, lit, shade, shade]), PackedVector2Array())
+	var tip := sm[n - 1]
+	var tr_ := w[n - 1] / 2.0 + o
+	var tip_col: Color = INK if ol else (pal["skin"] as Color)
+	DrawKit.circle(c, tip, tr_, tip_col)
+	var edge: Color = INK if ol else pal["skinD"]
+	var ew := 1.2 / HK if ol else 1.6
+	c.draw_polyline(left, edge, ew, true)
+	c.draw_polyline(right, edge, ew, true)
+	var ta := dirs[n - 1].angle()
+	c.draw_arc(tip, tr_, ta - PI / 2.0, ta + PI / 2.0, 10, edge, ew, true)
+	if ol:
+		return
+	var crease := Color(pal["skinD"], 0.55)
+	for i in range(3, n - 1, 3):
+		var nn := dirs[i].orthogonal() * w[i]
+		c.draw_line(sm[i] + nn * 0.42, sm[i] - nn * 0.32, crease, 1.4, true)
+	DrawKit.circle(c, tip + dirs[n - 1] * w[n - 1] * 0.2, w[n - 1] * 0.18, Color(pal["skinD"], 0.8))
+
+
+## Trunk centre line from the springs (or a short curl for the portrait), smoothed: [points, widths].
+func _trunk_chain(portrait: bool) -> Array:
+	var pts: Array[Vector2] = [TRUNK_ROOT]
+	if portrait:
+		for i in 2:
+			pts.append(pts[i] + Vector2.from_angle(deg_to_rad(80.0) + i * 0.6) * 15.0)
+	else:
+		var a := deg_to_rad(_g("tb"))
+		for i in 5:
+			if i > 0:
+				a += deg_to_rad(_g(TRUNK_KEYS[i]))
+			pts.append(pts[i] + Vector2.from_angle(a) * float(TRUNK_SEG[i]))
+	var sm := PackedVector2Array()
+	var w := PackedFloat32Array()
+	var n := pts.size()
+	for i in n - 1:
+		for s in 3:
+			var t := s / 3.0
+			sm.append(pts[i].cubic_interpolate(pts[i + 1], pts[maxi(i - 1, 0)], pts[mini(i + 2, n - 1)], t))
+			w.append(lerpf(TRUNK_W[i], TRUNK_W[i + 1], t))
+	sm.append(pts[n - 1])
+	w.append(TRUNK_W[n - 1])
+	return [sm, w]
+
+
+## Eyes (with the mood), blush.
+func _draw_face(c: CanvasItem, xf: Transform2D, v: String, pal: Dictionary) -> void:
+	c.draw_set_transform_matrix(xf)
+	c.draw_mesh(_mesh(v, "blush", pal), null)
+	var e := Vector2(362, 180)
+	match _mood:
+		"ko":
+			c.draw_line(e + Vector2(-6, -6), e + Vector2(6, 6), EYE_INK, 2.4, true)
+			c.draw_line(e + Vector2(-6, 6), e + Vector2(6, -6), EYE_INK, 2.4, true)
+		"hurt":
+			c.draw_polyline(PackedVector2Array([e + Vector2(-6, -6), e + Vector2(5, 0), e + Vector2(-6, 6)]), EYE_INK, 2.4, true)
+		"happy":
+			c.draw_polyline(PackedVector2Array([e + Vector2(-7, 3), e + Vector2(-3.5, -2), e + Vector2(0, -4), e + Vector2(3.5, -2), e + Vector2(7, 3)]), EYE_INK, 2.4, true)
+		"dizzy":
+			DrawKit.ellipse(c, e, 7.5, 8.5, Color.WHITE)
+			var a0 := _time * 9.0
+			c.draw_arc(e, 5.5, a0, a0 + TAU * 0.8, 12, EYE_INK, 1.6, true)
+			c.draw_arc(e, 2.6, a0 + PI, a0 + PI + TAU * 0.7, 10, EYE_INK, 1.4, true)
+		_:
+			if _blink > 0.0:
+				c.draw_polyline(PackedVector2Array([e + Vector2(-7, 1), e + Vector2(-3.5, 3.5), e + Vector2(0, 4.2), e + Vector2(3.5, 3.5), e + Vector2(7, 1)]), EYE_INK, 2.2, true)
+			else:
+				c.draw_mesh(_mesh(v, "eye", pal), null)
+
+
+## Mahout's arms from the shoulders to the hands on the glaive.
+func _draw_arms(c: CanvasItem, xf: Transform2D, hand: Vector2, hand2: Vector2, pal: Dictionary, ol: bool) -> void:
+	c.draw_set_transform_matrix(xf)
+	for seg in [[Vector2(293, 111), hand2], [Vector2(299, 114), hand]]:
+		if ol:
+			c.draw_line(seg[0], seg[1], INK, 10.0 + 2.0 * OUT / SV, true)
+		else:
+			c.draw_line(seg[0], seg[1], pal["clothD"], 10.0, true)
+			c.draw_line(seg[0], seg[1], pal["cloth"], 7.0, true)
+
+
+## War flag on the bearer's pole, streaming back with a swallowtail and a gold disc.
+func _draw_flag(c: CanvasItem, xf: Transform2D, d: ElephantDef, pal: Dictionary, ol: bool) -> void:
+	c.draw_set_transform_matrix(xf)
+	var t := _time * 6.0 + _phase * 3.0
+	var flag := PackedVector2Array()
+	for i in 5:
+		var k := i / 4.0
+		flag.append(Vector2(lerpf(231.0, 178.0, k), lerpf(-4.0, 0.0, k) + sin(t - i * 1.1) * 3.0 * k))
+	flag.append(Vector2(190.0 + sin(t - 4.4) * 1.5, 13.0 + sin(t - 4.4) * 2.0))
+	for i in range(4, -1, -1):
+		var k := i / 4.0
+		flag.append(Vector2(lerpf(231.0, 178.0, k), lerpf(24.0, 26.0, k) + sin(t - i * 1.1) * 3.0 * k))
+	if ol:
+		_ink_poly(c, flag, OUT / SV)
+		return
+	c.draw_colored_polygon(flag, d.flag)
+	c.draw_polyline(flag + PackedVector2Array([flag[0]]), pal["gold"], 2.5, true)
+	var disc := Vector2(212, 11.0 + sin(t - 2.2) * 1.5)
+	DrawKit.circle(c, disc, 4.5, pal["goldD"])
+	DrawKit.circle(c, disc, 3.6, pal["gold"])
+
+
+## Royal tiered umbrella in place of the flag.
+func _draw_umbrella(c: CanvasItem, xf: Transform2D, d: ElephantDef, ol: bool) -> void:
+	c.draw_set_transform_matrix(xf)
+	var gold := d.trim
+	var sway := sin(_time * 1.8 + _phase) * 2.0
+	var top := Vector2(233.0 + sway, -68.0)
+	if ol:
+		c.draw_line(Vector2(233, -8), top, INK, 3.5 + 2.0 * OUT / SV, true)
+	else:
+		c.draw_line(Vector2(233, -8), top, Color("#5b3a1f"), 3.5, true)
+	for i in 5:
+		var y := 4.0 - i * 13.0
+		var hw := 44.0 - i * 7.5
+		var x := 233.0 + sway * (i + 1) / 6.0
+		var tier := PackedVector2Array([Vector2(x - hw * 0.7, y - 10), Vector2(x + hw * 0.7, y - 10), Vector2(x + hw, y), Vector2(x - hw, y)])
+		if ol:
+			_ink_poly(c, tier, OUT / SV)
+			continue
+		c.draw_primitive(tier, PackedColorArray([Color("#fff6e2"), Color("#fff6e2"), Color("#e8d8b8"), Color("#e8d8b8")]), PackedVector2Array())
+		c.draw_line(Vector2(x - hw, y), Vector2(x + hw, y), gold, 3.0, true)
+		for k in int(hw / 7.0):
+			DrawKit.circle(c, Vector2(x - hw + 4.0 + k * 14.0, y + 3.5), 2.2, gold)
+	var spire := PackedVector2Array([top + Vector2(-5, 2), top + Vector2(0, -16), top + Vector2(5, 2)])
+	if ol:
+		_ink_poly(c, spire, OUT / SV)
+	else:
+		_fill(c, spire, gold)
+
+
+## Without riders, a glaive attack (rider chop, finisher, charge or storm) shows as a slash arc
+## sweeping over the neck where the glaive would have gone.
+func _draw_slash(c: CanvasItem, xf: Transform2D, f: Fighter) -> void:
+	var v := float(_v.get("glaive", 0.0))
+	if absf(v) < 250.0 or not (f.rider_t >= 0.0 or f.atk == "storm" or f.atk == "charge3"):
+		return
+	c.draw_set_transform_matrix(xf)
+	var g := deg_to_rad(_g("glaive"))
+	var tail := g - clampf(deg_to_rad(v) * 0.09, -2.5, 2.5)
+	var k := clampf((absf(v) - 250.0) / 600.0, 0.0, 1.0)
+	var center := Vector2(300, 112)
+	c.draw_arc(center, 150.0, minf(g, tail), maxf(g, tail), 16, Color(1, 1, 1, 0.7 * k), 12.0, true)
+	c.draw_arc(center, 150.0, minf(g, tail), maxf(g, tail), 16, Color(GameData.GOLD_LIGHT, 0.9 * k), 5.0, true)
+
+## Ink silhouette of a shape whose points change every frame.
+func _ink_poly(c: CanvasItem, pts: PackedVector2Array, grow: float) -> void:
+	for q in Geometry2D.offset_polygon(pts, grow, Geometry2D.JOIN_ROUND):
+		c.draw_colored_polygon(q, INK)
+		c.draw_polyline(q + PackedVector2Array([q[0]]), INK, 1.0, true)
 
 
 ## Extra shapes for ultimates, drawn in the elephant's root space before the body.
@@ -595,7 +993,7 @@ func _draw_move_fx(c: CanvasItem, f: Fighter, m: GameData.Move) -> void:
 		"blessing":
 			if t > 0.15 and t < m.dur:
 				var a := clampf(minf((t - 0.15) * 5.0, (m.dur - t) * 4.0), 0.0, 1.0)
-				var center := Vector2(-10, -110)
+				var center := Vector2(0, -105)
 				DrawKit.circle(c, center, 120.0, Color(GameData.GOLD_LIGHT, 0.18 * a))
 				for i in 12:
 					var ang := TAU * i / 12.0 + t * 1.5
@@ -604,7 +1002,7 @@ func _draw_move_fx(c: CanvasItem, f: Fighter, m: GameData.Move) -> void:
 					_fill(c, PackedVector2Array([center + dv * 70.0 + n, center + dv * (150.0 + 20.0 * sin(t * 8.0 + i)), center + dv * 70.0 - n]), Color(GameData.GOLD_LIGHT, a * 0.85))
 		"roar":
 			if t > 0.25 and t < 0.7:
-				var mouth := Vector2(130, -170)
+				var mouth := Vector2(118, -150)
 				for i in 3:
 					var r := fmod((t - 0.25) * 420.0 + i * 50.0, 150.0) + 20.0
 					c.draw_arc(mouth, r, -0.9, 0.9, 18, Color(GameData.GOLD_LIGHT, 1.0 - r / 170.0), 5.0, true)
@@ -617,10 +1015,11 @@ func _draw_move_fx(c: CanvasItem, f: Fighter, m: GameData.Move) -> void:
 				c.draw_arc(b * hub, 76.0, 0.0, TAU, 32, Color(GameData.GOLD_LIGHT, 0.3), 2.0, true)
 
 
+## The body sits low on its short legs, so crouches and collapses sink it a little less.
 func _body_xform() -> Transform2D:
 	var sq := _g("sq")
 	var xf := Transform2D.IDENTITY.scaled(Vector2(1.0 + sq * 0.5, 1.0 - sq))
-	xf = xf * Transform2D(0.0, Vector2(_g("shift"), _g("bob")))
+	xf = xf * Transform2D(0.0, Vector2(_g("shift"), _g("bob") * 0.75))
 	xf = xf * _about(REAR_PIVOT, deg_to_rad(_g("rear")))
 	xf = xf * _about(PITCH_PIVOT, deg_to_rad(_g("pitch")))
 	return xf
@@ -633,6 +1032,8 @@ func _about(p: Vector2, a: float) -> Transform2D:
 func _solve_leg(i: int, bx: Transform2D, f: Fighter, air: bool) -> Array:
 	var hip_b: Vector2 = LEGS[i][0]
 	var front: bool = LEGS[i][2]
+	var upper: float = LEGS[i][3]
+	var lower: float = LEGS[i][4]
 	var hip := bx * hip_b
 	var target: Vector2
 	var ph := _phase + float(LEGS[i][1]) * TAU
@@ -641,267 +1042,21 @@ func _solve_leg(i: int, bx: Transform2D, f: Fighter, air: bool) -> Array:
 	elif f.ko:
 		target = Vector2(hip_b.x + (24.0 if front else -24.0), 0.0)
 	elif air:
-		target = hip + Vector2(12.0 if front else -16.0, 50.0)
+		target = hip + Vector2(12.0 if front else -16.0, 44.0)
 	elif front and _g("rear") < -10.0:
-		target = hip + Vector2(18.0, 46.0)
+		target = hip + Vector2(18.0, 40.0)
 	else:
 		var spread := (6.0 if front else -4.0) if f.blocking else 0.0
+		if f.crouching:
+			spread = 10.0 if front else -8.0   # feet planted wide rather than knees jutting out
 		target = Vector2(hip_b.x + spread + sin(ph) * 22.0 * _move, -maxf(0.0, cos(ph)) * 14.0 * _move)
 	# 2-bone IK; the joint always points forward (elephant knees and wrists both do)
 	var to := target - hip
-	var dist := clampf(to.length(), 1.0, LEG_UPPER + LEG_LOWER - 0.5)
+	var dist := clampf(to.length(), 1.0, upper + lower - 0.5)
 	var dir := to.normalized() if to.length() > 0.001 else Vector2.DOWN
-	var cos_a := clampf((LEG_UPPER * LEG_UPPER + dist * dist - LEG_LOWER * LEG_LOWER) / (2.0 * LEG_UPPER * dist), -1.0, 1.0)
-	var knee := hip + dir.rotated(-acos(cos_a)) * LEG_UPPER
+	var cos_a := clampf((upper * upper + dist * dist - lower * lower) / (2.0 * upper * dist), -1.0, 1.0)
+	var knee := hip + dir.rotated(-acos(cos_a)) * upper
 	return [hip, knee, hip + dir * dist]
-
-
-## Leg lit on its front edge, with skin creases, a gold anklet and toenails.
-func _draw_leg(c: CanvasItem, leg: Array, col: Color, gold: Color) -> void:
-	var hip: Vector2 = leg[0]
-	var knee: Vector2 = leg[1]
-	var foot: Vector2 = leg[2]
-	var lit := col.lightened(0.1)
-	var shade := col.darkened(0.25)
-	DrawKit.circle(c, knee, 12.5, col)
-	_quad_g(c, hip, knee, 28.0, 25.0, lit, shade)
-	_quad_g(c, knee, foot + Vector2(0, -8), 25.0, 23.0, lit, shade)
-	for k in [0.45, 0.62]:
-		var p := knee.lerp(foot, k)
-		var n := (foot - knee).normalized().orthogonal() * 9.0
-		c.draw_line(p - n, p + n * 0.6, Color(col.darkened(0.4), 0.55), 1.2, true)
-	var fc := PackedColorArray([col.darkened(0.12)])
-	c.draw_primitive(PackedVector2Array([Vector2(foot.x - 14, foot.y), Vector2(foot.x - 13, foot.y - 9), Vector2(foot.x + 13, foot.y - 9), Vector2(foot.x + 14, foot.y)]), fc, PackedVector2Array())
-	c.draw_primitive(PackedVector2Array([Vector2(foot.x - 13, foot.y - 9), Vector2(foot.x - 8, foot.y - 12), Vector2(foot.x + 8, foot.y - 12), Vector2(foot.x + 13, foot.y - 9)]), fc, PackedVector2Array())
-	c.draw_rect(Rect2(foot.x - 13.0, foot.y - 17.0, 26.0, 5.0), gold)
-	c.draw_rect(Rect2(foot.x - 13.0, foot.y - 17.0, 26.0, 1.5), gold.lightened(0.35))
-	for k in 3:
-		DrawKit.circle(c, Vector2(foot.x - 7.5 + k * 7.5, foot.y - 2.5), 2.6, IVORY_SHADE)
-
-
-func _draw_tail(c: CanvasItem, col: Color) -> void:
-	var a := deg_to_rad(100.0 + _g("tail"))
-	var p := TAIL_ROOT
-	for i in 3:
-		var q := p + Vector2.from_angle(a) * 13.0
-		c.draw_line(p, q, col, 5.0 - i, true)
-		p = q
-		a += deg_to_rad(_g("tail") * 0.5)
-	var dir := Vector2.from_angle(a)
-	var n := dir.orthogonal() * 4.0
-	_fill(c, PackedVector2Array([p + n, p + dir * 12.0, p - n]), col.darkened(0.45))
-
-
-## Belly band holding the caparison on.
-func _draw_girth(c: CanvasItem, d: ElephantDef) -> void:
-	c.draw_line(Vector2(10, -102), Vector2(17, -56), d.trim.darkened(0.35), 7.0, true)
-	c.draw_line(Vector2(10, -102), Vector2(17, -56), d.trim, 4.0, true)
-	for k in 3:
-		DrawKit.circle(c, Vector2(10, -102).lerp(Vector2(17, -56), 0.25 + k * 0.25), 1.8, d.trim.lightened(0.5))
-
-
-## Saddle cloth: team colour, gold border and kranok-like flames, a jewelled medallion, tassels.
-func _draw_caparison(c: CanvasItem, d: ElephantDef) -> void:
-	_shade_s(c, &"cloth", CLOTH, d.cloth, 0.14, 0.38)
-	var gold := d.trim
-	c.draw_polyline(CLOTH_HEM, gold, 3.5, true)
-	c.draw_line(Vector2(-66, -109), Vector2(29, -109), gold, 3.0, true)
-	c.draw_line(Vector2(-66, -106.5), Vector2(29, -106.5), Color(gold.darkened(0.4), 0.7), 1.0, true)
-	for k in 8:
-		var x := -58.0 + k * 11.5
-		var y := -118.0 + absf(x + 18.0) * 0.06
-		_fill(c, PackedVector2Array([Vector2(x - 3.5, y + 5), Vector2(x, y - 4), Vector2(x + 3.5, y + 5)]), gold)
-	var m := Vector2(-18, -128)
-	_fill(c, PackedVector2Array([m + Vector2(0, -10), m + Vector2(11, 0), m + Vector2(0, 10), m + Vector2(-11, 0)]), gold)
-	_fill(c, PackedVector2Array([m + Vector2(0, -6), m + Vector2(6.5, 0), m + Vector2(0, 6), m + Vector2(-6.5, 0)]), gold.darkened(0.3))
-	DrawKit.circle(c, m, 3.5, GameData.ACC.lightened(0.1))
-	DrawKit.circle(c, m + Vector2(-1, -1), 1.2, Color(1, 1, 1, 0.8))
-	for tip in TASSELS:
-		var sway := sin(_time * 4.0 + tip.x * 0.3) * 2.0 - _g("lean") * 0.1
-		var end: Vector2 = tip + Vector2(sway, 9.0)
-		c.draw_line(tip, end, gold, 1.6, true)
-		DrawKit.circle(c, end, 2.2, GameData.ACC)
-
-
-## Small howdah on the back with upturned gold horns, and the war flag (or royal umbrella).
-func _draw_seat(c: CanvasItem, d: ElephantDef) -> void:
-	var gold := d.trim
-	_shade_s(c, &"cushion", CUSHION, d.cloth.darkened(0.3), 0.1, 0.3)
-	c.draw_line(Vector2(-53, -153), Vector2(-3, -153), gold, 2.5, true)
-	c.draw_line(Vector2(-54, -144), Vector2(-2, -144), gold, 2.0, true)
-	_fill(c, PackedVector2Array([Vector2(-52, -151), Vector2(-62, -167), Vector2(-57, -165), Vector2(-48, -153)]), gold)
-	_fill(c, PackedVector2Array([Vector2(-4, -151), Vector2(6, -167), Vector2(1, -165), Vector2(-8, -153)]), gold)
-	var sway := sin(_time * 1.8 + _phase) * 1.5
-	if d.royal:
-		c.draw_line(Vector2(-28, -153), Vector2(-28 + sway, -236), gold.darkened(0.25), 3.0, true)
-		for i in 5:
-			var y := -184.0 - i * 11.0
-			var hw := 26.0 - i * 4.2
-			var x := -28.0 + sway * (y + 153.0) / -83.0
-			var tier := PackedVector2Array([Vector2(x - hw * 0.7, y - 7), Vector2(x + hw * 0.7, y - 7), Vector2(x + hw, y), Vector2(x - hw, y)])
-			_shade(c, tier, Color("#fff6e2"), 0.0, 0.18)
-			c.draw_line(Vector2(x - hw, y), Vector2(x + hw, y), gold, 2.0, true)
-			for k in int(hw / 4.0):
-				DrawKit.circle(c, Vector2(x - hw + 2.0 + k * 8.0, y + 2.5), 1.5, gold)
-		var top := Vector2(-28 + sway, -236)
-		_fill(c, PackedVector2Array([top + Vector2(-3, 6), top + Vector2(0, -8), top + Vector2(3, 6)]), gold)
-	else:
-		c.draw_line(Vector2(-28, -153), Vector2(-28, -214), gold.darkened(0.3), 3.0, true)
-		_fill(c, PackedVector2Array([Vector2(-28, -222), Vector2(-24, -215), Vector2(-28, -208), Vector2(-32, -215)]), gold)
-		var tip := 10.0 + sin(_time * 5.0 + _phase * 3.0) * 3.0
-		var wave := sin(_time * 6.0) * 2.0
-		var flag := PackedVector2Array([Vector2(-27, -210), Vector2(-8, -208 + wave), Vector2(tip, -205), Vector2(tip - 9, -198 + wave * 0.5), Vector2(tip, -190), Vector2(-8, -189 - wave), Vector2(-27, -185)])
-		_shade(c, flag, d.flag, 0.15, 0.25)
-		var hem := flag.duplicate()
-		hem.append(flag[0])
-		c.draw_polyline(hem, gold, 1.5, true)
-
-
-func _draw_head(c: CanvasItem, B: Color, D: Color, d: ElephantDef, portrait := false) -> void:
-	_shade_s(c, &"head", HEAD, B, 0.16, 0.3)
-	c.draw_polyline(HEAD_RIM, Color(B.lightened(0.45), 0.55), 2.5, true)
-	# headdress: team-colour cap with a gold net, gold hem and a jewelled pendant
-	_shade_s(c, &"headcloth", HEADCLOTH, d.cloth, 0.12, 0.3)
-	for p in NET:
-		DrawKit.circle(c, p, 1.6, d.trim)
-	c.draw_polyline(HEADCLOTH_HEM, d.trim, 3.0, true)
-	DrawKit.shape(c, &"pendant", PENDANT, d.trim)
-	DrawKit.circle(c, Vector2(42.5, 0), 2.4, GameData.ACC)
-	if d.royal:
-		DrawKit.shape(c, &"crown", CROWN, d.trim)
-		DrawKit.circle(c, Vector2(20, -50), 2.5, GameData.ACC)
-	_draw_eye(c)
-	if _mood == "dizzy" and not portrait:
-		for i in 4:
-			var a := _time * 4.0 + TAU * i / 4.0
-			var sp := Vector2(18, -58) + Vector2(cos(a) * 26.0, sin(a) * 7.0)
-			_fill(c, _star(sp, 5.0 if sin(a) > 0.0 else 3.8), GameData.GOLD_LIGHT if i % 2 == 0 else Color.WHITE)
-	if portrait:
-		# a short, curled trunk keeps the medallion tidy
-		var a := deg_to_rad(80.0)
-		var pts: Array[Vector2] = [TRUNK_ROOT]
-		for i in 2:
-			pts.append(pts[i] + Vector2.from_angle(a + i * 0.5) * 13.0)
-		for i in 2:
-			DrawKit.circle(c, pts[i], float(TRUNK_W[i]) / 2.0, B)
-			_quad_g(c, pts[i], pts[i + 1], TRUNK_W[i], TRUNK_W[i + 1], B.lightened(0.08), B.darkened(0.22))
-	else:
-		_draw_trunk(c, B, D)
-	c.draw_mesh(DrawKit.mesh(&"tusk", TUSK, TUSK_COLS), null)
-	c.draw_polyline(TUSK_CLOSED, IVORY_SHADE.darkened(0.25), 1.5, true)
-	for r in TUSK_RINGS:
-		c.draw_line(r[0], r[1], d.trim, 3.0, true)
-
-
-func _draw_ear(c: CanvasItem, D: Color, d: ElephantDef) -> void:
-	_shade_s(c, &"ear", EAR, D, 0.12, 0.3)
-	DrawKit.shape(c, &"ear_inner", EAR_INNER, Color(D.lerp(Color("#d99a8e"), 0.35), 0.7))
-	c.draw_polyline(PackedVector2Array([Vector2(-6, 2), Vector2(-14, 10), Vector2(-16, 22)]), Color(D.darkened(0.35), 0.6), 1.2, true)
-	if d.royal:
-		DrawKit.circle(c, Vector2(-12, 30), 4.0, d.trim)
-		DrawKit.circle(c, Vector2(-12, 30), 1.8, GameData.ACC)
-
-
-func _draw_eye(c: CanvasItem) -> void:
-	match _mood:
-		"ko":
-			c.draw_line(EYE + Vector2(-4, -4), EYE + Vector2(4, 4), INK, 2.0, true)
-			c.draw_line(EYE + Vector2(-4, 4), EYE + Vector2(4, -4), INK, 2.0, true)
-		"hurt":
-			c.draw_line(EYE + Vector2(-5, -2), EYE + Vector2(4, 1), INK, 2.5, true)
-		"happy":
-			c.draw_polyline(PackedVector2Array([EYE + Vector2(-5, 2), EYE + Vector2(0, -3), EYE + Vector2(5, 2)]), INK, 2.0, true)
-		"dizzy":
-			DrawKit.circle(c, EYE, 4.6, Color("#fdf8ef"))
-			var a0 := _time * 9.0
-			c.draw_arc(EYE, 3.2, a0, a0 + TAU * 0.8, 10, INK, 1.4, true)
-			c.draw_arc(EYE, 1.4, a0 + PI, a0 + PI + TAU * 0.7, 8, INK, 1.2, true)
-		_:
-			if _blink > 0.0:
-				c.draw_line(EYE + Vector2(-5, 0), EYE + Vector2(5, 0), INK, 2.0, true)
-			else:
-				DrawKit.circle(c, EYE, 4.6, Color("#fdf8ef"))
-				DrawKit.circle(c, EYE + Vector2(1.2, 0.3), 2.8, Color("#5a3416"))
-				DrawKit.circle(c, EYE + Vector2(1.4, 0.3), 1.5, INK)
-				DrawKit.circle(c, EYE + Vector2(0.4, -0.9), 0.9, Color.WHITE)
-				c.draw_polyline(PackedVector2Array([EYE + Vector2(-6, -3), EYE + Vector2(0, -6), EYE + Vector2(6, -4)]), Color(INK, 0.7), 1.5, true)
-
-
-func _draw_trunk(c: CanvasItem, B: Color, D: Color) -> void:
-	var a := deg_to_rad(_g("tb"))
-	var pts: Array[Vector2] = [TRUNK_ROOT]
-	for i in 5:
-		if i > 0:
-			a += deg_to_rad(_g(TRUNK_KEYS[i]))
-		pts.append(pts[i] + Vector2.from_angle(a) * float(TRUNK_SEG[i]))
-	for i in 6:
-		DrawKit.circle(c, pts[i], float(TRUNK_W[i]) / 2.0, B)
-	for i in 5:
-		_quad_g(c, pts[i], pts[i + 1], TRUNK_W[i], TRUNK_W[i + 1], B.lightened(0.1), B.darkened(0.22))
-	for i in range(1, 5):
-		var n := (pts[i + 1] - pts[i - 1]).normalized().orthogonal() * float(TRUNK_W[i]) * 0.4
-		c.draw_line(pts[i] - n, pts[i] + n, Color(D.darkened(0.2), 0.7), 1.3, true)
-	DrawKit.circle(c, pts[5], float(TRUNK_W[5]) / 2.0 - 1.0, B.darkened(0.15))
-
-
-## Mahout on the neck: pointed gold helmet, team-colour tunic, glaive with a steel blade.
-func _draw_rider(c: CanvasItem, body: Transform2D, d: ElephantDef) -> void:
-	c.draw_set_transform_matrix(body)
-	var gold := d.trim
-	var pants := d.cloth.darkened(0.5)
-	var knee := RIDER_HIP + Vector2(12, 12)
-	_quad(c, RIDER_HIP, knee, 9.0, 8.0, pants)
-	DrawKit.circle(c, knee, 4.0, pants)
-	_quad(c, knee, knee + Vector2(-3, 16), 6.5, 5.5, SKIN.darkened(0.08))
-	c.draw_rect(Rect2(knee.x - 6.5, knee.y + 11.0, 7.0, 2.5), gold)
-	var lean := deg_to_rad(_g("lean"))
-	var torso := body * Transform2D(lean, RIDER_HIP)
-	c.draw_set_transform_matrix(torso)
-	var g := deg_to_rad(_g("glaive")) - lean
-	var dir := Vector2.from_angle(g)
-	var shoulder := Vector2(1, -19)
-	var hand := shoulder + dir * 13.0
-	# glaive shaft behind the body, gold-ringed
-	var butt := hand - dir * 26.0
-	var neck_b := hand + dir * 60.0
-	c.draw_line(butt, neck_b, WOOD, 3.2, true)
-	c.draw_line(butt, butt + dir * 4.0, gold, 4.0, true)
-	c.draw_line(neck_b - dir * 5.0, neck_b, gold, 4.5, true)
-	for k in 3:
-		var tp := neck_b - dir * 5.0
-		var hang := Vector2(sin(_time * 5.0 + k) * 1.5 + (k - 1) * 2.0, 8.0)
-		c.draw_line(tp, tp + hang, GameData.ACC, 1.5, true)
-	_shade_s(c, &"shirt", SHIRT, d.cloth.lightened(0.05), 0.15, 0.3)
-	c.draw_rect(Rect2(-7, -7, 14, 3), gold)
-	_fill(c, PackedVector2Array([Vector2(-6, -23), Vector2(6, -23), Vector2(0, -16)]), gold)
-	DrawKit.circle(c, Vector2(0, -21), 4.5, gold.darkened(0.15))
-	c.draw_rect(Rect2(-2, -27, 4, 5), SKIN.darkened(0.1))
-	DrawKit.circle(c, Vector2(0.5, -31), 6.0, SKIN)
-	DrawKit.circle(c, Vector2(4, -31.5), 1.0, INK)
-	# pointed helmet with tiers (crowned and winged for royals)
-	DrawKit.shape(c, &"helmet", HELMET, gold)
-	c.draw_rect(Rect2(-6.5, -33, 13, 2.2), GameData.ACC)
-	var spire := 58.0 if d.royal else 52.0
-	_fill(c, PackedVector2Array([Vector2(-4, -37), Vector2(4, -37), Vector2(0.5, -spire)]), gold)
-	for y in [-42.0, -47.0]:
-		c.draw_line(Vector2(-2.6 + (y + 37) * -0.05, y), Vector2(2.6 + (y + 37) * 0.05, y), gold.darkened(0.35), 1.5, true)
-	if d.royal:
-		_fill(c, PackedVector2Array([Vector2(-6, -31), Vector2(-12, -42), Vector2(-8, -35)]), gold)
-		_fill(c, PackedVector2Array([Vector2(6, -31), Vector2(12, -42), Vector2(8, -35)]), gold)
-		DrawKit.circle(c, Vector2(0.3, -44), 1.6, GameData.ACC)
-	# arm over the shaft
-	c.draw_line(shoulder, hand, SKIN, 4.0, true)
-	DrawKit.circle(c, hand, 2.6, SKIN.darkened(0.1))
-	DrawKit.circle(c, shoulder, 3.0, d.cloth)
-	if _dazed:
-		# dizzy: three gold stars circling the head
-		for i in 3:
-			var a := _time * 6.0 + TAU * i / 3.0
-			var sp := Vector2(0, -44) + Vector2(cos(a) * 14.0, sin(a) * 4.0)
-			_fill(c, _star(sp, 4.0), GameData.GOLD_LIGHT if i != 0 else Color.WHITE)
-	c.draw_set_transform_matrix(torso * Transform2D(g, neck_b))
-	c.draw_mesh(DrawKit.mesh(&"blade", BLADE, BLADE_COLS), null)
-	c.draw_polyline(BLADE_CLOSED, STEEL_SHADE.darkened(0.3), 1.2, true)
 
 
 func _star(c: Vector2, r: float) -> PackedVector2Array:
@@ -912,191 +1067,477 @@ func _star(c: Vector2, r: float) -> PackedVector2Array:
 	return pts
 
 
-# ---------- shape helpers ----------
-
-func _quad(c: CanvasItem, a: Vector2, b: Vector2, wa: float, wb: float, col: Color) -> void:
-	var n := (b - a).normalized().orthogonal()
-	if n == Vector2.ZERO:
-		return
-	c.draw_primitive(PackedVector2Array([a + n * wa / 2.0, b + n * wb / 2.0, b - n * wb / 2.0, a - n * wa / 2.0]), PackedColorArray([col]), PackedVector2Array())
-
-
-## Quad shaded across its width: `lit` on one edge, `shade` on the other (round limbs).
-func _quad_g(c: CanvasItem, a: Vector2, b: Vector2, wa: float, wb: float, lit: Color, shade: Color) -> void:
-	var n := (b - a).normalized().orthogonal()
-	if n == Vector2.ZERO:
-		return
-	var pts := PackedVector2Array([a + n * wa / 2.0, b + n * wb / 2.0, b - n * wb / 2.0, a - n * wa / 2.0])
-	c.draw_primitive(pts, PackedColorArray([lit, lit, shade, shade]), PackedVector2Array())
-	c.draw_line(pts[2], pts[3], shade, 1.0, true)
-	c.draw_line(pts[0], pts[1], lit, 1.0, true)
-
-
-## Polygon lit from above: lighter at its top, darker toward its bottom, with a soft dark rim.
-func _shade(c: CanvasItem, pts: PackedVector2Array, col: Color, light: float, dark: float) -> void:
-	var lo := INF
-	var hi := -INF
-	for p in pts:
-		lo = minf(lo, p.y)
-		hi = maxf(hi, p.y)
-	var top := col.lightened(light)
-	var bot := col.darkened(dark)
-	var cols := PackedColorArray()
-	cols.resize(pts.size())
-	var span := maxf(1.0, hi - lo)
-	for i in pts.size():
-		cols[i] = top.lerp(bot, smoothstep(0.1, 1.0, (pts[i].y - lo) / span))
-	DrawKit.fill(c, pts, cols)
-	_outline(c, pts, col.darkened(dark + 0.15), 1.3)
-
-
-## `_shade` for a shape that never changes: its vertex colours are kept until the colour changes.
-func _shade_s(c: CanvasItem, key: StringName, pts: PackedVector2Array, col: Color, light: float, dark: float) -> void:
-	# one entry per colour: a mesh must outlive every draw command that uses it this frame,
-	# and the same shape is drawn in two colours while flashing (body vs. HUD portrait)
-	var by_col: Dictionary = _shade_cache.get(key, {})
-	if by_col.is_empty():
-		_shade_cache[key] = by_col
-	var e: Array = by_col.get(col, [])
-	if e.is_empty():
-		var lo := INF
-		var hi := -INF
-		for p in pts:
-			lo = minf(lo, p.y)
-			hi = maxf(hi, p.y)
-		var top := col.lightened(light)
-		var bot := col.darkened(dark)
-		var cols := PackedColorArray()
-		cols.resize(pts.size())
-		var span := maxf(1.0, hi - lo)
-		for i in pts.size():
-			cols[i] = top.lerp(bot, smoothstep(0.1, 1.0, (pts[i].y - lo) / span))
-		e = [col, DrawKit.build(pts, cols), pts + PackedVector2Array([pts[0]]), col.darkened(dark + 0.15)]
-		by_col[col] = e
-	c.draw_mesh(e[1], null)
-	c.draw_polyline(e[2], e[3], 1.3, true)
-
-
 ## Flat polygon; larger ones get a 1px antialiased rim (the GL Compatibility renderer has no
 ## 2D MSAA). Tiny ornaments skip it: each rim is a separate draw call.
 func _fill(c: CanvasItem, pts: PackedVector2Array, col: Color) -> void:
 	DrawKit.fill(c, pts, PackedColorArray([col]))
 	if pts.size() > 4:
-		_outline(c, pts, col, 1.0)
+		c.draw_polyline(pts + PackedVector2Array([pts[0]]), col, 1.0, true)
 
 
-func _outline(c: CanvasItem, pts: PackedVector2Array, col: Color, width: float) -> void:
-	var o := pts.duplicate()
-	o.append(pts[0])
-	c.draw_polyline(o, col, width, true)
+# ---------- baked parts ----------
+
+## Colours for one elephant (and its hit flash), keyed like the design's palette.
+static func _palette(d: ElephantDef, flash: bool) -> Dictionary:
+	var id := "%d%s" % [d.get_instance_id(), "!" if flash else ""]
+	if not _palettes.has(id):
+		var b := d.body
+		var dk := d.dark
+		if flash:
+			b = b.lerp(GameData.ACC_300, 0.8)
+			dk = dk.lerp(GameData.HURT_DARK, 0.8)
+		var g := d.trim
+		_palettes[id] = {
+			"id": id,
+			"skin": b, "skin_top": b.lightened(0.25), "skin_bot": b.darkened(0.25),
+			"skinD": b.darkened(0.42), "skinL": b.lightened(0.45), "skinFlat": b,
+			"far": dk, "farD": dk.darkened(0.33), "pink": b.lerp(Color("#e7a3a3"), 0.5),
+			"cloth": d.cloth, "clothD": d.cloth.darkened(0.35), "clothL": d.cloth.lightened(0.3),
+			"gold": g, "goldD": g.darkened(0.35), "goldFar": g.darkened(0.22), "goldFarD": g.darkened(0.5),
+		}
+	return _palettes[id]
 
 
-func _ellipse(center: Vector2, rx: float, ry: float) -> PackedVector2Array:
+static func _mesh(v: String, name: String, pal: Dictionary) -> ArrayMesh:
+	var key := "%s/%s/%s" % [v, name, pal["id"]]
+	var m: ArrayMesh = _baked.get(key)
+	if m == null:
+		m = _geometry(v, name).build(pal)
+		_baked[key] = m
+	return m
+
+
+static func _geometry(v: String, name: String) -> Mesher:
+	var key := v + "/" + name
+	var mb: Mesher = _geo.get(key)
+	if mb == null:
+		var part: Part = _parts[v][name]
+		mb = Mesher.new()
+		var fe := FEATHER / part.unit
+		for op in part.ops:
+			var a: float = op[5]
+			if op[2] != null:
+				mb.poly(op[0], op[2], a, op[2] is String and op[2] == "skin", fe if op[3] == null else 0.0)
+			if op[3] != null:
+				mb.strip(op[0], op[1], op[4], op[3], a, fe)
+		_geo[key] = mb
+	return mb
+
+
+static func _sil_mesh(v: String, name: String) -> ArrayMesh:
+	var key := v + "/" + name
+	var m: ArrayMesh = _sil_baked.get(key)
+	if m == null:
+		var part: Part = _parts[v][name]
+		var mb := Mesher.new()
+		var o := OUT / part.unit
+		var fe := FEATHER / part.unit
+		for s in part.sil:
+			var polys: Array = Geometry2D.offset_polygon(s[0], o, Geometry2D.JOIN_ROUND) if s[1] \
+				else Geometry2D.offset_polyline(s[0], float(s[2]) + o, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND)
+			for q: PackedVector2Array in polys:
+				mb.poly(q, Color.WHITE, 1.0, false, fe)
+		m = mb.build({})
+		_sil_baked[key] = m
+	return m
+
+
+## SVG path data (absolute M, L, C and Z, as the design file writes them) -> [[points, closed], ...],
+## with curves flattened and the current pre-transform applied.
+static func _path(d: String) -> Array:
+	if _re == null:
+		_re = RegEx.create_from_string("[MLCZ]|-?(?:\\d+\\.?\\d*|\\.\\d+)")
+	var out := []
 	var pts := PackedVector2Array()
-	for i in 20:
-		var a := TAU * i / 20.0
-		pts.append(center + Vector2(cos(a) * rx, sin(a) * ry))
-	return pts
-
-
-static func _smooth(pts: Array, segs := 5) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	var n := pts.size()
-	for i in n:
-		var p0: Vector2 = pts[(i - 1 + n) % n]
-		var p1: Vector2 = pts[i]
-		var p2: Vector2 = pts[(i + 1) % n]
-		var p3: Vector2 = pts[(i + 2) % n]
-		for s in segs:
-			out.append(p1.cubic_interpolate(p2, p0, p3, float(s) / segs))
+	var cmd := ""
+	var nums: Array[float] = []
+	var cur := Vector2.ZERO
+	for m in _re.search_all(d):
+		var s := m.get_string()
+		if s == "M" or s == "L" or s == "C" or s == "Z":
+			if s == "M" or s == "Z":
+				if pts.size() > 1:
+					out.append([_clean(pts, s == "Z"), s == "Z"])
+				pts = PackedVector2Array()
+			cmd = s
+			nums.clear()
+			continue
+		nums.append(s.to_float())
+		if nums.size() < (6 if cmd == "C" else 2):
+			continue
+		if cmd == "C":
+			var c1 := Vector2(nums[0], nums[1])
+			var c2 := Vector2(nums[2], nums[3])
+			var e := Vector2(nums[4], nums[5])
+			var n := clampi(ceili((cur.distance_to(c1) + c1.distance_to(c2) + c2.distance_to(e)) / 5.0), 2, 16)
+			for k in range(1, n + 1):
+				pts.append(_pre * cur.bezier_interpolate(c1, c2, e, float(k) / n))
+			cur = e
+		else:
+			cur = Vector2(nums[0], nums[1])
+			pts.append(_pre * cur)
+			if cmd == "M":
+				cmd = "L"
+		nums.clear()
+	if pts.size() > 1:
+		out.append([_clean(pts, false), false])
 	return out
 
 
-## Points of a closed outline that lie above `y_max`, nudged inward: the rim-light line.
-static func _rim(pts: PackedVector2Array, y_max: float, inset: float) -> PackedVector2Array:
+static func _clean(pts: PackedVector2Array, closed: bool) -> PackedVector2Array:
 	var out := PackedVector2Array()
-	var n := pts.size()
-	var start := 0
-	for i in n:
-		if pts[i].y >= y_max and pts[(i + 1) % n].y < y_max:
-			start = (i + 1) % n
-			break
-	for k in n:
-		var p := pts[(start + k) % n]
-		if p.y >= y_max:
-			break
-		out.append(p + Vector2(0, inset))
+	for p in pts:
+		if out.is_empty() or out[out.size() - 1].distance_to(p) > 0.05:
+			out.append(p)
+	if closed and out.size() > 2 and out[0].distance_to(out[out.size() - 1]) <= 0.05:
+		out.remove_at(out.size() - 1)
 	return out
 
 
-static func _build_shapes() -> void:
-	BODY = _smooth([
-		Vector2(-80, -96), Vector2(-70, -122), Vector2(-44, -136), Vector2(-8, -142),
-		Vector2(26, -138), Vector2(44, -124), Vector2(58, -100), Vector2(52, -70),
-		Vector2(30, -58), Vector2(-10, -54), Vector2(-50, -58), Vector2(-74, -70),
-	])
-	BODY_RIM = _rim(BODY, -112.0, 3.5)
-	HEAD = _smooth([
-		Vector2(-14, -26), Vector2(0, -38), Vector2(14, -44), Vector2(24, -41), Vector2(34, -40),
-		Vector2(44, -28), Vector2(48, -10), Vector2(46, 8), Vector2(34, 18), Vector2(16, 20),
-		Vector2(-2, 22), Vector2(-16, 10),
-	])
-	HEAD_RIM = _rim(HEAD, -30.0, 3.0)
-	EAR = _smooth([Vector2(0, -6), Vector2(-20, -10), Vector2(-30, 4), Vector2(-26, 24), Vector2(-12, 34), Vector2(0, 24)])
-	EAR_INNER = _smooth([Vector2(-4, -2), Vector2(-17, -4), Vector2(-24, 6), Vector2(-21, 20), Vector2(-12, 26), Vector2(-4, 18)])
-	HEADCLOTH = PackedVector2Array([
-		Vector2(2, -38), Vector2(14, -45), Vector2(26, -42), Vector2(35, -41), Vector2(45, -29),
-		Vector2(49, -12), Vector2(46, -2), Vector2(42, -7), Vector2(38, -20), Vector2(30, -30),
-		Vector2(16, -34), Vector2(4, -30),
-	])
-	HEADCLOTH_HEM = PackedVector2Array([Vector2(46, -2), Vector2(42, -7), Vector2(38, -20), Vector2(30, -30), Vector2(16, -34), Vector2(4, -30), Vector2(2, -38)])
-	NET = PackedVector2Array([Vector2(12, -40), Vector2(20, -40), Vector2(28, -38), Vector2(36, -36), Vector2(41, -28), Vector2(44, -19), Vector2(45, -10), Vector2(24, -36), Vector2(33, -32), Vector2(39, -22)])
-	# saddle cloth: drapes over the back, scalloped hem
-	var top := [Vector2(-68, -106), Vector2(-66, -118), Vector2(-58, -129), Vector2(-44, -138), Vector2(-26, -143), Vector2(-8, -145), Vector2(10, -143), Vector2(24, -137), Vector2(29, -128), Vector2(30, -102)]
-	var cloth := PackedVector2Array(top)
-	var hem := PackedVector2Array()
-	var tips := PackedVector2Array()
-	var sw := 98.0 / 8.0
-	for k in 8:
-		var x0 := 30.0 - k * sw
-		for s in 6:
-			var u := float(s) / 6.0
-			var p := Vector2(x0 - u * sw, -102.0 + sin(u * PI) * 7.0)
-			cloth.append(p)
-			hem.append(p)
-		tips.append(Vector2(x0 - sw / 2.0, -95.0))
-	cloth.append(Vector2(-68, -102))
-	hem.append(Vector2(-68, -102))
-	CLOTH = cloth
-	CLOTH_HEM = hem
-	TASSELS = tips
-	# curved tusk: quadratic bezier with tapering width, two gold rings near the base
-	var p0 := Vector2(32, 14)
-	var p1 := Vector2(60, 30)
-	var p2 := Vector2(78, 10)
-	var left := PackedVector2Array()
-	var right := PackedVector2Array()
-	var rings := []
-	for i in 6:
-		var t := i / 6.0
-		var pos := p0.lerp(p1, t).lerp(p1.lerp(p2, t), t)
-		var tan := (p1 - p0).lerp(p2 - p1, t).normalized()
-		var hw := 4.5 * pow(1.0 - t, 0.7)
-		left.append(pos + tan.orthogonal() * hw)
-		right.append(pos - tan.orthogonal() * hw)
-	for t in [0.16, 0.26]:
-		var pos: Vector2 = p0.lerp(p1, t).lerp(p1.lerp(p2, t), t)
-		var tan: Vector2 = (p1 - p0).lerp(p2 - p1, t).normalized()
-		var hw := 4.5 * pow(1.0 - t, 0.7) + 0.8
-		rings.append([pos + tan.orthogonal() * hw, pos - tan.orthogonal() * hw])
-	left.append(p2)
-	right.reverse()
-	TUSK = left + right
-	TUSK_RINGS = rings
-	BLADE = PackedVector2Array([Vector2(0, -3), Vector2(10, -7), Vector2(22, -7.5), Vector2(34, -2), Vector2(22, 2), Vector2(0, 3)])
-	for q in TUSK:
-		TUSK_COLS.append(IVORY_SHADE.lerp(IVORY, clampf((q.x - 32.0) / 40.0, 0.0, 1.0)))
-	TUSK_CLOSED = TUSK + PackedVector2Array([TUSK[0]])
-	for q in BLADE:
-		BLADE_COLS.append(STEEL if q.y < 0.0 else STEEL_SHADE)
-	BLADE_CLOSED = BLADE + PackedVector2Array([BLADE[0]])
+static func _begin(parts: Dictionary, name: String, unit := SV) -> void:
+	_cur = Part.new()
+	_cur.unit = unit
+	parts[name] = _cur
+	_set_pre(Transform2D.IDENTITY)
+
+
+static func _set_pre(xf: Transform2D) -> void:
+	_pre = xf
+	_pre_w = sqrt(absf(xf.determinant()))
+
+
+## Scale `s` about point `p`.
+static func _sc(p: Vector2, s: Vector2) -> Transform2D:
+	return Transform2D(0.0, s, 0.0, p - p * s)
+
+
+## Filled path. `stroke` null = no outline; `sil` adds it to the part's ink silhouette.
+static func _sh(d: String, fill: Variant, stroke: Variant = null, w := 1.6, a := 1.0, sil := false) -> void:
+	for sp in _path(d):
+		_poly(sp[0], fill, stroke, w, a, sil)
+
+
+static func _poly(pts: PackedVector2Array, fill: Variant, stroke: Variant = null, w := 1.6, a := 1.0, sil := false) -> void:
+	_cur.ops.append([pts, true, fill, stroke, w * _pre_w, a])
+	if sil:
+		_cur.sil.append([pts, true, 0.0])
+
+
+## Stroked (unfilled) path.
+static func _ln(d: String, col: Variant, w: float, a := 1.0, sil := false) -> void:
+	for sp in _path(d):
+		_cur.ops.append([sp[0], sp[1], null, col, w * _pre_w, a])
+		if sil:
+			_cur.sil.append([sp[0], sp[1], w * _pre_w / 2.0])
+
+
+## Dashed stroke: `on` units drawn, `off` skipped.
+static func _dash(d: String, col: Variant, w: float, on: float, off: float) -> void:
+	for sp in _path(d):
+		var pts: PackedVector2Array = sp[0]
+		var piece := PackedVector2Array([pts[0]])
+		var pos := 0.0
+		var drawing := true
+		for i in range(1, pts.size()):
+			var a := pts[i - 1]
+			var b := pts[i]
+			var seg := a.distance_to(b)
+			var walked := 0.0
+			while walked < seg:
+				var left := (on if drawing else off) - pos
+				var step := minf(left, seg - walked)
+				walked += step
+				pos += step
+				var p := a.lerp(b, walked / seg)
+				if drawing:
+					piece.append(p)
+				if pos >= (on if drawing else off) - 0.001:
+					if drawing and piece.size() > 1:
+						_cur.ops.append([piece, false, null, col, w * _pre_w, 1.0])
+					drawing = not drawing
+					pos = 0.0
+					piece = PackedVector2Array([p])
+		if drawing and piece.size() > 1:
+			_cur.ops.append([piece, false, null, col, w * _pre_w, 1.0])
+
+
+static func _el(cx: float, cy: float, rx: float, ry: float, fill: Variant, stroke: Variant = null, w := 1.0, a := 1.0, sil := false) -> void:
+	var pts := PackedVector2Array()
+	var n := clampi(int((rx + ry) * 1.6), 10, 32)
+	for i in n:
+		pts.append(_pre * Vector2(cx + cos(TAU * i / n) * rx, cy + sin(TAU * i / n) * ry))
+	_poly(pts, fill, stroke, w, a, sil)
+
+
+static func _dot(cx: float, cy: float, r: float, fill: Variant, stroke: Variant = null, w := 1.0, a := 1.0, sil := false) -> void:
+	_el(cx, cy, r, r, fill, stroke, w, a, sil)
+
+
+## Scale-armour pattern (the design's 12×9 tile of arcs) clipped to the closed path `d`.
+static func _scales(d: String) -> void:
+	var shape: PackedVector2Array = _path(d)[0][0]
+	var r := Rect2(shape[0], Vector2.ZERO)
+	for p in shape:
+		r = r.expand(p)
+	for row in range(floori(r.position.y / 9.0) - 1, ceili(r.end.y / 9.0) + 1):
+		for col in range(floori(r.position.x / 12.0) - 1, ceili(r.end.x / 12.0) + 1):
+			var x0 := col * 12.0
+			var y0 := row * 9.0
+			for arc in [[Vector2(x0, y0 + 9), Vector2(x0, y0 + 3), Vector2(x0 + 12, y0 + 3), Vector2(x0 + 12, y0 + 9)],
+					[Vector2(x0 - 6, y0 + 4.5), Vector2(x0 - 6, y0 - 1.5), Vector2(x0 + 6, y0 - 1.5), Vector2(x0 + 6, y0 + 4.5)]]:
+				var pl := PackedVector2Array()
+				for k in 7:
+					pl.append((arc[0] as Vector2).bezier_interpolate(arc[1], arc[2], arc[3], k / 6.0))
+				for piece: PackedVector2Array in Geometry2D.intersect_polyline_with_polygon(pl, shape):
+					_cur.ops.append([piece, false, null, Color.BLACK, 1.1, 0.3])
+
+
+static func _bez(p: Array, t: float) -> Vector2:
+	return (p[0] as Vector2).bezier_interpolate(p[1], p[2], p[3], t)
+
+
+## Every part of one variant ("a" ceremonial, "b" armoured), transcribed from the design.
+static func _build(v: String) -> Dictionary:
+	var B := v == "b"
+	var P := {}
+
+	# legs: upper (shortened ×0.72) and lower (×0.85) for front/hind, near/far
+	for front in [false, true]:
+		for near in [false, true]:
+			var tag: String = ("f" if front else "h") + ("n" if near else "f")
+			var fill: String = "skin" if near else "far"
+			var line: String = "skinD" if near else "farD"
+			_begin(P, "up_" + tag)
+			_set_pre(Transform2D.IDENTITY.scaled(Vector2(1.1, 0.72)))
+			if front:
+				_sh("M -30 -20 C -22 -44, 20 -44, 28 -20 C 32 25, 25 68, 21 96 L -21 96 C -25 68, -32 25, -30 -20 Z", fill, line, 1.6, 1.0, true)
+				if near:
+					_sh("M -30 -20 C -32 25, -25 68, -21 96 L -13 96 C -17 68, -22 25, -20 -20 Z", "skinD", null, 0.0, 0.28)
+					_ln("M -18 60 C -8 64, 6 64, 18 58", "skinD", 1.6, 0.5)
+			else:
+				_sh("M -40 -30 C -30 -60, 24 -60, 30 -30 C 38 35, 32 70, 22 92 L -28 92 C -40 55, -46 15, -40 -30 Z", fill, line, 1.6, 1.0, true)
+				if near:
+					_sh("M -40 -30 C -46 15, -40 55, -28 92 L -18 92 C -30 55, -34 15, -28 -30 Z", "skinD", null, 0.0, 0.28)
+					_ln("M 12 56 C 22 62, 30 64, 34 60", "skinD", 1.6, 0.6)
+			_begin(P, "lo_" + tag)
+			_set_pre(Transform2D.IDENTITY.scaled(Vector2(1.08, 0.85)))
+			var gold: String = "gold" if near else "goldFar"
+			var gold_d: String = "goldD" if near else "goldFarD"
+			var nail: Color = Color("#ded4c4") if near else Color("#b5ab9c")
+			var nail_d: Variant = Color("#a69a88") if near else null
+			var nry := 3.2 if near else 3.0
+			if front:
+				_sh("M -21 -4 C -8 2, 8 2, 21 -4 C 21 18, 24 32, 25 43 C 26 48, 23 50, 19 50 L -17 50 C -22 50, -25 48, -25 44 C -25 32, -22 18, -21 -4 Z", fill, line, 1.6, 1.0, true)
+				if near:
+					_ln("M -20 8 C -8 12, 8 12, 21 7", "skinD", 1.6, 0.5)
+				_sh("M -23.4 18 L 22.6 18 L 23 24 L -23.8 24 Z M -24 28 L 23.5 28 L 24.3 37 L -24.7 37 Z" if B else "M -24 28 L 23.5 28 L 24.3 36 L -24.6 36 Z", gold, gold_d)
+				_el(-9, 47, 5, nry, nail, nail_d)
+				_el(2, 47.5, 5, nry, nail, nail_d)
+				_el(13, 47, 5, nry, nail, nail_d)
+			else:
+				_sh("M -26 -4 C -10 2, 8 2, 22 -4 C 21 18, 24 36, 25 49 C 26 54, 23 57, 19 57 L -19 57 C -24 57, -27 54, -27 50 C -27 40, -24 20, -26 -4 Z", fill, line, 1.6, 1.0, true)
+				if near:
+					_ln("M -22 12 C -10 16, 6 16, 20 12", "skinD", 1.6, 0.5)
+				_sh("M -25.6 24 L 23.6 24 L 24 30 L -26 30 Z M -26.2 34 L 24.4 34 L 24.9 43 L -26.7 43 Z" if B else "M -26.2 34 L 24.4 34 L 24.8 42 L -26.6 42 Z", gold, gold_d)
+				_el(-6, 54, 5, nry, nail, nail_d)
+				_el(6, 54, 5, nry, nail, nail_d)
+				_el(16, 53, 4.5, nry, nail, nail_d)
+
+	_begin(P, "tail")
+	_ln("M 104 206 C 93 232, 90 262, 94 296", "skinD", 7.5, 1.0, true)
+	_ln("M 104 206 C 93 232, 90 262, 94 296", "skinFlat", 4.5)
+	_sh("M 89 292 L 89 318 L 94 305 L 98 318 L 101 292 Z", Color("#3b3236"), LINE, 1.6, 1.0, true)
+
+	_begin(P, "torso")
+	_sh("M 292 166 C 262 146, 196 136, 152 152 C 120 164, 100 194, 100 232 C 100 266, 114 290, 140 302 C 182 316, 252 316, 292 302 C 320 292, 332 262, 328 230 C 325 202, 312 180, 292 166 Z", "skin", "skinD", 1.6, 1.0, true)
+	_sh("M 118 282 C 160 302, 250 306, 312 284 C 300 298, 270 312, 220 314 C 170 314, 134 302, 118 282 Z", "skinD", null, 0.0, 0.3)
+	_ln("M 312 250 C 318 262, 318 278, 310 290", "skinD", 1.6, 0.6)
+	_ln("M 112 220 C 107 240, 109 262, 120 278", "skinD", 1.6, 0.6)
+
+	# caparison, girth, howdah cushion and the flag bearer
+	_begin(P, "body")
+	var girth := "M 230 288 C 231 298, 233 306, 234 314" if B else "M 228 266 C 230 284, 232 300, 234 314"
+	_ln(girth, "goldD", 9.0)
+	_ln(girth, "gold", 6.0)
+	_ln("M 126 196 C 118 200, 110 204, 104 208", "gold", 4.0)
+	var cap_body := "M 290 160 C 262 140, 196 130, 152 148 C 136 154, 124 164, 118 176 C 116 210, 120 248, 128 282 C 172 296, 248 296, 290 284 C 296 244, 296 200, 290 160 Z" if B \
+		else "M 288 162 C 262 144, 198 134, 154 150 C 140 155, 130 162, 124 170 C 122 200, 126 232, 132 260 C 172 274, 244 274, 284 262 C 290 230, 292 196, 288 162 Z"
+	_sh(cap_body, "cloth", "clothD", 1.6, 1.0, true)
+	if B:
+		_scales(cap_body)
+	_sh("M 160 154 C 156 190, 158 230, 164 268 L 178 272 C 172 232, 170 192, 172 148 Z", "clothD", null, 0.0, 0.35)
+	_sh("M 222 140 C 220 180, 222 230, 226 274 L 238 274 C 234 230, 232 180, 234 140 Z", "clothD", null, 0.0, 0.35)
+	_sh("M 266 150 C 268 190, 270 230, 268 268 L 278 266 C 280 230, 280 190, 276 156 Z", "clothD", null, 0.0, 0.35)
+	_sh("M 158 154 C 200 140, 250 142, 284 160 C 250 152, 200 150, 158 162 Z", "clothL", null, 0.0, 0.6)
+	var cap_left := "M 118 176 C 116 210, 120 248, 128 282" if B else "M 124 170 C 122 200, 126 232, 132 260"
+	var cap_right := "M 290 160 C 296 200, 296 244, 290 284" if B else "M 288 162 C 292 196, 290 230, 284 262"
+	for edge in [cap_left, cap_right]:
+		_ln(edge, "goldD", 7.0)
+		_ln(edge, "gold", 4.5)
+	var hb := [Vector2(128, 282), Vector2(172, 296), Vector2(248, 296), Vector2(290, 284)] if B \
+		else [Vector2(132, 260), Vector2(172, 274), Vector2(244, 274), Vector2(284, 262)]
+	var ht := [Vector2(126, 268), Vector2(172, 282), Vector2(248, 282), Vector2(291, 270)] if B \
+		else [Vector2(130, 246), Vector2(172, 260), Vector2(244, 260), Vector2(286, 248)]
+	for i in 12:
+		var q := _bez(ht, (i + 0.5) / 12.0)
+		_poly(PackedVector2Array([q + Vector2(-5, 1), q + Vector2(5, 1), q + Vector2(0, -8)]), "gold", "goldD", 1.0)
+	_sh("M 126 268 C 172 282, 248 282, 291 270 L 290 284 C 248 296, 172 296, 128 282 Z" if B else "M 130 246 C 172 260, 244 260, 286 248 L 284 262 C 244 274, 172 274, 132 260 Z", "gold", "goldD")
+	_ln("M 127 275 C 172 289, 248 289, 290.5 277" if B else "M 131 253 C 172 267, 244 267, 285 255", "goldD", 1.2)
+	for i in 12:
+		var p := _bez(hb, (i + 0.5) / 12.0)
+		_poly(PackedVector2Array([p + Vector2(-6, -1), p + Vector2(6, -1), p + Vector2(0, 11)]), "gold", "goldD", 1.1)
+		_dot(p.x, p.y + 14.0, 2.8, "clothL", "clothD", 1.0)
+	_sh("M 206 184 L 224 202 L 206 220 L 188 202 Z", "gold", "goldD")
+	_sh("M 206 191 L 217 202 L 206 213 L 195 202 Z", "clothD", "goldD", 1.0)
+	_dot(206, 202, 3.6, JEWEL, JEWEL_D, 1.0)
+	_sh("M 184 140 C 188 124, 244 122, 250 138 C 238 146, 196 148, 184 140 Z", "clothD", "gold", 2.5, 1.0, true)
+
+	_begin(P, "bearer")
+	_sh("M 208 130 C 222 128, 236 134, 240 142 L 242 162 C 242 167, 237 169, 233 166 L 230 146 C 224 140, 214 138, 206 138 Z", "clothD", LINE, 1.6, 1.0, true)
+	_sh("M 204 134 C 201 116, 204 100, 211 92 L 226 92 C 230 102, 230 120, 227 134 Z", "cloth", LINE, 1.6, 1.0, true)
+	_sh("M 212 94 L 218 92 L 228 126 L 222 128 Z", "gold", "goldD", 1.0)
+	_sh("M 213 93 L 213 84 L 222 84 L 223 93 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
+	_set_pre(_sc(Vector2(218, 87), Vector2(1.35, 1.35)))
+	_sh("M 208 74 C 208 66, 214 62, 219 62 C 225 62, 228 67, 228 72 L 231 76 L 228 78 C 228 83, 224 87, 218 87 C 212 87, 208 81, 208 74 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
+	_dot(224, 72, 1.3, EYE_INK)
+	_sh("M 210 64 L 227 64 L 218.5 42 Z", "gold", "goldD", 1.6, 1.0, true)
+	_sh("M 207 69 L 230 69 L 228 63 L 209 63 Z", "gold", "goldD", 1.6, 1.0, true)
+
+	_begin(P, "pole")
+	_ln("M 233 152 L 233 -8", Color("#5b3a1f"), 3.5, 1.0, true)
+	_sh("M 229 -8 L 237 -8 L 233 -19 Z", "gold", "goldD", 1.6, 1.0, true)
+
+	_begin(P, "bearer_arm")
+	_ln("M 220 96 L 232 104", "clothD", 9.0, 1.0, true)
+	_ln("M 220 96 L 232 104", "cloth", 6.0)
+	_dot(233, 104, 4.6, RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
+
+	_begin(P, "rider_leg")
+	_sh("M 278 152 C 296 152, 310 162, 318 176 L 324 200 C 325 207, 319 211, 313 208 L 304 184 C 296 176, 284 172, 276 170 Z", "clothD", LINE, 1.6, 1.0, true)
+
+	# head, drawn ×1.35 about HEAD_PIVOT (applied when drawing); tusks ×0.66, trunk mouth ×(0.8, 0.54)
+	var tusk := "M 368 234 C 384 256, 418 264, 446 238 C 440 258, 412 270, 386 266 C 372 263, 364 254, 362 242 Z" if B \
+		else "M 368 234 C 380 252, 408 258, 432 240 C 424 254, 404 264, 384 262 C 372 260, 364 252, 362 242 Z"
+	var tusk_sc := _sc(Vector2(366, 238), Vector2(0.66, 0.66))
+	_begin(P, "tusk_far", HK)
+	_set_pre(tusk_sc * Transform2D(0.0, Vector2(-9, -3)))
+	_sh(tusk, Color("#cbbfa6"), Color("#8a7c62"), 1.6, 1.0, true)
+
+	_begin(P, "mouth", HK)
+	_set_pre(_sc(Vector2(380, 215), Vector2(0.8, 0.54)))
+	_sh("M 356 238 C 366 250, 382 250, 394 228 C 382 236, 368 240, 356 238 Z", Color("#a8706f"), Color("#6e4343"), 1.6, 1.0, true)
+
+	_begin(P, "head", HK)
+	_sh("M 296 174 C 298 146, 318 128, 341 128 C 351 128, 357 132, 361 134 C 372 138, 380 152, 382 170 C 384 190, 386 206, 384 218 C 380 232, 368 242, 354 244 C 336 246, 318 238, 308 226 C 298 214, 294 194, 296 174 Z", "skin", "skinD", 1.6, 1.0, true)
+	_el(358, 156, 17, 11, "skinL", null, 0.0, 0.4)
+	_sh("M 310 226 C 325 242, 345 246, 360 243 C 345 236, 325 232, 310 218 Z", "skinD", null, 0.0, 0.3)
+	_dot(378, 214, 2.6, "pink")
+	_dot(371, 222, 2.0, "pink")
+	_dot(381, 204, 1.8, "pink")
+	_sh("M 352 244 C 360 252, 372 252, 378 244 C 372 247, 360 247, 352 244 Z", Color("#9c7f80"), "skinD", 1.0, 1.0, true)
+	var collar := "M 298 180 C 300 206, 306 230, 318 246"
+	_ln(collar, "goldD", 7.0)
+	_ln(collar, "gold", 5.0)
+	_dash(collar, "cloth", 2.5, 3.0, 5.0)
+	_sh("M 313 249 C 313 242, 327 242, 327 249 L 329 259 L 311 259 Z", "gold", "goldD", 1.6, 1.0, true)
+	_dot(320, 261, 2.2, "goldD", null, 1.0, 1.0, true)
+	_set_pre(tusk_sc)
+	_sh(tusk, Color("#efe6d2"), Color("#9b8d72"), 1.6, 1.0, true)
+	_ln("M 376 244 C 392 256, 414 258, 432 250" if B else "M 376 244 C 390 254, 406 256, 422 250", Color("#fffaf0"), 2.0)
+	if B:
+		_sh("M 420 262 C 432 256, 440 248, 446 238 C 442 254, 434 262, 422 268 Z", "gold", "goldD", 1.6, 1.0, true)
+		_sh("M 404 260 L 411 258 L 413 268 L 406 269 Z", "gold", "goldD")
+	_sh("M 361 237 L 371 231 L 377 244 L 366 250 Z", "gold", "goldD")
+	_set_pre(Transform2D.IDENTITY)
+	if B:
+		_sh("M 344 130 C 344 120, 350 112, 356 107 C 354 116, 356 124, 361 132 Z", "gold", "goldD", 1.6, 1.0, true)
+		_sh("M 326 136 C 342 124, 366 128, 378 146 C 386 160, 388 190, 387 214 C 382 220, 377 222, 372 220 C 374 196, 372 178, 364 166 C 352 156, 336 150, 326 136 Z", "clothD", "gold", 3.0, 1.0, true)
+		for p in [Vector2(338, 139), Vector2(352, 140), Vector2(364, 148), Vector2(373, 162), Vector2(379, 180), Vector2(381, 198)]:
+			_dot(p.x, p.y, 2.4, "gold")
+	else:
+		_sh("M 300 168 C 302 142, 320 126, 342 126 C 352 126, 357 129, 361 132 C 373 137, 380 150, 382 166 C 372 160, 364 158, 356 160 C 342 163, 330 160, 322 156 C 312 153, 304 160, 300 168 Z", "cloth", "clothD", 1.6, 1.0, true)
+		var hem := "M 300 168 C 304 160, 312 153, 322 156 C 330 160, 342 163, 356 160 C 364 158, 372 160, 382 166"
+		_ln(hem, "goldD", 6.0)
+		_ln(hem, "gold", 3.6)
+		for p in [Vector2(318, 140), Vector2(332, 133), Vector2(346, 131), Vector2(360, 137), Vector2(371, 147), Vector2(312, 152), Vector2(326, 146), Vector2(340, 144), Vector2(354, 147), Vector2(366, 155)]:
+			_dot(p.x, p.y, 2.2, "gold")
+		_sh("M 377 164 L 382 174 L 377 186 L 372 174 Z", "gold", "goldD", 1.2)
+		_dot(377, 175, 2.0, JEWEL)
+
+	_begin(P, "crown", HK)
+	_sh("M 328 132 L 334 110 L 341 92 L 348 110 L 354 130 Z", "gold", "goldD", 1.6, 1.0, true)
+	_ln("M 331 120 L 351 120", "goldD", 1.4)
+	_dot(341, 112, 2.6, JEWEL, JEWEL_D, 1.0)
+
+	_begin(P, "ear", HK)
+	_sh("M 316 158 C 336 152, 352 166, 352 190 C 352 212, 344 228, 334 240 C 330 242, 326 238, 324 232 C 322 222, 316 216, 310 210 C 300 198, 302 168, 316 158 Z", "skin", "skinD", 1.6, 1.0, true)
+	_sh("M 318 170 C 330 168, 338 178, 338 192 C 338 204, 332 214, 326 220 C 320 212, 312 204, 310 194 C 308 182, 310 174, 318 170 Z", "skinD", null, 0.0, 0.3)
+	_ln("M 320 165 C 334 163, 345 176, 344 192 C 343 206, 337 218, 331 226", "skinD", 1.6, 0.55)
+	_dot(347, 207, 2.6, "pink")
+	_dot(342, 220, 2.0, "pink")
+	_dot(350, 195, 1.8, "pink")
+
+	_begin(P, "earring", HK)
+	_dot(331, 243, 4.0, "gold", "goldD", 1.2, 1.0, true)
+	_dot(331, 243, 1.8, JEWEL)
+
+	_begin(P, "blush", HK)
+	_el(366, 201, 8, 4.5, Color("#ec8f97"), null, 0.0, 0.5)
+
+	_begin(P, "eye", HK)
+	_el(362, 180, 7.5, 8.5, Color.WHITE, EYE_INK, 1.4)
+	_dot(363.5, 181, 5.6, EYE_INK)
+	_dot(365.6, 178.4, 2.1, Color.WHITE)
+	_dot(361.4, 183.6, 1.0, Color.WHITE)
+	_ln("M 355.5 173.5 C 353 172, 351.5 170, 351.5 168 M 359.5 172 C 358.5 170, 358.5 168, 359.5 166", EYE_INK, 1.4)
+
+	# mahout on the neck (leans about RIDER_PIVOT); his head is drawn ×1.35
+	_begin(P, "rider")
+	var torso := "M 272 160 C 268 138, 271 118, 280 106 L 300 106 C 307 118, 307 142, 302 160 Z"
+	_sh(torso, "cloth", LINE, 1.6, 1.0, true)
+	if B:
+		_scales(torso)
+		_dot(292, 128, 7.0, "gold", "goldD")
+	else:
+		_sh("M 280 108 L 287 106 L 304 150 L 297 154 Z", "gold", "goldD", 1.0)
+	_sh("M 271 150 L 303 150 L 302 159 L 272 160 Z", "gold", "goldD")
+	_sh("M 287 107 L 287 96 L 297 96 L 298 107 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
+	_set_pre(_sc(Vector2(294, 101), Vector2(1.35, 1.35)))
+	_sh("M 282 86 C 282 76, 290 72, 296 72 C 303 72, 306 78, 306 84 L 309 89 L 306 91 C 306 97, 301 101, 294 101 C 287 101, 282 95, 282 86 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
+	_el(290, 88, 2.6, 4.0, Color("#b67b4f"))
+	_dot(301, 85, 1.4, EYE_INK)
+	_ln("M 298 81 L 304 80.5", Color("#3a2a20"), 1.4)
+	_ln("M 301 95 L 305.5 94.5", Color("#7a4a2c"), 1.2)
+	if B:
+		_sh("M 294 52 C 286 42, 274 42, 264 50 C 276 50, 284 53, 291 60 Z", "cloth", "clothD", 1.6, 1.0, true)
+		_sh("M 292 64 L 296 64 L 294 49 Z", "gold", "goldD", 1.6, 1.0, true)
+		_sh("M 280 80 L 286 80 L 287 97 C 283 97, 280 93, 280 87 Z", "clothD", LINE, 1.6, 1.0, true)
+		_sh("M 280 82 C 280 69, 288 63, 294 63 C 301 63, 308 69, 308 82 Z", "gold", "goldD", 1.6, 1.0, true)
+		_sh("M 278 80 L 310 80 L 310 84 L 278 84 Z", Color("#c8961f"), "goldD", 1.0, 1.0, true)
+	else:
+		_sh("M 285 82 C 277 82, 275 93, 281 99 C 281 92, 283 88, 287 88 Z", "gold", "goldD", 1.0, 1.0, true)
+		_sh("M 291.5 54 L 295.5 54 L 293.5 33 Z", "gold", "goldD", 1.6, 1.0, true)
+		_sh("M 289 63 L 298 63 L 296 54 L 291 54 Z", "gold", "goldD", 1.6, 1.0, true)
+		_sh("M 285 73 L 302 73 L 299 63 L 288 63 Z", "gold", "goldD", 1.6, 1.0, true)
+		_sh("M 281 80 L 306 80 L 304 73 L 283 73 Z", "gold", "goldD", 1.6, 1.0, true)
+
+	_begin(P, "wings")
+	_set_pre(_sc(Vector2(294, 101), Vector2(1.35, 1.35)))
+	_sh("M 283 78 L 270 64 L 277 64 L 286 74 Z", "gold", "goldD", 1.2, 1.0, true)
+	_sh("M 304 78 L 314 64 L 309 64 L 301 74 Z", "gold", "goldD", 1.2, 1.0, true)
+
+	_begin(P, "rider_collar")
+	_sh("M 282 109 C 288 101, 302 101, 308 107 C 312 103, 314 99, 314 94 C 318 101, 316 111, 306 115 L 284 115 Z", "gold", "goldD", 1.6, 1.0, true)
+
+	# glaive in weapon space: the hand at the origin, blade up (-y)
+	_begin(P, "weapon")
+	_ln("M 0 66 L 0 -90", Color("#3f2814"), 6.0, 1.0, true)
+	_ln("M 0 66 L 0 -90", Color("#6b4423"), 3.6)
+	_dot(0, 68, 3.6, "gold", "goldD", 1.6, 1.0, true)
+	_sh("M -4 -96 C -12 -114, -10 -132, 4 -150 C 3 -141, 6 -137, 10 -134 C 12 -120, 10 -108, 4 -96 Z", Color("#d9dee3"), Color("#6f7881"), 1.6, 1.0, true)
+	_ln("M 2 -100 C 6 -112, 7 -124, 6 -138", Color.WHITE, 1.2, 0.8)
+	_sh("M -5 -90 L 5 -90 L 4 -97 L -4 -97 Z", "gold", "goldD", 1.6, 1.0, true)
+	_sh("M -2 -92 C -10 -88, -12 -80, -9 -74 C -6 -80, -3 -82, 1 -86 Z", Color("#c4262f"), Color("#7a1219"), 1.0, 1.0, true)
+	_dot(0, -24, 5.4, RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
+	_dot(0, 0, 5.4, RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
+	return P

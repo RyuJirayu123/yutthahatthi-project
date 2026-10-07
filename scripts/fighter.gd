@@ -17,14 +17,15 @@ var meter := 0.0
 var atk := ""             ## current move id, "" when not attacking
 var atk_t := 0.0
 var atk_mask := 0         ## bit per hit window that already connected
+var atk_hit := false      ## the current move hit (not guarded)
 var atk_new := false      ## set on the frame a move starts
 var event_done := false   ## the move's one-off event (teleport, stomp, blessing) has fired
 var buff_t := 0.0         ## blessing: damage boost time left
 var wave_warning := false ## an enemy shockwave is about to arrive
 var stun := 0.0
 var bstun := 0.0
-var guarding := false     ## holding back (standing) or down-back (crouching): hits from the front are guarded
-var crouching := false    ## holding down; a crouching guard stops low hits, a standing one stops high hits
+var guarding := false     ## crouching on the ground: hits from the front are guarded (all but the glaive)
+var crouching := false    ## holding down
 var blocking := false     ## guarding while an attack is coming: stands still in the guard pose
 var flash := 0.0
 var ko := false
@@ -45,6 +46,7 @@ var juggle := 0           ## air hits taken since being launched
 var dash_t := 0.0         ## time left in a dash (towards the opponent) or backstep
 var dash_dir := 0         ## world direction of the dash, +1 / -1
 var atk_ex := false       ## the current signature move is the EX version
+var lag := 0.0            ## stuck recovering from a whiffed attack (hits here count as counter hits)
 var spout_live := false   ## this elephant's water spout is still flying (one at a time)
 var _held_dir := 0
 var _tap_dir := 0
@@ -63,7 +65,11 @@ var ai_chained := false   ## already decided how to follow up the move that conn
 var ai_dove := false
 var ai_countered := false
 var ai_aa := false        ## already decided whether to swat this jump-in
-var ai_low := false       ## guard crouching (down-back) rather than standing
+var ai_punish := false    ## already decided whether to punish this whiff
+var ai_guarding := false  ## already decided whether to keep guarding this string
+var ai_seen := ""         ## the opponent's attack last frame, to notice each new one
+var ai_seen_t := 0.0
+var ai_was_bstun := false
 
 
 func _init(p_def: ElephantDef, p_x: float, p_face: int, p_ctrl: String) -> void:
@@ -174,7 +180,12 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 			var m := GameData.move(atk)
 			var next := _follow_up(m)
 			if next != "":
+				var cancel := not m.links.has(buf)
 				_begin(next)
+				var nm := GameData.move(atk)
+				if cancel and o.stun > 0.0 and not o.juggled and not nm.hits.is_empty():
+					# a cancel off a hit always combos: the opponent stays reeling until the new move lands
+					o.stun = maxf(o.stun, nm.hits[0].start + 0.06)
 			else:
 				if m.dash_speed > 0.0 and atk_t > m.dash_start and atk_t < m.dash_stop and not (m.dash_until_hit and atk_mask != 0):
 					vx = face * m.dash_speed
@@ -182,13 +193,21 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 					vx *= 0.8
 				if atk_t >= m.dur:
 					atk = ""
+					if atk_mask == 0 and not m.hits.is_empty() and not m.ultimate:
+						lag = GameData.WHIFF_LAG
+		elif lag > 0.0:
+			lag -= dt
+			guarding = false
+			blocking = false
+			if grounded:
+				vx *= 0.8
 		else:
 			if not facing_locked and grounded:
 				face = 1 if o.x > x else -1    # keeps facing through a jump, turns on landing
-			# Street Fighter guard: hold back to guard standing, down-back to guard crouching
+			# hold down to guard: crouching stops everything but the glaive
 			var free := grounded and dash_t <= 0.0
 			crouching = free and inp.get("down", false)
-			guarding = free and dir == -face
+			guarding = crouching
 			blocking = guarding and (o.atk != "" or o.rider_t >= 0.0 or wave_warning)
 			if buf == "special" and meter < 100.0 and not _ex_pending():
 				buf = ""
@@ -252,6 +271,7 @@ func _start(id: String, ex := false) -> void:
 	atk = id
 	atk_t = 0.0
 	atk_mask = 0
+	atk_hit = false
 	atk_new = true
 	event_done = false
 	blocking = false
@@ -272,10 +292,11 @@ func _start(id: String, ex := false) -> void:
 func _follow_up(m: GameData.Move) -> String:
 	if buf == "" or m.hits.is_empty() or atk_t < m.hits[0].stop or _ex_pending():
 		return ""
-	if m.links.has(buf):
-		return m.links[buf]      # chains come out hit or miss: mashing still strings the moves together
 	if atk_mask == 0:
-		return ""
+		return ""                # nothing connects off a whiff: a missed attack has to recover
+	if m.links.has(buf):
+		# the string only goes on if it really hit; a guarded hit ends it, so the guard can strike back
+		return m.links[buf] if atk_hit else ""
 	match buf:
 		"heavy", "ex", "spout", "uppercut":
 			return buf if m.cancel_heavy else ""
@@ -362,6 +383,40 @@ func think(o: Fighter, dt: float) -> Dictionary:
 		ai_countered = true
 		if meter >= GameData.COUNTER_COST and randf() < ai.block * 0.35:
 			return {"heavy": true}
+	# strike back as soon as the guard holds: a guarded attack leaves the attacker the slower one
+	if bstun > 0.0:
+		ai_was_bstun = true
+	elif ai_was_bstun:
+		ai_was_bstun = false
+		if stun <= 0.0 and dist < 260.0 and randf() < 0.2 + ai.block * 0.6:
+			var k := _ai_normal(dist)
+			return {"medium" if k.ends_with("medium") else "light": true}
+	# keep guarding a string once the first hit was guarded
+	if bstun <= 0.0:
+		ai_guarding = false
+	elif not ai_guarding:
+		ai_guarding = true
+		if randf() < 0.4 + ai.block:
+			ai_act = "block"
+			ai_hold = 0.3
+	# punish an attack that missed while it recovers
+	var whiffed := o.lag > 0.0
+	if o.atk != "" and o.atk_mask == 0:
+		var om := GameData.move(o.atk)
+		whiffed = not om.hits.is_empty() and o.atk_t > om.hits[om.hits.size() - 1].stop
+	if not whiffed:
+		ai_punish = false
+	elif not ai_punish and atk == "" and stun <= 0.0 and dazed <= 0.0 and y >= GameData.GROUND:
+		ai_punish = true
+		if dist < 270.0 and randf() < 0.3 + ai.block:
+			if dist > 215.0:
+				return {"medium": true}
+			return {"heavy": true} if randf() < ai.heavy else {"light": true}
+	# every new attack is a new chance to guard it (a masher never leaves a gap between them)
+	if o.atk != ai_seen or o.atk_t < ai_seen_t:
+		ai_reacted = false
+	ai_seen = o.atk
+	ai_seen_t = o.atk_t
 	var threat := o.atk != "" or o.rider_t >= 0.0
 	if threat and dist < 300.0 and not ai_reacted:
 		ai_reacted = true
@@ -373,7 +428,6 @@ func think(o: Fighter, dt: float) -> Dictionary:
 			else:
 				ai_act = "block"
 				ai_hold = 0.35
-				ai_low = _ai_guard_low(o)
 	if not threat:
 		ai_reacted = false
 	if wave_warning and not ai_wave_seen:
@@ -428,8 +482,7 @@ func think(o: Fighter, dt: float) -> Dictionary:
 			inp[tw if ai_act == "dash" else aw] = true
 			ai_act = "toward" if ai_act == "dash" else "away"
 		"block":
-			inp[aw] = true
-			inp["down"] = ai_low
+			inp["down"] = true
 		"jump":
 			inp["up"] = true
 			inp[tw] = true
@@ -460,23 +513,6 @@ func _ai_normal(dist: float) -> String:
 	var kind := "medium" if dist > 215.0 or randf() < 0.25 else "light"
 	return ("c" + kind) if randf() < 0.3 else kind
 
-
-## Read the incoming attack: crouch for lows, stand for highs (a harder CPU guesses right more often).
-func _ai_guard_low(o: Fighter) -> bool:
-	if o.atk == "":
-		return randf() < 0.4
-	var m := GameData.move(o.atk)
-	var low := false
-	var high := false
-	for h in m.hits:
-		low = low or h.low
-		high = high or h.high
-	var right := randf() < 0.45 + ai.block * 0.6
-	if low:
-		return right
-	if high:
-		return not right
-	return randf() < 0.4
 
 
 func _ultimate_ok(dist: float) -> bool:

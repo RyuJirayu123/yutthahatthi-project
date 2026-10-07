@@ -22,6 +22,7 @@ const POWER := Color("#ff9a1f")
 const BALANCE := Color("#3cc6d4")
 
 var duel: Duel
+var training: Training    ## set in training mode: lesson card, damage and input log
 var cam_x := 0.0          ## slides the fight aside on the title screen and the result screens
 var frozen := false       ## true while paused: animation holds its pose
 var _pan := 0.0           ## gentle follow of the fighters during a fight (parallax)
@@ -63,6 +64,7 @@ func _process(delta: float) -> void:
 	_sync_backdrop()
 	_backdrop.update(view_x(), _time, _shake)
 	_backdrop.transform = _cam()
+	_backdrop.show_front(training == null)
 	queue_redraw()
 
 
@@ -129,7 +131,12 @@ func _draw() -> void:
 	if duel.mode != "demo":
 		_draw_hud()
 		_draw_callouts()
-		_draw_announce()
+		if training:
+			_draw_training()
+		else:
+			_draw_announce()
+		if duel.mode == "online" and duel.net_wait > 0.3:
+			_otext("รอสัญญาณคู่ต่อสู้… · WAITING FOR OPPONENT", W / 2.0, 200.0, 16, 800, Color.WHITE, CENTER, 6)
 		if _cut > 0.0 and duel.super_f:
 			_draw_cut_in(duel.super_f)
 
@@ -151,6 +158,8 @@ func _sync_backdrop() -> void:
 	var scene: String
 	if duel.mode == "arcade":
 		scene = Backdrop.SCENES[mini(duel.stage, Backdrop.SCENES.size() - 1)]
+	elif duel.mode == "online":
+		scene = Backdrop.SCENES[duel.stage % Backdrop.SCENES.size()]   # both players see the same field
 	elif _backdrop and duel.mode == "vs" and _backdrop_duel and _backdrop_duel.mode == "vs":
 		scene = _backdrop.scene      # rematches keep the same field
 	else:
@@ -317,6 +326,50 @@ func _combo(f: Fighter, rev: bool) -> void:
 	var w := _otext(str(f.combo), x, 176.0, int(46.0 * pop), 800, Color(GOLD_LIGHT, a), align, 8, Color(GameData.ACC_700, a))
 	_otext("HITS", x + sx * (w + 8.0), 156.0, 17, 800, Color(1, 1, 1, a), align, 4, Color(INK, a))
 	_otext("คอมโบ!", x + sx * (w + 8.0), 175.0, 14, 800, Color(GOLD, a), align, 4, Color(INK, a))
+
+
+## Training overlay: input log on the left, combo damage on the right, the lesson card at the bottom.
+func _draw_training() -> void:
+	var tr := training
+	_otext("ปุ่มที่กด · INPUT", 24.0, 212.0, 11, 800, GOLD_LIGHT, LEFT, 4)
+	for i in tr.inputs.size():
+		var s: String = tr.inputs[tr.inputs.size() - 1 - i]
+		_otext(s, 24.0, 236.0 + i * 21.0, 17 if i == 0 else 15, 800, Color(1, 1, 1, 1.0 - i * 0.09), LEFT, 4)
+	var rx := W - 24.0
+	_otext("ดาเมจคอมโบ · COMBO DAMAGE", rx, 212.0, 11, 800, GOLD_LIGHT, RIGHT, 4)
+	var hits := "  ·  %d HITS" % tr.combo_hits if tr.combo_hits > 1 else ""
+	_otext("%d%s" % [roundi(tr.combo_dmg), hits], rx, 240.0, 24, 800, Color.WHITE, RIGHT, 5)
+	_otext("สูงสุด · BEST  %d" % roundi(tr.best_dmg), rx, 260.0, 11, 800, Color.WHITE, RIGHT, 4)
+
+	var x0 := 150.0
+	var x1 := W - 150.0
+	var y0 := 452.0
+	if tr.lesson < 0:
+		var msg := "เรียนครบทุกบทแล้ว! · " if tr.finished_all else ""
+		_panel(x0, y0 + 30.0, x1, H - 10.0)
+		_otext("%sฝึกอิสระ · FREE PRACTICE  —  หุ่น: %s" % [msg, Training.DUMMY_NAMES[tr.dummy]], W / 2.0, y0 + 53.0, 13, 800, GOLD_LIGHT, CENTER, 0)
+		_otext("ESC = เปลี่ยนท่าหุ่น · กลับไปเรียน · พลังเต็มตลอด", W / 2.0, y0 + 70.0, 10, 600, Color.WHITE, CENTER, 0)
+		return
+	var L: Array = Training.LESSONS[tr.lesson]
+	_panel(x0, y0, x1, H - 10.0)
+	_otext("บทที่ %d/%d" % [tr.lesson + 1, Training.LESSONS.size()], x0 + 14.0, y0 + 22.0, 11, 800, GOLD, LEFT, 0)
+	_otext(L[0], x0 + 84.0, y0 + 23.0, 17, 800, GOLD_LIGHT, LEFT, 0)
+	_otext(L[3], x1 - 14.0, y0 + 26.0, 20, 800, Color.WHITE, RIGHT, 4, Color(GameData.ACC_700, 0.9))
+	_otext(L[1], x0 + 14.0, y0 + 48.0, 13, 600, Color.WHITE, LEFT, 0)
+	_otext(L[2], x0 + 14.0, y0 + 66.0, 10, 600, Color(1, 1, 1, 0.7), LEFT, 0)
+	var need := int(L[8])
+	for i in need:
+		var c := Vector2(x1 - 14.0 - (need - 1 - i) * 18.0, y0 + 46.0)
+		DrawKit.fill(self, _diamond(c, 6.0), PackedColorArray([GOLD_LIGHT if i < tr.count else Color(1, 1, 1, 0.25)]))
+	_otext("ESC = ข้ามบท · ฝึกอิสระ", x1 - 14.0, y0 + 67.0, 9, 600, Color(1, 1, 1, 0.6), RIGHT, 0)
+	if tr.done_t >= 0.0:
+		_band(tr.done_t, "ผ่าน!", "LESSON CLEAR")
+
+
+func _panel(x0: float, y0: float, x1: float, y1: float) -> void:
+	draw_rect(Rect2(x0, y0, x1 - x0, y1 - y0), Color(0.18, 0.04, 0.03, 0.88))
+	draw_rect(Rect2(x0, y0, x1 - x0, y1 - y0), GOLD, false, 2.0)
+	draw_rect(Rect2(x0 + 4.0, y0 + 4.0, x1 - x0 - 8.0, y1 - y0 - 8.0), Color(GOLD_DARK, 0.8), false, 1.0)
 
 
 ## Super freeze backdrop: the scene darkens and speed lines burst from the elephant.

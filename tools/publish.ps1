@@ -12,7 +12,7 @@
 #   publish.bat -Version 1.4.2  set an exact version
 #
 # Output: release\v<version>\
-#   ElephantDuel-v<version>-web\         drag this folder onto Netlify
+#   ElephantDuel-v<version>-web\         put online with deploy.bat (GitHub Pages)
 #   ElephantDuel-v<version>-web.zip      upload to itch.io (HTML game)
 #   ElephantDuel-v<version>-windows.zip  download for Windows
 param(
@@ -86,7 +86,7 @@ Get-ChildItem $out | ForEach-Object {
 	"    {0,-36} {1,6:N1} MB" -f $_.Name, ($size / 1MB)
 }
 Write-Host ""
-Write-Host "  Netlify : drag the folder $name-web onto the site's Deploys tab"
+Write-Host "  Web     : double-click deploy.bat to put it on GitHub Pages"
 Write-Host "  itch.io : upload $name-web.zip (played in the browser) + $name-windows.zip"
 Write-Host "  GitHub  : git commit -am ""v$Version"" ; git tag v$Version ; git push --follow-tags"
 Write-Host ""
