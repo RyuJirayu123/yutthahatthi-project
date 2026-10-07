@@ -27,7 +27,6 @@ func _ready() -> void:
 	_streams["trumpet"] = _render([_trumpet(260)])
 	_streams["bell"] = _render([_tone(1046, 1040, 0.6, "sine", 0.22), _tone(1568, 1560, 0.45, "sine", 0.1)])
 	_streams["ko"] = _render([_trumpet(220), _noise(0.6, 0.6, 180)])
-	_streams["glaive"] = _render([_noise(0.16, 0.3, 1200), _tone(500, 900, 0.12, "triangle", 0.05)])
 	_streams["clang"] = _render([_tone(1800, 1700, 0.18, "square", 0.05), _tone(2400, 2300, 0.14, "sine", 0.08), _noise(0.08, 0.5, 2500), _noise(0.14, 0.5, 600)])
 	_streams["daze"] = _render([_tone(880, 620, 0.16, "triangle", 0.12), _tone(700, 480, 0.16, "triangle", 0.12, 0.14), _tone(560, 360, 0.22, "triangle", 0.12, 0.28)])
 	_streams["roar"] = _render([_trumpet(150), _trumpet(190, 0.05), _noise(0.8, 0.5, 220), _tone(70, 50, 0.8, "sawtooth", 0.12)])

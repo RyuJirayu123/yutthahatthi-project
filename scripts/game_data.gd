@@ -38,15 +38,15 @@ class Hit:
 	var knock: float
 	var stun: float
 	var meter: float       ## power gained by the attacker
-	var balance: float     ## damage to the opposing rider's balance
+	var balance: float     ## damage to the opponent's balance
 	var lift := 0.0        ## launch speed given to the target (negative = up)
 	var offset := 100.0    ## hitbox starts this far in front of the attacker
 	var vreach := 120.0    ## max height difference that still connects
 	var overhead := false  ## can't be guarded at all
-	var low := false       ## only a crouching guard (down + back) stops it
-	var high := false      ## only a standing guard (back) stops it
+	var low := false       ## a crouching attack (training checks it)
+	var high := false      ## a jump-in attack
 	var pull := false      ## knocks the target toward the attacker
-	var daze := false      ## unseats the target's rider at once
+	var daze := false      ## breaks the target's balance at once
 	var sound := "heavy"
 
 
@@ -74,7 +74,7 @@ class Move:
 	var cancel_super := false  ## once it connects, H (full power bar) cuts it short with the ultimate
 
 
-## Moves by id. "light" and "rider" are shared; each ElephantDef picks a signature (G)
+## Moves by id. The normals and specials are shared; each ElephantDef picks a signature (G)
 ## and an ultimate (H, full power bar).
 static var MOVES := {}
 
@@ -105,10 +105,10 @@ static func _move(id: String, dur: float, hits: Array, extra := {}) -> Move:
 
 
 static func _build_moves() -> void:
-	var glaive := {"overhead": true, "vreach": 200.0, "sound": "clang"}
+	var unblockable := {"overhead": true, "vreach": 200.0, "sound": "clang"}
 	# Normals. F = short range, R = mid range, holding down makes them low (crouch to guard).
-	# Pressing the next button during a move chains along `links`, hit or miss, so mashing still makes a combo;
-	# G / specials / H only cut a move short once it connected.
+	# Pressing the next button during a move chains along `links` once it hit (a guarded hit ends the string);
+	# G / specials / H cut a move short once it connected (hit or guarded). G on a reeling elephant = decisive strike.
 	var string := {"cancel_heavy": true, "cancel_super": true}
 	_move("light", 0.34, [_hit(0.07, 0.17, 72, 5, 150, 0.26, 8, 3, {"sound": "hit"})],
 		string.merged({"links": {"light": "light2", "medium": "mid", "clight": "clow", "cmedium": "cmid"}}))
@@ -140,14 +140,12 @@ static func _build_moves() -> void:
 	# →↓↘ + F: rears up and swats upward. Untouchable as it starts, beats jump-ins, but wide open on a miss.
 	_move("uppercut", 0.74, [_hit(0.07, 0.20, 110, 10, 140, 0.6, 12, 10, {"offset": 70.0, "vreach": 240.0, "lift": -560.0})],
 		{"name_th": "งวงเสย", "name_en": "TRUNK UPPERCUT", "invuln": 0.13, "cancel_super": true, "ai_range": 200.0})
-	# rider's glaive: slow overhead chop with long reach, breaks guard, hits jumpers
-	_move("rider", 0.56, [_hit(0.20, 0.30, 110, 7, 120, 0.32, 10, 18, glaive)], {"start_sfx": "glaive"})
 
 	# signature moves (G)
 	_move("gore", 0.62, [_hit(0.22, 0.34, 96, 11, 340, 0.42, 12, 10, {"lift": -220.0})],
 		{"cancel_super": true, "name_th": "แทงงา", "name_en": "TUSK GORE", "desc": "แทงงาหนัก กระเด็นไกล"})
 	_move("hook", 0.60, [_hit(0.20, 0.32, 100, 8, 260, 0.55, 12, 8, {"pull": true})],
-		{"cancel_super": true, "name_th": "งาเกี่ยว", "name_en": "TUSK HOOK", "desc": "เกี่ยวดึงเข้ามาใกล้ แล้วต่อของ้าวได้"})
+		{"cancel_super": true, "name_th": "งาเกี่ยว", "name_en": "TUSK HOOK", "desc": "เกี่ยวดึงเข้ามาใกล้ แล้วต่อท่าได้"})
 	_move("lunge", 0.55, [_hit(0.12, 0.28, 80, 8, 260, 0.38, 10, 6)],
 		{"cancel_super": true, "name_th": "พุ่งแทง", "name_en": "LUNGE", "desc": "พุ่งไปข้างหน้าเร็วพร้อมแทง ระยะไกล",
 		"dash_start": 0.08, "dash_stop": 0.26, "dash_speed": 560.0, "ai_range": 330.0})
@@ -163,16 +161,16 @@ static func _build_moves() -> void:
 	_move("charge3", 1.05, [
 			_hit(0.10, 0.46, 90, 12, 150, 0.8, 0, 10),
 			_hit(0.56, 0.64, 110, 8, 150, 0.6, 0, 8, {"lift": -100.0}),
-			_hit(0.74, 0.82, 120, 9, 520, 0.7, 0, 12, glaive.merged({"lift": -300.0})),
-		], u.merged({"name_th": "พุ่งชนสามจังหวะ", "name_en": "TRIPLE CHARGE", "desc": "พุ่งชน แล้วต่องาและของ้าวอัตโนมัติ",
+			_hit(0.74, 0.82, 120, 9, 520, 0.7, 0, 12, unblockable.merged({"lift": -300.0, "sound": "heavy"})),
+		], u.merged({"name_th": "พุ่งชนสามจังหวะ", "name_en": "TRIPLE CHARGE", "desc": "พุ่งชน ต่องา แล้วโขกปิดท้ายอัตโนมัติ",
 		"dash_start": 0.10, "dash_stop": 0.46, "dash_speed": 640.0, "dash_until_hit": true, "ai_range": 400.0, "start_sfx": "trumpet"}))
-	var spin := glaive.merged({"offset": 70.0})
+	var spin := unblockable.merged({"offset": 70.0, "sound": "hit"})
 	_move("storm", 1.10, [
 			_hit(0.25, 0.33, 150, 6, 40, 0.5, 0, 16, spin),
 			_hit(0.48, 0.56, 150, 6, 40, 0.5, 0, 16, spin),
 			_hit(0.71, 0.80, 150, 7, 420, 0.6, 0, 18, spin.merged({"lift": -200.0})),
-		], u.merged({"name_th": "ของ้าวพายุ", "name_en": "GLAIVE STORM", "desc": "ควาญหมุนของ้าวฟัน 3 ครั้ง ตีหลอดทรงตัวหนัก",
-		"ai_range": 300.0, "start_sfx": "glaive"}))
+		], u.merged({"name_th": "งวงพายุ", "name_en": "TRUNK STORM", "desc": "สะบัดงวงหมุนฟาด 3 ครั้ง ตีหลอดทรงตัวหนัก",
+		"ai_range": 300.0, "start_sfx": "trumpet"}))
 	_move("blink", 0.90, [_hit(0.30, 0.40, 96, 20, 480, 0.7, 0, 18, {"lift": -260.0, "overhead": true})],
 		u.merged({"name_th": "ฝีเท้าสายฟ้า", "name_en": "LIGHTNING STEP", "desc": "พุ่งทะลุไปข้างหลังแล้วแทง ป้องกันไม่ได้",
 		"event": "teleport", "event_at": 0.18, "ai_range": 500.0, "start_sfx": "blink"}))
@@ -184,15 +182,15 @@ static func _build_moves() -> void:
 		u.merged({"name_th": "บารมีช้างเผือก", "name_en": "WHITE BLESSING", "desc": "ฟื้นเลือดและทรงตัว แล้วแรงขึ้น 6 วินาที",
 		"event": "bless", "event_at": 0.35, "start_sfx": "bless"}))
 	_move("roar", 1.00, [_hit(0.30, 0.55, 260, 4, 220, 0.6, 0, 0, {"offset": 60.0, "vreach": 220.0, "overhead": true, "daze": true, "sound": "hit"})],
-		u.merged({"name_th": "คชสารคำราม", "name_en": "ROYAL ROAR", "desc": "คำรามให้ควาญฝ่ายตรงข้ามเสียหลักทันที",
+		u.merged({"name_th": "คชสารคำราม", "name_en": "ROYAL ROAR", "desc": "คำรามให้อีกฝ่ายเสียหลักทันที",
 		"ai_range": 330.0, "start_sfx": "roar"}))
 
 
-## Rider balance
+## Balance: hits drain it; empty, the elephant reels (dazed) and is open to a decisive strike
 const BALANCE_REGEN := 10.0     ## per second, after BALANCE_DELAY without hits
 const BALANCE_DELAY := 1.2
 const DAZE_TIME := 1.4          ## off-balance duration
-const BREAK_STUN := 1.0         ## the elephant reels this long when its rider loses balance
+const BREAK_STUN := 1.0         ## the elephant reels this long when its balance breaks
 const FINISHER_DMG := 30.0
 
 ## Combos

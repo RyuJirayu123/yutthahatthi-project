@@ -23,7 +23,7 @@ const LESSONS := [
 	["กระโดดข้ามหัว", "ยืนใกล้ๆ แล้วกระโดดเข้าหา ลงข้างหลังหุ่น", "Jump forward from close to land behind it.", "W + D", "stand", 200.0, 0.0, "jumpover", 1],
 	["ท่า EX", "กด G + H พร้อมกัน ใช้พลังครึ่งหลอด ท่าประจำตัวแรงขึ้น", "Press G and H together for an EX signature.", "G + H", "stand", 210.0, 100.0, "ex", 1],
 	["ปัดสวน", "ย่อกันท่าของหุ่นได้แล้วกด G ผลักสวนกลับ", "Guard a hit, then press G to shove back.", "S ค้าง › G", "attack", 230.0, 100.0, "gcounter", 1],
-	["ฟันปิดฉาก", "ตีจนหลอดทรงตัวหุ่นหมด (หุ่นมึน) แล้วกด J ฟันของ้าว", "Empty its balance bar, then land the glaive (J).", "ตี… › J", "stand", 210.0, 0.0, "finisher", 1],
+	["กระแทกปิดฉาก", "ตีจนหลอดทรงตัวหุ่นหมด (หุ่นเซ) แล้วกด G ท่าประจำตัวใส่", "Empty its balance bar, then land your signature move (G).", "ตี… › G", "stand", 210.0, 0.0, "finisher", 1],
 	["อัลติ", "พลังเต็มแล้ว กด H ปล่อยท่าไม้ตาย", "Full power: press H.", "H", "stand", 240.0, 100.0, "ult", 1],
 ]
 
@@ -111,7 +111,6 @@ func _reset_positions(gap: float) -> void:
 		f.stun = 0.0
 		f.bstun = 0.0
 		f.atk = ""
-		f.rider_t = -1.0
 		f.juggled = false
 		f.combo = 0
 		f.combo_t = 0.0
@@ -277,7 +276,7 @@ func _log_input(inp: Dictionary) -> void:
 	elif fwd != 0:
 		arrow = "→" if fwd > 0 else "←"
 	var buttons := ""
-	for b in [["light", "F"], ["medium", "R"], ["heavy", "G"], ["special", "H"], ["rider", "J"]]:
+	for b in [["light", "F"], ["medium", "R"], ["heavy", "G"], ["special", "H"]]:
 		if inp.get(b[0], false):
 			buttons += b[1]
 	if buttons != "":

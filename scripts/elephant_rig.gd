@@ -2,7 +2,7 @@ class_name ElephantRig
 extends RefCounted
 ## Procedurally animated war elephant in the cute look from the design project
 ## ("ออกแบบช้างเกม Godot/Elephant.dc.html" with cute = true): big head and eyes, short stumpy
-## legs, chibi riders and a dark outline around the whole silhouette. Variant A is the
+## legs and a dark outline around the whole silhouette (the design's riders are left out). Variant A is the
 ## ceremonial caparison, variant B (ElephantDef.armored) the scale-armour one.
 ## The design's SVG paths are parsed once and baked into one mesh per body part and colour set.
 ## Each frame a pose is picked from the fighter's state, springs ease every joint toward it (so
@@ -13,8 +13,6 @@ extends RefCounted
 const G := GameData.GROUND
 const INK := Color("#231c1f")
 const DUST := Color(0.87, 0.77, 0.6)
-const RIDER_SKIN := Color("#c68a5c")
-const RIDER_SKIN_D := Color("#8a5a37")
 const LINE := Color("#2a2427")
 const EYE_INK := Color("#2a1d17")
 const JEWEL := Color("#e04848")
@@ -28,10 +26,6 @@ const HEAD_PIVOT := Vector2(300, 196)
 const HK := SV * 1.35
 const EAR_PIVOT := Vector2(316, 166)
 const TAIL_PIVOT := Vector2(104, 206)
-const RIDER_PIVOT := Vector2(290, 152)
-## Try-out switch: false hides the mahout and the flag bearer (the flag stays on the howdah,
-## glaive attacks show as a slash over the neck). Gameplay is the same either way.
-const RIDERS := false
 const OUT := 2.2          ## outline thickness, game px
 const FEATHER := 0.7      ## antialiased fringe on baked shapes, game px
 ## Portrait: design point at the medallion centre, and its scale.
@@ -49,7 +43,6 @@ const LEGS := [
 const PITCH_PIVOT := Vector2(0, -80)
 const REAR_PIVOT := Vector2(-45, -8)
 const NECK := Vector2(51, -91.8)          ## HEAD_PIVOT in game px
-const RIDER_HIP := Vector2(45, -118.2)    ## RIDER_PIVOT in game px
 ## Trunk in the head's design units: root under the cheek, segment lengths and widths.
 const TRUNK_ROOT := Vector2(372, 224)
 const TRUNK_SEG := [17.0, 17.0, 16.0, 15.0, 14.0]
@@ -78,8 +71,8 @@ const TRUNK_KEYS := ["tb", "t1", "t2", "t3", "t4"]
 ## Spring per animated value: [frequency Hz, damping ratio]. Low damping = more overshoot.
 const SPRING := {
 	"bob": [5.0, 0.45], "pitch": [4.5, 0.55], "rear": [2.6, 0.42], "shift": [6.0, 0.6],
-	"head": [5.5, 0.5], "ear": [3.5, 0.3], "tail": [1.6, 0.25], "glaive": [8.5, 0.55],
-	"lean": [4.0, 0.5], "sq": [4.5, 0.25],
+	"head": [5.5, 0.5], "ear": [3.5, 0.3], "tail": [1.6, 0.25],
+	"sq": [4.5, 0.25],
 	"tb": [6.5, 0.6], "t1": [7.0, 0.45], "t2": [6.0, 0.42], "t3": [5.0, 0.4], "t4": [4.2, 0.38],
 }
 
@@ -292,15 +285,15 @@ func update(f: Fighter, duel_phase: String, dt: float) -> void:
 	if f.bstun > _prev_bstun + 0.01:
 		_kick("shift", -90.0)
 	if f.balance < _prev_balance - 1.0 or (f.dazed <= 0.0 and _dazed and f.stun > 0.0):
-		_kick("lean", -320.0 if f.dazed <= 0.0 else -500.0)
+		_kick("pitch", -60.0 if f.dazed <= 0.0 else -110.0)
 	if _was_air and not air:
 		_kick("sq", 2.5)
 		for i in 6:
 			_puff(f, randf_range(-70.0, 50.0), randf_range(-60.0, 60.0), 1.3)
 	elif air and not _was_air:
 		_kick("sq", -1.5)
-	if _x.has("glaive") and f.atk != "storm":
-		_x["glaive"] = wrapf(_x["glaive"], -270.0, 90.0)
+	if _x.has("tb") and f.atk != "storm":
+		_x["tb"] = wrapf(_x["tb"], -200.0, 160.0)   # unwind after the trunk storm
 	if absf(f.x - _last_x) > 80.0 and _time > 0.1:
 		_streak = Vector3(_last_x, f.x, 0.3)
 	_streak.z = maxf(0.0, _streak.z - dt)
@@ -370,8 +363,7 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 		"head": sin(tm * 1.7) * 2.0 + sin(_phase * 2.0) * 3.0 * _move,
 		"ear": 0.82 + 0.32 * pow(maxf(0.0, sin(tm * 2.3)), 6.0),
 		"tail": sin(tm * 1.9) * 10.0 + f.vx * f.face * 0.03,
-		"glaive": -62.0 + sin(tm * 1.3) * 3.0,
-		"lean": f.vx * f.face * 0.012,
+		
 	}
 	_trunk(p, "rest")
 	p["tb"] += sin(tm * 1.5) * 6.0
@@ -382,24 +374,16 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 		_trunk(p, "air")
 	if f.dash_t > 0.0 and f.atk == "" and not air:
 		if f.dash_dir == f.face:
-			_apply(p, {"pitch": 5.0, "head": 12.0, "shift": 8.0, "ear": 0.55, "lean": 12.0})
+			_apply(p, {"pitch": 5.0, "head": 12.0, "shift": 8.0, "ear": 0.55})
 			_trunk(p, "tuck")
 		else:
-			_apply(p, {"pitch": -6.0, "head": -14.0, "shift": -8.0, "ear": 1.15, "lean": -12.0})
+			_apply(p, {"pitch": -6.0, "head": -14.0, "shift": -8.0, "ear": 1.15})
 	if f.atk != "":
 		_attack_pose(p, f)
-	if f.rider_t >= 0.0:
-		# rider's overhead chop, independent of the elephant: glaive wound far back, then brought down
-		var rh := GameData.move("rider").hits[0]
-		if f.rider_t < rh.start:
-			_apply(p, {"glaive": -165.0, "lean": -18.0})
-		elif f.rider_t <= rh.stop:
-			_apply(p, {"glaive": 35.0, "lean": 22.0})
 	if f.stun > 0.0 and not f.ko:
-		_apply(p, {"pitch": -8.0, "head": -18.0, "shift": -6.0, "ear": 1.2, "glaive": -125.0, "lean": -14.0})
+		_apply(p, {"pitch": -8.0, "head": -18.0, "shift": -6.0, "ear": 1.2})
 		_trunk(p, "hurt")
 	if f.dazed > 0.0 and not f.ko:
-		_apply(p, {"lean": sin(tm * 9.0) * 16.0, "glaive": 70.0 + sin(tm * 5.0) * 12.0})
 		if f.stun > 0.0:
 			# reeling from the balance break: head lolls, body sways, trunk hangs
 			_apply(p, {"head": 16.0 + sin(tm * 5.5) * 9.0, "pitch": sin(tm * 4.0) * 4.0, "shift": sin(tm * 4.0) * 6.0, "ear": 0.7, "bob": 4.0})
@@ -407,24 +391,24 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 			p["tb"] += sin(tm * 5.5) * 10.0
 	if f.crouching and f.atk == "" and not f.ko:
 		# hunkered down: knees bent, head low
-		_apply(p, {"bob": 14.0, "head": 14.0, "pitch": 2.0, "ear": 0.75, "glaive": -80.0, "lean": 6.0})
+		_apply(p, {"bob": 14.0, "head": 14.0, "pitch": 2.0, "ear": 0.75})
 		_trunk(p, "guard" if f.blocking else "tuck")
 	elif f.blocking:
-		_apply(p, {"bob": 7.0, "head": 12.0, "pitch": 3.0, "ear": 0.6, "glaive": -95.0, "lean": -4.0})
+		_apply(p, {"bob": 7.0, "head": 12.0, "pitch": 3.0, "ear": 0.6})
 		_trunk(p, "guard")
 	if over and f.atk == "" and not f.ko:
 		if f.win:
-			_apply(p, {"rear": -22.0 + sin(tm * 3.0) * 3.0, "head": -20.0, "ear": 1.1, "glaive": -90.0 + sin(tm * 7.0) * 14.0, "lean": -4.0})
+			_apply(p, {"rear": -22.0 + sin(tm * 3.0) * 3.0, "head": -20.0, "ear": 1.1})
 			_trunk(p, "up")
 		else:
-			_apply(p, {"head": 14.0, "ear": 0.6, "glaive": -20.0, "lean": 10.0})
+			_apply(p, {"head": 14.0, "ear": 0.6})
 			_trunk(p, "droop")
 	if f.ko:
 		# thrown back while airborne, then collapse onto the belly
 		if air:
-			_apply(p, {"rear": -24.0, "pitch": 0.0, "head": -25.0, "ear": 1.2, "glaive": 60.0, "lean": -35.0, "bob": 0.0})
+			_apply(p, {"rear": -24.0, "pitch": 0.0, "head": -25.0, "ear": 1.2, "bob": 0.0})
 		else:
-			_apply(p, {"rear": 0.0, "pitch": 5.0, "head": 24.0, "ear": 1.15, "glaive": 85.0, "lean": 35.0, "bob": 24.0})
+			_apply(p, {"rear": 0.0, "pitch": 5.0, "head": 24.0, "ear": 1.15, "bob": 24.0})
 		_trunk(p, "ko")
 	return p
 
@@ -441,29 +425,29 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 	match f.atk:
 		"light":
 			if pre:
-				_apply(p, {"head": -8.0, "glaive": -35.0, "lean": -4.0})
+				_apply(p, {"head": -8.0})
 				_trunk(p, "wind")
 			elif act:
-				_apply(p, {"head": 6.0, "shift": 6.0, "glaive": -8.0, "lean": 8.0})
+				_apply(p, {"head": 6.0, "shift": 6.0})
 				_trunk(p, "whip")
 		"mid":
 			# rocks back, then drives both tusks straight ahead
 			if pre:
 				_apply(p, {"shift": -10.0, "head": -10.0, "pitch": -3.0, "ear": 1.15})
 			else:
-				_apply(p, {"shift": 20.0 * k, "head": 16.0 * k, "pitch": 6.0 * k, "lean": 8.0 * k, "ear": 1.1})
+				_apply(p, {"shift": 20.0 * k, "head": 16.0 * k, "pitch": 6.0 * k, "ear": 1.1})
 			_trunk(p, "tuck")
 		"clow":
 			# from a crouch, flicks the trunk along the ground
-			_apply(p, {"bob": 18.0, "head": 20.0 if act else 10.0, "pitch": 4.0, "shift": 6.0 if act else 0.0, "ear": 0.8, "glaive": -80.0})
+			_apply(p, {"bob": 18.0, "head": 20.0 if act else 10.0, "pitch": 4.0, "shift": 6.0 if act else 0.0, "ear": 0.8})
 			_trunk(p, "sweep" if act else "tuck")
 		"cmid":
 			# low sweep at the legs
 			if pre:
-				_apply(p, {"bob": 16.0, "head": 8.0, "shift": -6.0, "ear": 1.2, "glaive": -90.0})
+				_apply(p, {"bob": 16.0, "head": 8.0, "shift": -6.0, "ear": 1.2})
 				_trunk(p, "wind")
 			else:
-				_apply(p, {"bob": 16.0 * maxf(k, 0.4), "head": 26.0 * k, "pitch": 6.0 * k, "shift": 12.0 * k, "ear": 1.1, "glaive": -80.0})
+				_apply(p, {"bob": 16.0 * maxf(k, 0.4), "head": 26.0 * k, "pitch": 6.0 * k, "shift": 12.0 * k, "ear": 1.1})
 				_trunk(p, "sweep" if k > 0.3 else "tuck")
 		"spout":
 			# draws water up the trunk, then sprays it forward
@@ -480,65 +464,65 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 				_apply(p, {"bob": 8.0, "head": 12.0, "pitch": 4.0, "ear": 0.6})
 				_trunk(p, "tuck")
 			else:
-				_apply(p, {"rear": -20.0 * k, "head": -26.0 * k, "pitch": -4.0 * k, "ear": 1.25, "glaive": lerpf(-62.0, -140.0, k), "lean": -10.0 * k})
+				_apply(p, {"rear": -20.0 * k, "head": -26.0 * k, "pitch": -4.0 * k, "ear": 1.25})
 				_trunk(p, "upper" if k > 0.5 else "rest")
 		"light2":
 			# backhand: the trunk drops low, then swings up and across
 			if pre:
-				_apply(p, {"head": 6.0, "glaive": -40.0})
+				_apply(p, {"head": 6.0})
 				_trunk(p, "tuck")
 			elif act:
-				_apply(p, {"head": -10.0, "shift": 8.0, "pitch": -2.0, "glaive": -20.0, "lean": 6.0})
+				_apply(p, {"head": -10.0, "shift": 8.0, "pitch": -2.0})
 				_trunk(p, "upper")
 		"light3":
 			# trunk raised high, then slammed down in front
 			if pre:
-				_apply(p, {"rear": -8.0, "head": -20.0, "ear": 1.2, "glaive": -120.0, "lean": -8.0})
+				_apply(p, {"rear": -8.0, "head": -20.0, "ear": 1.2})
 				_trunk(p, "up")
 			else:
-				_apply(p, {"rear": 2.0 * k, "pitch": 9.0 * k, "head": 22.0 * k, "shift": 14.0 * k, "glaive": lerpf(-62.0, -10.0, k), "lean": 12.0 * k})
+				_apply(p, {"rear": 2.0 * k, "pitch": 9.0 * k, "head": 22.0 * k, "shift": 14.0 * k})
 				_trunk(p, "slam")
 		"dive":
-			_apply(p, {"pitch": 14.0, "head": 26.0, "shift": 8.0, "ear": 1.25, "glaive": 10.0, "lean": 14.0})
+			_apply(p, {"pitch": 14.0, "head": 26.0, "shift": 8.0, "ear": 1.25})
 			_trunk(p, "tuck")
 		"counter":
 			if pre:
-				_apply(p, {"bob": 6.0, "head": 10.0, "shift": -8.0, "glaive": -95.0})
+				_apply(p, {"bob": 6.0, "head": 10.0, "shift": -8.0})
 				_trunk(p, "guard")
 			else:
-				_apply(p, {"pitch": 6.0 * k, "head": 20.0 * k, "shift": 22.0 * k, "lean": 10.0 * k, "ear": 1.2})
+				_apply(p, {"pitch": 6.0 * k, "head": 20.0 * k, "shift": 22.0 * k, "ear": 1.2})
 				_trunk(p, "tuck")
 		"gore":
 			if pre:
-				_apply(p, {"pitch": -6.0, "shift": -8.0, "head": -12.0, "glaive": -150.0, "lean": -12.0})
+				_apply(p, {"pitch": -6.0, "shift": -8.0, "head": -12.0})
 			else:
-				_apply(p, {"pitch": 8.0 * k, "shift": 18.0 * k, "head": 22.0 * k, "glaive": lerpf(-62.0, 20.0, k), "lean": 14.0 * k})
+				_apply(p, {"pitch": 8.0 * k, "shift": 18.0 * k, "head": 22.0 * k})
 			_trunk(p, "tuck")
 		"hook":
-			# tusk sweeps down then yanks back; the rider readies the glaive for the follow-up
+			# tusk sweeps down then yanks back
 			if pre:
-				_apply(p, {"pitch": -4.0, "shift": -4.0, "head": -16.0, "glaive": -110.0})
+				_apply(p, {"pitch": -4.0, "shift": -4.0, "head": -16.0})
 			elif act:
-				_apply(p, {"pitch": 6.0, "shift": 10.0, "head": 22.0, "glaive": -110.0})
+				_apply(p, {"pitch": 6.0, "shift": 10.0, "head": 22.0})
 			else:
-				_apply(p, {"shift": -12.0 * k, "head": -8.0 * k, "pitch": -3.0 * k, "glaive": -110.0})
+				_apply(p, {"shift": -12.0 * k, "head": -8.0 * k, "pitch": -3.0 * k})
 			_trunk(p, "tuck")
 		"lunge":
 			if pre:
 				_apply(p, {"bob": 7.0, "pitch": 4.0, "head": 6.0, "ear": 0.6})
 			else:
-				_apply(p, {"pitch": 10.0 * k, "head": 22.0 * k, "shift": 14.0 * k, "lean": 10.0 * k, "ear": 1.1})
+				_apply(p, {"pitch": 10.0 * k, "head": 22.0 * k, "shift": 14.0 * k, "ear": 1.1})
 			_trunk(p, "tuck")
 		"headbutt":
 			# long rear-back while armored, then the head comes down hard
 			if pre:
-				_apply(p, {"pitch": -10.0, "rear": -5.0, "head": -26.0, "shift": -14.0, "ear": 0.6, "glaive": -100.0, "lean": -10.0})
+				_apply(p, {"pitch": -10.0, "rear": -5.0, "head": -26.0, "shift": -14.0, "ear": 0.6})
 			else:
-				_apply(p, {"pitch": 12.0 * k, "head": 30.0 * k, "shift": 24.0 * k, "lean": 12.0 * k, "ear": 1.2})
+				_apply(p, {"pitch": 12.0 * k, "head": 30.0 * k, "shift": 24.0 * k, "ear": 1.2})
 			_trunk(p, "tuck")
 		"sweep":
 			if pre:
-				_apply(p, {"head": -6.0, "lean": -4.0})
+				_apply(p, {"head": -6.0})
 				_trunk(p, "wind")
 			elif act:
 				_apply(p, {"head": 10.0, "shift": 6.0, "pitch": 3.0})
@@ -553,52 +537,55 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 				_apply(p, {"pitch": -4.0, "shift": 0.0, "head": -12.0})
 			else:
 				var k2 := 1.0 if t <= h2.stop else maxf(0.0, 1.0 - (t - h2.stop) / (m.dur - h2.stop))
-				_apply(p, {"pitch": 10.0 * k2, "shift": 20.0 * k2, "head": 26.0 * k2, "lean": 10.0 * k2})
+				_apply(p, {"pitch": 10.0 * k2, "shift": 20.0 * k2, "head": 26.0 * k2})
 			_trunk(p, "tuck")
 		"charge3":
-			# trumpet, ram, gore, then the rider's glaive finishes it
+			# trumpet, ram, gore, then rear up and bring the head down for the last blow
 			var h2 := m.hits[1]
 			var h3 := m.hits[2]
 			if t < h.start:
-				_apply(p, {"rear": -8.0, "head": -16.0, "ear": 1.2, "glaive": -75.0})
+				_apply(p, {"rear": -8.0, "head": -16.0, "ear": 1.2})
 				_trunk(p, "up")
 			elif t < h.stop:
-				_apply(p, {"pitch": 7.0, "head": 14.0, "shift": 10.0, "ear": 1.15, "glaive": -2.0, "lean": 10.0})
+				_apply(p, {"pitch": 7.0, "head": 14.0, "shift": 10.0, "ear": 1.15})
 				_trunk(p, "tuck")
 			elif t < h2.stop + 0.04:
-				_apply(p, {"pitch": 8.0, "head": 24.0, "shift": 16.0, "glaive": -165.0, "lean": -18.0})
+				_apply(p, {"pitch": 8.0, "head": 24.0, "shift": 16.0})
 				_trunk(p, "tuck")
 			elif t < h3.start:
-				_apply(p, {"pitch": 2.0, "head": 4.0, "glaive": -165.0, "lean": -18.0})
+				_apply(p, {"rear": -12.0, "head": -22.0, "pitch": -4.0, "ear": 1.2})
+				_trunk(p, "up")
 			else:
 				var k3 := 1.0 if t <= h3.stop + 0.06 else maxf(0.0, 1.0 - (t - h3.stop) / (m.dur - h3.stop))
-				_apply(p, {"glaive": lerpf(-62.0, 35.0, k3), "lean": 22.0 * k3, "head": 6.0 * k3})
+				_apply(p, {"pitch": 12.0 * k3, "head": 30.0 * k3, "shift": 20.0 * k3, "ear": 1.2})
+				_trunk(p, "tuck")
 		"storm":
-			# the rider whirls the glaive overhead while the elephant trumpets
+			# trumpets, then whirls the trunk round and round
 			var spin := clampf((t - 0.15) / 0.8, 0.0, 1.0)
-			_apply(p, {"head": -10.0, "ear": 1.2, "glaive": -90.0 + spin * 720.0, "lean": sin(t * 18.0) * 10.0})
-			_trunk(p, "up")
+			_apply(p, {"head": -10.0, "ear": 1.2, "bob": 4.0})
+			_trunk(p, "sweep")
+			p["tb"] = 30.0 + spin * 720.0
 		"blink":
 			if t < m.event_at:
 				_apply(p, {"bob": 8.0, "pitch": 6.0, "head": 10.0, "ear": 0.6})
 			elif pre:
 				_apply(p, {"pitch": -4.0, "head": -12.0, "shift": -4.0})
 			else:
-				_apply(p, {"pitch": 10.0 * k, "head": 24.0 * k, "shift": 16.0 * k, "lean": 10.0 * k})
+				_apply(p, {"pitch": 10.0 * k, "head": 24.0 * k, "shift": 16.0 * k})
 			_trunk(p, "tuck")
 		"quake":
 			# rear up on the hind legs, then slam the forefeet down
 			if t < 0.45:
-				_apply(p, {"rear": -26.0, "head": -20.0, "ear": 1.2, "glaive": -90.0, "lean": -6.0})
+				_apply(p, {"rear": -26.0, "head": -20.0, "ear": 1.2})
 				_trunk(p, "up")
 			elif t < 0.75:
-				_apply(p, {"rear": 4.0, "pitch": 6.0, "head": 14.0, "bob": 6.0, "glaive": -40.0, "lean": 10.0})
+				_apply(p, {"rear": 4.0, "pitch": 6.0, "head": 14.0, "bob": 6.0})
 				_trunk(p, "droop")
 		"blessing":
-			_apply(p, {"rear": -10.0, "head": -18.0, "ear": 1.2, "glaive": -90.0, "lean": -4.0})
+			_apply(p, {"rear": -10.0, "head": -18.0, "ear": 1.2})
 			_trunk(p, "up")
 		"roar":
-			_apply(p, {"rear": -6.0, "head": -24.0, "ear": 1.3, "glaive": -60.0, "lean": -8.0, "shift": 4.0})
+			_apply(p, {"rear": -6.0, "head": -24.0, "ear": 1.3, "shift": 4.0})
 			_trunk(p, "roar")
 
 
@@ -698,13 +685,6 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 	var head := body * Transform2D(deg_to_rad(_g("head")), NECK) * Transform2D(0.0, Vector2(HK, HK), 0.0, -HEAD_PIVOT * HK)
 	var ear := head * _ear_xform()
 	var tail := bsv * _about(TAIL_PIVOT, deg_to_rad(_g("tail")))
-	var lean := _g("lean")
-	var rider := bsv * _about(RIDER_PIVOT, deg_to_rad(lean))
-	# the rider holds the glaive in front of the chest; the second hand sits further up the shaft
-	var wa := deg_to_rad(wrapf(_g("glaive") + 90.0 - lean, -180.0, 180.0))
-	var hand := Vector2(300, 118) + Vector2(sin(wa) * 14.0, 5.0 - cos(wa) * 3.0)
-	var hand2 := hand + Vector2(sin(wa), -cos(wa)) * 24.0
-	var weapon := rider * Transform2D(wa, hand)
 	var trunk := _trunk_chain(false)
 
 	for step in 2:
@@ -716,26 +696,12 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 		for i in range(2, 4):
 			_draw_leg(c, root, legs[i], i, v, pal, ol)
 		_part(c, bsv, v, "body", pal, ol)
-		if RIDERS:
-			_part(c, bsv, v, "bearer", pal, ol)
 		_part(c, bsv, v, "pole", pal, ol)
 		if d.royal:
 			_draw_umbrella(c, bsv, d, ol)
 		else:
 			_draw_flag(c, bsv, d, pal, ol)
-		if RIDERS:
-			_part(c, bsv, v, "bearer_arm", pal, ol)
-			_part(c, bsv, v, "rider_leg", pal, ol)
 		_draw_head(c, head, ear, trunk, v, d, pal, ol)
-		if RIDERS:
-			_part(c, rider, v, "rider", pal, ol)
-			if d.royal:
-				_part(c, rider, v, "wings", pal, ol)
-			_draw_arms(c, rider, hand, hand2, pal, ol)
-			_part(c, rider, v, "rider_collar", pal, ol)
-			_part(c, weapon, v, "weapon", pal, ol)
-	if not RIDERS:
-		_draw_slash(c, bsv, f)
 
 	if _mood == "dizzy":
 		c.draw_set_transform_matrix(head)
@@ -743,12 +709,12 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 			var a := _time * 4.0 + TAU * i / 4.0
 			var sp := Vector2(338, 112) + Vector2(cos(a) * 34.0, sin(a) * 9.0)
 			_fill(c, _star(sp, 7.0 if sin(a) > 0.0 else 5.0), GameData.GOLD_LIGHT if i % 2 == 0 else Color.WHITE)
-	if _dazed and (RIDERS or _mood != "dizzy"):
-		# dizzy rider: three gold stars circling the head (over the elephant's crown without riders)
-		c.draw_set_transform_matrix(rider if RIDERS else head)
+	if _dazed and _mood != "dizzy":
+		# still off balance after the reel: three gold stars over the crown
+		c.draw_set_transform_matrix(head)
 		for i in 3:
 			var a := _time * 6.0 + TAU * i / 3.0
-			var sp := (Vector2(294, 34) if RIDERS else Vector2(338, 100)) + Vector2(cos(a) * 20.0, sin(a) * 6.0)
+			var sp := Vector2(338, 100) + Vector2(cos(a) * 20.0, sin(a) * 6.0)
 			_fill(c, _star(sp, 6.0), GameData.GOLD_LIGHT if i != 0 else Color.WHITE)
 	if f.blocking or f.bstun > 0.0:
 		# guard shield: low and wide when crouching
@@ -903,18 +869,7 @@ func _draw_face(c: CanvasItem, xf: Transform2D, v: String, pal: Dictionary) -> v
 				c.draw_mesh(_mesh(v, "eye", pal), null)
 
 
-## Mahout's arms from the shoulders to the hands on the glaive.
-func _draw_arms(c: CanvasItem, xf: Transform2D, hand: Vector2, hand2: Vector2, pal: Dictionary, ol: bool) -> void:
-	c.draw_set_transform_matrix(xf)
-	for seg in [[Vector2(293, 111), hand2], [Vector2(299, 114), hand]]:
-		if ol:
-			c.draw_line(seg[0], seg[1], INK, 10.0 + 2.0 * OUT / SV, true)
-		else:
-			c.draw_line(seg[0], seg[1], pal["clothD"], 10.0, true)
-			c.draw_line(seg[0], seg[1], pal["cloth"], 7.0, true)
-
-
-## War flag on the bearer's pole, streaming back with a swallowtail and a gold disc.
+## War flag on a pole over the howdah, streaming back with a swallowtail and a gold disc.
 func _draw_flag(c: CanvasItem, xf: Transform2D, d: ElephantDef, pal: Dictionary, ol: bool) -> void:
 	c.draw_set_transform_matrix(xf)
 	var t := _time * 6.0 + _phase * 3.0
@@ -965,20 +920,6 @@ func _draw_umbrella(c: CanvasItem, xf: Transform2D, d: ElephantDef, ol: bool) ->
 		_fill(c, spire, gold)
 
 
-## Without riders, a glaive attack (rider chop, finisher, charge or storm) shows as a slash arc
-## sweeping over the neck where the glaive would have gone.
-func _draw_slash(c: CanvasItem, xf: Transform2D, f: Fighter) -> void:
-	var v := float(_v.get("glaive", 0.0))
-	if absf(v) < 250.0 or not (f.rider_t >= 0.0 or f.atk == "storm" or f.atk == "charge3"):
-		return
-	c.draw_set_transform_matrix(xf)
-	var g := deg_to_rad(_g("glaive"))
-	var tail := g - clampf(deg_to_rad(v) * 0.09, -2.5, 2.5)
-	var k := clampf((absf(v) - 250.0) / 600.0, 0.0, 1.0)
-	var center := Vector2(300, 112)
-	c.draw_arc(center, 150.0, minf(g, tail), maxf(g, tail), 16, Color(1, 1, 1, 0.7 * k), 12.0, true)
-	c.draw_arc(center, 150.0, minf(g, tail), maxf(g, tail), 16, Color(GameData.GOLD_LIGHT, 0.9 * k), 5.0, true)
-
 ## Ink silhouette of a shape whose points change every frame.
 func _ink_poly(c: CanvasItem, pts: PackedVector2Array, grow: float) -> void:
 	for q in Geometry2D.offset_polygon(pts, grow, Geometry2D.JOIN_ROUND):
@@ -1008,11 +949,13 @@ func _draw_move_fx(c: CanvasItem, f: Fighter, m: GameData.Move) -> void:
 					c.draw_arc(mouth, r, -0.9, 0.9, 18, Color(GameData.GOLD_LIGHT, 1.0 - r / 170.0), 5.0, true)
 					c.draw_arc(mouth, r + 6.0, -0.8, 0.8, 18, Color(GameData.ACC, 0.6 - r / 300.0), 3.0, true)
 		"storm":
+			# gusts whirling round the head while the trunk spins
 			if t > 0.15 and t < 0.95:
-				var hub := RIDER_HIP + Vector2(0, -20)
-				var b := _body_xform()
-				c.draw_arc(b * hub, 70.0, 0.0, TAU, 32, Color(1, 1, 1, 0.45), 3.0, true)
-				c.draw_arc(b * hub, 76.0, 0.0, TAU, 32, Color(GameData.GOLD_LIGHT, 0.3), 2.0, true)
+				var hub := _body_xform() * (NECK + Vector2(40, 0))
+				for i in 3:
+					var a0 := t * 14.0 + TAU * i / 3.0
+					c.draw_arc(hub, 70.0 + i * 12.0, a0, a0 + 1.7, 14, Color(1, 1, 1, 0.5 - i * 0.1), 4.0, true)
+					c.draw_arc(hub, 64.0 + i * 12.0, a0 + 0.3, a0 + 1.3, 10, Color(DUST, 0.45), 3.0, true)
 
 
 ## The body sits low on its short legs, so crouches and collapses sink it a little less.
@@ -1354,7 +1297,7 @@ static func _build(v: String) -> Dictionary:
 	_ln("M 312 250 C 318 262, 318 278, 310 290", "skinD", 1.6, 0.6)
 	_ln("M 112 220 C 107 240, 109 262, 120 278", "skinD", 1.6, 0.6)
 
-	# caparison, girth, howdah cushion and the flag bearer
+	# caparison, girth and howdah cushion
 	_begin(P, "body")
 	var girth := "M 230 288 C 231 298, 233 306, 234 314" if B else "M 228 266 C 230 284, 232 300, 234 314"
 	_ln(girth, "goldD", 9.0)
@@ -1392,28 +1335,9 @@ static func _build(v: String) -> Dictionary:
 	_dot(206, 202, 3.6, JEWEL, JEWEL_D, 1.0)
 	_sh("M 184 140 C 188 124, 244 122, 250 138 C 238 146, 196 148, 184 140 Z", "clothD", "gold", 2.5, 1.0, true)
 
-	_begin(P, "bearer")
-	_sh("M 208 130 C 222 128, 236 134, 240 142 L 242 162 C 242 167, 237 169, 233 166 L 230 146 C 224 140, 214 138, 206 138 Z", "clothD", LINE, 1.6, 1.0, true)
-	_sh("M 204 134 C 201 116, 204 100, 211 92 L 226 92 C 230 102, 230 120, 227 134 Z", "cloth", LINE, 1.6, 1.0, true)
-	_sh("M 212 94 L 218 92 L 228 126 L 222 128 Z", "gold", "goldD", 1.0)
-	_sh("M 213 93 L 213 84 L 222 84 L 223 93 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
-	_set_pre(_sc(Vector2(218, 87), Vector2(1.35, 1.35)))
-	_sh("M 208 74 C 208 66, 214 62, 219 62 C 225 62, 228 67, 228 72 L 231 76 L 228 78 C 228 83, 224 87, 218 87 C 212 87, 208 81, 208 74 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
-	_dot(224, 72, 1.3, EYE_INK)
-	_sh("M 210 64 L 227 64 L 218.5 42 Z", "gold", "goldD", 1.6, 1.0, true)
-	_sh("M 207 69 L 230 69 L 228 63 L 209 63 Z", "gold", "goldD", 1.6, 1.0, true)
-
 	_begin(P, "pole")
 	_ln("M 233 152 L 233 -8", Color("#5b3a1f"), 3.5, 1.0, true)
 	_sh("M 229 -8 L 237 -8 L 233 -19 Z", "gold", "goldD", 1.6, 1.0, true)
-
-	_begin(P, "bearer_arm")
-	_ln("M 220 96 L 232 104", "clothD", 9.0, 1.0, true)
-	_ln("M 220 96 L 232 104", "cloth", 6.0)
-	_dot(233, 104, 4.6, RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
-
-	_begin(P, "rider_leg")
-	_sh("M 278 152 C 296 152, 310 162, 318 176 L 324 200 C 325 207, 319 211, 313 208 L 304 184 C 296 176, 284 172, 276 170 Z", "clothD", LINE, 1.6, 1.0, true)
 
 	# head, drawn ×1.35 about HEAD_PIVOT (applied when drawing); tusks ×0.66, trunk mouth ×(0.8, 0.54)
 	var tusk := "M 368 234 C 384 256, 418 264, 446 238 C 440 258, 412 270, 386 266 C 372 263, 364 254, 362 242 Z" if B \
@@ -1491,53 +1415,4 @@ static func _build(v: String) -> Dictionary:
 	_dot(361.4, 183.6, 1.0, Color.WHITE)
 	_ln("M 355.5 173.5 C 353 172, 351.5 170, 351.5 168 M 359.5 172 C 358.5 170, 358.5 168, 359.5 166", EYE_INK, 1.4)
 
-	# mahout on the neck (leans about RIDER_PIVOT); his head is drawn ×1.35
-	_begin(P, "rider")
-	var torso := "M 272 160 C 268 138, 271 118, 280 106 L 300 106 C 307 118, 307 142, 302 160 Z"
-	_sh(torso, "cloth", LINE, 1.6, 1.0, true)
-	if B:
-		_scales(torso)
-		_dot(292, 128, 7.0, "gold", "goldD")
-	else:
-		_sh("M 280 108 L 287 106 L 304 150 L 297 154 Z", "gold", "goldD", 1.0)
-	_sh("M 271 150 L 303 150 L 302 159 L 272 160 Z", "gold", "goldD")
-	_sh("M 287 107 L 287 96 L 297 96 L 298 107 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
-	_set_pre(_sc(Vector2(294, 101), Vector2(1.35, 1.35)))
-	_sh("M 282 86 C 282 76, 290 72, 296 72 C 303 72, 306 78, 306 84 L 309 89 L 306 91 C 306 97, 301 101, 294 101 C 287 101, 282 95, 282 86 Z", RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
-	_el(290, 88, 2.6, 4.0, Color("#b67b4f"))
-	_dot(301, 85, 1.4, EYE_INK)
-	_ln("M 298 81 L 304 80.5", Color("#3a2a20"), 1.4)
-	_ln("M 301 95 L 305.5 94.5", Color("#7a4a2c"), 1.2)
-	if B:
-		_sh("M 294 52 C 286 42, 274 42, 264 50 C 276 50, 284 53, 291 60 Z", "cloth", "clothD", 1.6, 1.0, true)
-		_sh("M 292 64 L 296 64 L 294 49 Z", "gold", "goldD", 1.6, 1.0, true)
-		_sh("M 280 80 L 286 80 L 287 97 C 283 97, 280 93, 280 87 Z", "clothD", LINE, 1.6, 1.0, true)
-		_sh("M 280 82 C 280 69, 288 63, 294 63 C 301 63, 308 69, 308 82 Z", "gold", "goldD", 1.6, 1.0, true)
-		_sh("M 278 80 L 310 80 L 310 84 L 278 84 Z", Color("#c8961f"), "goldD", 1.0, 1.0, true)
-	else:
-		_sh("M 285 82 C 277 82, 275 93, 281 99 C 281 92, 283 88, 287 88 Z", "gold", "goldD", 1.0, 1.0, true)
-		_sh("M 291.5 54 L 295.5 54 L 293.5 33 Z", "gold", "goldD", 1.6, 1.0, true)
-		_sh("M 289 63 L 298 63 L 296 54 L 291 54 Z", "gold", "goldD", 1.6, 1.0, true)
-		_sh("M 285 73 L 302 73 L 299 63 L 288 63 Z", "gold", "goldD", 1.6, 1.0, true)
-		_sh("M 281 80 L 306 80 L 304 73 L 283 73 Z", "gold", "goldD", 1.6, 1.0, true)
-
-	_begin(P, "wings")
-	_set_pre(_sc(Vector2(294, 101), Vector2(1.35, 1.35)))
-	_sh("M 283 78 L 270 64 L 277 64 L 286 74 Z", "gold", "goldD", 1.2, 1.0, true)
-	_sh("M 304 78 L 314 64 L 309 64 L 301 74 Z", "gold", "goldD", 1.2, 1.0, true)
-
-	_begin(P, "rider_collar")
-	_sh("M 282 109 C 288 101, 302 101, 308 107 C 312 103, 314 99, 314 94 C 318 101, 316 111, 306 115 L 284 115 Z", "gold", "goldD", 1.6, 1.0, true)
-
-	# glaive in weapon space: the hand at the origin, blade up (-y)
-	_begin(P, "weapon")
-	_ln("M 0 66 L 0 -90", Color("#3f2814"), 6.0, 1.0, true)
-	_ln("M 0 66 L 0 -90", Color("#6b4423"), 3.6)
-	_dot(0, 68, 3.6, "gold", "goldD", 1.6, 1.0, true)
-	_sh("M -4 -96 C -12 -114, -10 -132, 4 -150 C 3 -141, 6 -137, 10 -134 C 12 -120, 10 -108, 4 -96 Z", Color("#d9dee3"), Color("#6f7881"), 1.6, 1.0, true)
-	_ln("M 2 -100 C 6 -112, 7 -124, 6 -138", Color.WHITE, 1.2, 0.8)
-	_sh("M -5 -90 L 5 -90 L 4 -97 L -4 -97 Z", "gold", "goldD", 1.6, 1.0, true)
-	_sh("M -2 -92 C -10 -88, -12 -80, -9 -74 C -6 -80, -3 -82, 1 -86 Z", Color("#c4262f"), Color("#7a1219"), 1.0, 1.0, true)
-	_dot(0, -24, 5.4, RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
-	_dot(0, 0, 5.4, RIDER_SKIN, RIDER_SKIN_D, 1.6, 1.0, true)
 	return P

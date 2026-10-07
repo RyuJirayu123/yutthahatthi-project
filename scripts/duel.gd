@@ -204,7 +204,6 @@ func _input_for(f: Fighter, o: Fighter, dt: float) -> Dictionary:
 		"medium": _presses.has(p + "medium"),
 		"heavy": _presses.has(p + "heavy"),
 		"special": _presses.has(p + "special"),
-		"rider": _presses.has(p + "rider"),
 	}
 	if f == fighters[0]:
 		last_p1 = inp
@@ -286,11 +285,6 @@ func _check_hit(a: Fighter, b: Fighter) -> void:
 				_land(a, b, m, h)
 				if b.ko:
 					return
-	if a.rider_t >= 0.0 and not a.rider_hit:
-		var rm := GameData.move("rider")
-		if _connects(a, b, rm.hits[0], a.rider_t):
-			a.rider_hit = true
-			_land(a, b, rm, rm.hits[0])
 
 
 func _connects(a: Fighter, b: Fighter, h: GameData.Hit, t: float) -> bool:
@@ -313,15 +307,16 @@ func _armor(f: Fighter) -> float:
 
 
 func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
-	var finisher := m.id == "rider" and b.dazed > 0.0
-	# guard: crouching with the attacker in front; nothing stops the glaive
+	# guard: crouching with the attacker in front; unblockable ultimates go through
 	var guard := (b.guarding or b.bstun > 0.0) and signf(a.x - b.x) != -b.face and b.stun <= 0.0 and b.atk == "" and not h.overhead
 	var blocked := guard
+	# decisive strike: the signature move (G) landing on an elephant whose balance broke
+	var finisher := m.id == a.def.signature and b.dazed > 0.0 and not guard
 	var armored := not finisher and b.atk != "" and b.atk_t < _armor(b)
-	var skill := a.def.rider_skill if m.id == "rider" or m.id == "storm" else 1.0
+	var skill := a.def.rider_skill if m.id == "storm" else 1.0
 	var ex := a.atk_ex and m.id == a.atk
 	var dmg := h.dmg * a.def.power * skill * (GameData.BUFF_POWER if a.buff_t > 0.0 else 1.0) * (GameData.EX_POWER if ex else 1.0)
-	var shaken := h.balance * skill / b.def.steady * (1.5 if ex else 1.0)
+	var shaken := h.balance * a.def.rider_skill / b.def.steady * (1.5 if ex else 1.0)
 	var px := (a.x + b.x) / 2.0
 	var py := minf(a.y, b.y) - 95.0
 	if finisher:
@@ -338,19 +333,19 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 		_burst(px, py, Color.WHITE, 6, 0.6)
 		_sfx("block")
 		hitstop = 0.04
-		_shake_rider(b, shaken * 0.3)
+		_shake_balance(b, shaken * 0.3)
 	elif armored:
 		# super armor: takes the damage but keeps going
 		b.flash = 0.12
 		_burst(px, py, GameData.GOLD_LIGHT, 10, 1.0)
 		_sfx("block")
 		hitstop = 0.08
-		_shake_rider(b, shaken * 0.5)
+		_shake_balance(b, shaken * 0.5)
 	else:
 		a.atk_hit = a.atk == m.id
 		var big := h.dmg >= 9.0 or ex
 		# counter hit: caught in the middle of an attack -> harder hit, longer stun
-		var counter := b.atk != "" or b.rider_t >= 0.0 or b.lag > 0.0
+		var counter := b.atk != "" or b.lag > 0.0
 		# combo: hits landed before the target recovers; later hits do less damage
 		b.hits_taken = b.hits_taken + 1 if b.stun > 0.0 or b.juggled else 1
 		dmg *= GameData.combo_scale(b.hits_taken)
@@ -374,7 +369,6 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 			b.vx *= 0.6 if airborne else 1.0
 		b.atk = ""
 		b.lag = 0.0
-		b.rider_t = -1.0
 		b.flash = 0.12
 		b.blocking = false
 		a.meter = minf(100.0, a.meter + h.meter * a.def.charge)
@@ -387,9 +381,9 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 			_callout("สวนจังหวะ!", "COUNTER", b.x, false)
 			_burst(px, py, GameData.GOLD_LIGHT, 12, 1.4)
 		_sfx(h.sound)
-		_shake_rider(b, shaken)
+		_shake_balance(b, shaken)
 		if h.daze:
-			_shake_rider(b, 1000.0)
+			_shake_balance(b, 1000.0)
 	b.hp = maxf(1.0 if mode == "training" else 0.0, b.hp - dmg)
 	if mode == "training":
 		events.append({"by": fighters.find(a), "move": m.id, "blocked": blocked, "low": h.low, "crouch": b.crouching,
@@ -542,27 +536,26 @@ func _wave_near(f: Fighter) -> bool:
 	return false
 
 
-func _shake_rider(f: Fighter, amount: float) -> void:
+func _shake_balance(f: Fighter, amount: float) -> void:
 	if f.dazed > 0.0:
 		return
 	f.balance_t = 0.0
 	f.balance = maxf(0.0, f.balance - amount)
 	if f.balance <= 0.0:
-		# balance break: the rider is dazed and the elephant reels, open to a decisive strike
+		# balance break: the elephant reels, open to a decisive strike
 		f.dazed = GameData.DAZE_TIME
 		f.stun = maxf(f.stun, GameData.BREAK_STUN)
-		# it reels on the spot rather than flying off, so the glaive can still reach it
+		# it reels on the spot rather than flying off, so the decisive strike can still reach it
 		f.vx *= 0.25
 		f.vy = maxf(f.vy, -200.0)
 		f.atk = ""
-		f.rider_t = -1.0
 		f.blocking = false
 		f.bstun = 0.0
 		_callout("เสียหลัก!", "STUNNED", f.x, false)
 		_sfx("daze")
 
 
-## Glaive strike on a dazed rider — the duel's decisive blow.
+## The signature move landing on a reeling elephant — the duel's decisive blow.
 func _finisher(a: Fighter, b: Fighter) -> void:
 	b.dazed = 0.0
 	b.balance = 50.0
@@ -571,7 +564,6 @@ func _finisher(a: Fighter, b: Fighter) -> void:
 	b.vx = a.face * 520.0
 	b.vy = -300.0
 	b.atk = ""
-	b.rider_t = -1.0
 	b.flash = 0.2
 	b.blocking = false
 	_burst((a.x + b.x) / 2.0, minf(a.y, b.y) - 150.0, ACC, 30, 2.0)
@@ -579,7 +571,7 @@ func _finisher(a: Fighter, b: Fighter) -> void:
 		shake = 14.0
 	hitstop = 0.3
 	white = 0.3
-	_callout("ฟันปิดฉาก!", "DECISIVE STRIKE", b.x, true)
+	_callout("กระแทกปิดฉาก!", "DECISIVE STRIKE", b.x, true)
 	_sfx("finisher")
 	if mode == "arcade" and a == fighters[0]:
 		run_score += roundi(1500 * (1 + stage * 0.5))

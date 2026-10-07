@@ -21,15 +21,15 @@ extends Resource
 @export var body := Color("#8f8a8c")
 ## Skin, far legs / ears / shade.
 @export var dark := Color("#6a6466")
-## Caparison and rider's clothes — the elephant's team colour (HUD, cards).
+## Caparison — the elephant's team colour (HUD, cards).
 @export var cloth := Color("#c8191e")
 ## Ornaments: borders, anklets, headdress.
 @export var trim := Color("#e8b33a")
 @export var flag := Color("#c8191e")
-## Royal regalia: tiered umbrella instead of a flag, crowned rider.
+## Royal regalia: tiered umbrella instead of a flag, a crown on the headdress.
 @export var royal := false
-## Armoured look (design variant B): scale-armour caparison, forehead plate, capped tusks,
-## helmeted rider. Off = the ceremonial look (variant A).
+## Armoured look (design variant B): scale-armour caparison, forehead plate, capped tusks.
+## Off = the ceremonial look (variant A).
 @export var armored := false
 
 @export_group("Stats")
@@ -38,9 +38,9 @@ extends Resource
 @export var power := 1.0
 ## Walk and jump speed multiplier.
 @export var speed := 1.0
-## Rider's glaive: damage and balance damage multiplier.
+## Balance damage multiplier for every hit ("BREAK" on the select screen); also the trunk storm's damage.
 @export var rider_skill := 1.0
-## Rider's balance: incoming balance damage is divided by this.
+## Balance: incoming balance damage is divided by this.
 @export var steady := 1.0
 ## Power bar gain multiplier.
 @export var charge := 1.0

@@ -10,7 +10,7 @@ const HASH_EVERY := 60
 const KEEP := 300              ## ticks of input history kept for re-simulating after a resync
 ## [action suffix, bit]: held directions, then buttons pressed this tick
 const BITS := [["left", 1], ["right", 2], ["up", 4], ["down", 8],
-	["light", 16], ["medium", 32], ["heavy", 64], ["special", 128], ["rider", 256]]
+	["light", 16], ["medium", 32], ["heavy", 64], ["special", 128]]
 
 var net: Net
 var duel: Duel

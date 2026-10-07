@@ -9,5 +9,5 @@ block = 0.5
 aggr = 0.62
 heavy = 0.4
 special = 0.6
-rider = 0.25
+finish = 0.25
 combo = 0.5

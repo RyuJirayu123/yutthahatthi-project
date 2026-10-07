@@ -24,7 +24,7 @@ var buff_t := 0.0         ## blessing: damage boost time left
 var wave_warning := false ## an enemy shockwave is about to arrive
 var stun := 0.0
 var bstun := 0.0
-var guarding := false     ## crouching on the ground: hits from the front are guarded (all but the glaive)
+var guarding := false     ## crouching on the ground: hits from the front are guarded (all but unblockable ultimates)
 var crouching := false    ## holding down
 var blocking := false     ## guarding while an attack is coming: stands still in the guard pose
 var flash := 0.0
@@ -32,12 +32,9 @@ var ko := false
 var buf := ""
 var buf_t := 0.0
 var win := false
-var balance := 100.0      ## rider's balance; at 0 the rider is dazed
-var balance_t := 0.0      ## time since the rider was last shaken
+var balance := 100.0      ## at 0 the elephant is dazed: it reels, open to a decisive strike
+var balance_t := 0.0      ## time since the balance was last shaken
 var dazed := 0.0          ## seconds left off balance
-var rider_t := -1.0       ## time into the rider's glaive swing, < 0 when idle
-var rider_hit := false
-var rider_buf_t := 0.0
 var combo := 0            ## hits in the combo this fighter is landing right now
 var combo_t := 0.0        ## time left to show the hit counter
 var hits_taken := 0       ## hits taken in a row without recovering (combo damage scaling)
@@ -98,19 +95,6 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 		balance = minf(100.0, balance + GameData.BALANCE_REGEN * dt)
 	var grounded := y >= G
 	if not ko:
-		# the rider swings on his own channel, so glaive and trunk can go together
-		if inp.get("rider", false):
-			rider_buf_t = 0.18
-		rider_buf_t -= dt
-		if rider_t >= 0.0:
-			rider_t += dt
-			if rider_t >= GameData.move("rider").dur:
-				rider_t = -1.0
-		elif rider_buf_t > 0.0 and dazed <= 0.0 and stun <= 0.0 and bstun <= 0.0 and not blocking:
-			rider_t = 0.0
-			rider_hit = false
-			rider_buf_t = 0.0
-			Sfx.play("glaive")
 		var dir := (1 if inp.get("right", false) else 0) - (1 if inp.get("left", false) else 0)
 		var num := 5 + dir * face - (3 if inp.get("down", false) else 0)
 		if num != _last_num:
@@ -204,11 +188,11 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 		else:
 			if not facing_locked and grounded:
 				face = 1 if o.x > x else -1    # keeps facing through a jump, turns on landing
-			# hold down to guard: crouching stops everything but the glaive
+			# hold down to guard: crouching stops everything but unblockable ultimates
 			var free := grounded and dash_t <= 0.0
 			crouching = free and inp.get("down", false)
 			guarding = crouching
-			blocking = guarding and (o.atk != "" or o.rider_t >= 0.0 or wave_warning)
+			blocking = guarding and (o.atk != "" or wave_warning)
 			if buf == "special" and meter < 100.0 and not _ex_pending():
 				buf = ""
 			if buf != "" and not _ex_pending():
@@ -417,17 +401,12 @@ func think(o: Fighter, dt: float) -> Dictionary:
 		ai_reacted = false
 	ai_seen = o.atk
 	ai_seen_t = o.atk_t
-	var threat := o.atk != "" or o.rider_t >= 0.0
+	var threat := o.atk != ""
 	if threat and dist < 300.0 and not ai_reacted:
 		ai_reacted = true
 		if randf() < ai.block:
-			if o.atk == "":
-				# guard can't stop a glaive: interrupt it with a quick whip, or back off
-				ai_act = "light" if dist < 225.0 and dazed <= 0.0 else "away"
-				ai_hold = 0.0 if ai_act == "light" else 0.3
-			else:
-				ai_act = "block"
-				ai_hold = 0.35
+			ai_act = "block"
+			ai_hold = 0.35
 	if not threat:
 		ai_reacted = false
 	if wave_warning and not ai_wave_seen:
@@ -444,8 +423,8 @@ func think(o: Fighter, dt: float) -> Dictionary:
 		if ai_t <= 0.0:
 			ai_t = ai.tick * (0.6 + randf() * 0.8)
 			var r := randf()
-			if o.dazed > 0.0 and dazed <= 0.0 and dist < 260.0 and r < minf(0.9, ai.rider * 2.5):
-				ai_act = "rider"
+			if o.dazed > 0.0 and o.stun > 0.0 and dazed <= 0.0 and dist < GameData.move(def.signature).ai_range and r < minf(0.9, ai.finish * 2.5):
+				ai_act = "heavy"      # decisive strike
 			elif o.dazed > 0.0 and o.stun > 0.0 and dazed <= 0.0 and dist >= 220.0 and r < ai.aggr:
 				ai_act = "toward"      # close in on a reeling opponent for the decisive strike
 			elif dazed > 0.0 and dist < 300.0 and r < ai.block:
@@ -454,11 +433,7 @@ func think(o: Fighter, dt: float) -> Dictionary:
 				ai_act = "special"
 			elif dist < 270.0:
 				if r < ai.aggr:
-					var pick := randf()
-					if pick < ai.rider:
-						ai_act = "rider"
-					else:
-						ai_act = "heavy" if randf() < ai.heavy else _ai_normal(dist)
+					ai_act = "heavy" if randf() < ai.heavy else _ai_normal(dist)
 				elif r < ai.aggr + 0.12:
 					ai_act = "jump"
 				else:
@@ -494,16 +469,11 @@ func think(o: Fighter, dt: float) -> Dictionary:
 		"light", "medium", "clight", "cmedium":
 			inp["medium" if ai_act.ends_with("medium") else "light"] = true
 			inp["down"] = ai_act.begins_with("c")
-			if randf() < ai.rider * 0.5:
-				inp["rider"] = true
 			ai_act = "idle"
-		"heavy", "special", "rider":
+		"heavy", "special":
 			inp[ai_act] = true
 			if ai_act == "heavy" and meter >= GameData.EX_COST and meter < 100.0 and randf() < ai.special * 0.35:
 				inp["special"] = true
-			# sometimes swing the glaive along with the elephant's attack
-			if ai_act != "rider" and randf() < ai.rider * 0.5:
-				inp["rider"] = true
 			ai_act = "idle"
 	return inp
 

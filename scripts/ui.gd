@@ -18,7 +18,7 @@ const STAT_ROWS := [
 	["พลังชีวิต", "HP", "hp", 80.0, 130.0],
 	["พลังโจมตี", "POWER", "power", 0.85, 1.2],
 	["ความเร็ว", "SPEED", "speed", 0.8, 1.25],
-	["ฝีมือควาญ", "RIDER", "rider_skill", 0.85, 1.35],
+	["ทำลายสมดุล", "BREAK", "rider_skill", 0.85, 1.35],
 	["ความมั่นคง", "STEADY", "steady", 0.85, 1.4],
 	["ชาร์จ", "CHARGE", "charge", 0.85, 1.45],
 ]
@@ -462,7 +462,6 @@ func _build_howto() -> void:
 		["แทงงา · ระยะกลาง", "TUSK POKE · MID", [["R"]]],
 		["ท่าประจำตัว", "SIGNATURE MOVE", [["G"]]],
 		["อัลติ · พลังเต็ม", "ULTIMATE · FULL POWER", [["H", "accent"]]],
-		["ควาญฟันของ้าว", "RIDER GLAIVE · OVERHEAD", [["J"]]],
 	]))
 	cols.add_child(_vrule())
 	cols.add_child(_controls_column("ผู้เล่น 2", "PLAYER 2", INK, [
@@ -472,7 +471,6 @@ func _build_howto() -> void:
 		["แทงงา · ระยะกลาง", "TUSK POKE · MID", [["L"], ["NUM 5", "alt"]]],
 		["ท่าประจำตัว", "SIGNATURE MOVE", [["."], ["NUM 2", "alt"]]],
 		["อัลติ · พลังเต็ม", "ULTIMATE · FULL POWER", [["/", "accent"], ["NUM 3", "alt"]]],
-		["ควาญฟันของ้าว", "RIDER GLAIVE · OVERHEAD", [[";"], ["NUM 4", "alt"]]],
 	]))
 	cols.add_child(_vrule())
 
@@ -491,10 +489,10 @@ func _build_howto() -> void:
 	var items := [
 		["01", "rule1", "", ""],
 		["02", "", "ช้างแต่ละเชือกมีท่าประจำตัว (G) และอัลติ (H) ของตัวเอง โดนตีหรือตีโดนจะเติมหลอดพลัง", "Each elephant has its own signature (G) and ultimate (H, full power bar)."],
-		["03", "", "ของ้าวข้ามการป้องกันได้แต่ช้า กดพร้อมท่าช้างเป็นคอมโบได้", "Glaive beats guard but is slow; press it with elephant moves to combo."],
-		["04", "", "หลอดทรงตัวหมด = ควาญเสียหลัก ช้างมึน 1 วิ ฟันของ้าวซ้ำ = ฟันปิดฉาก", "Empty the balance bar to stun them, then land the glaive for a Decisive Strike."],
+		["03", "", "ย่อค้างกันได้ทุกท่า ยกเว้นอัลติบางท่า กันได้แล้วรีบตีสวน", "Hold down to guard all but a few ultimates, then strike back."],
+		["04", "", "หลอดทรงตัวหมด = ช้างเสียหลัก มึน 1 วิ กด G ท่าประจำตัวซ้ำ = กระแทกปิดฉาก", "Empty the balance bar to stun them, then land your signature (G) for a Decisive Strike."],
 		["05", "rule4", "", ""],
-		["06", "", "จอย: X = F · LB = R · Y = G · B = H · RB = J · A กระโดด", "Gamepad: stick/D-pad move, hold down to guard · Start pause."],
+		["06", "", "จอย: X = F · LB = R · Y = G · B = H · A กระโดด", "Gamepad: stick/D-pad move, hold down to guard · Start pause."],
 	]
 	for it in items:
 		rv.add_child(_rule(DIVIDER))
@@ -562,8 +560,8 @@ func _build_combos() -> void:
 			"ท่าโดนแล้วกด G หรือท่าพิเศษตัดเข้าทันที แล้ว H ตอนพลังเต็ม"],
 		["ทิ้งตัวแทงงา", "DIVING GORE", ["W", ">", "F"], ["↑", ">", ","],
 			"กด F กลางอากาศ พุ่งลงแทง อีกฝ่ายต้องยืนกัน"],
-		["ตีลอยฟ้า", "JUGGLE", ["F ×3", ">", "J"], [", ×3", ">", ";"],
-			"ช้างที่ลอยอยู่โดนตีซ้ำได้ ไม่เกิน 3 ครั้ง"],
+		["ตีลอยฟ้า", "JUGGLE", ["F ×3", ">", "→↓↘ F"], [", ×3", ">", "→↓↘ ,"],
+			"ทุบงวงให้ลอยแล้วต่องวงเสย ช้างที่ลอยอยู่โดนตีซ้ำได้ไม่เกิน 3 ครั้ง"],
 		["พุ่งตัว · ถอยหลบ", "DASH · BACKSTEP", ["D D", "|", "A A"], ["→ →", "|", "← ←"],
 			"แตะทิศ 2 ครั้งเร็วๆ เข้าหา = พุ่ง ถอยออก = ถอยหลบ"],
 	]))
@@ -580,9 +578,9 @@ func _build_combos() -> void:
 		["สวนจังหวะ", "COUNTER HIT", [], [],
 			"ตีโดนตอนอีกฝ่ายกำลังออกท่า แรงขึ้นและมึนนานขึ้น ต่อท่าได้ยาวขึ้น"],
 		["ป้องกัน", "GUARD", ["↓"], ["↓"],
-			"ย่อค้าง = กันได้ทุกท่า ยกเว้นของ้าว · ระหว่างย่อเดินไม่ได้"],
+			"ย่อค้าง = กันได้ทุกท่า ยกเว้นอัลติบางท่า · ระหว่างย่อเดินไม่ได้"],
 	]))
-	var tip := _label("→ = ทิศที่หันหน้าไป (หันซ้ายก็กลับทิศ) · คอมโบยิ่งยาว แต่ละฮิตยิ่งเบาลง · จอย: X = F · Y = G · B = H · RB = J", 10, 600, ACC_700)
+	var tip := _label("→ = ทิศที่หันหน้าไป (หันซ้ายก็กลับทิศ) · คอมโบยิ่งยาว แต่ละฮิตยิ่งเบาลง · จอย: X = F · Y = G · B = H", 10, 600, ACC_700)
 	v.add_child(_pad(_margin_wrap(tip, 29), 0, 8))
 
 
