@@ -151,15 +151,16 @@ func _sync_rigs() -> void:
 	_rigs = rigs
 
 
-## Arcade stages go morning -> sunset -> dusk for the boss; other modes pick at random.
+## Arcade stages go morning -> sunset -> dusk for the boss, endless fights cycle through them;
+## other modes pick at random.
 func _sync_backdrop() -> void:
 	if _backdrop and _backdrop_duel == duel:
 		return
 	var scene: String
 	if duel.mode == "arcade":
 		scene = Backdrop.SCENES[mini(duel.stage, Backdrop.SCENES.size() - 1)]
-	elif duel.mode == "online":
-		scene = Backdrop.SCENES[duel.stage % Backdrop.SCENES.size()]   # both players see the same field
+	elif duel.mode in ["online", "endless"]:
+		scene = Backdrop.SCENES[duel.stage % Backdrop.SCENES.size()]   # online: both players see the same field
 	elif _backdrop and duel.mode == "vs" and _backdrop_duel and _backdrop_duel.mode == "vs":
 		scene = _backdrop.scene      # rematches keep the same field
 	else:
@@ -265,8 +266,10 @@ func _timer_badge() -> void:
 		DrawKit.fill(self, _diamond(c + d, 3.0), PackedColorArray([GOLD_LIGHT]))
 	var low := duel.timer < 10 and duel.phase == "fight"
 	_otext(str(ceili(duel.timer)), c.x, c.y + 12.0, 32, 800, GOLD_LIGHT if not low else Color.WHITE, CENTER, 6)
-	if duel.mode == "arcade":
+	if duel.scored:
 		_otext("SCORE " + GameData.fmt_num(duel.run_score), c.x, 128.0, 13, 800, Color.WHITE, CENTER, 4)
+	if duel.mode == "endless":
+		_otext("เชือกที่ %d · OPPONENT %d" % [duel.stage + 1, duel.stage + 1], c.x, 146.0, 11, 800, GOLD_LIGHT, CENTER, 4)
 
 
 func _pip(c: Vector2, on: bool) -> void:
@@ -463,7 +466,9 @@ func _draw_announce() -> void:
 	if duel.phase == "intro":
 		var r := duel.rounds_to_win
 		var fin := r > 1 and duel.wins[0] == r - 1 and duel.wins[1] == r - 1
-		if t < 1.0:
+		if t < 1.0 and duel.mode == "endless":
+			_band(t, "เชือกที่ %d" % (duel.stage + 1), "OPPONENT %d" % (duel.stage + 1))
+		elif t < 1.0:
 			_band(t, "ยกตัดสิน" if fin else "ยกที่ %d" % duel.round_no, "FINAL ROUND" if fin else "ROUND %d" % duel.round_no)
 		else:
 			_band(t - 1.0, "สู้!", "FIGHT")

@@ -98,7 +98,7 @@ func set_rules(rounds_to_win: int, round_time: int, stages: int) -> void:
 	_set_text("rule1_en", "First to %d rounds. %d s per round; on time-out more health wins." % [rounds_to_win, round_time])
 	_set_text("rule4_th", "อาร์เคด: ล้มช้างศึก %d เชือก ชนะไวและไม่เสียเลือดได้โบนัส" % stages)
 	_set_text("rule4_en", "Arcade: beat %d war elephants. Fast and perfect wins earn bonus points." % stages)
-	_set_text("arcade_en", "1 PLAYER · ARCADE — %d STAGES" % stages)
+	_set_text("arcade_en", "1P · %d STAGES" % stages)
 
 
 func show_stage_clear(stage: int, stages: int, score: int, next: ElephantDef) -> void:
@@ -106,6 +106,17 @@ func show_stage_clear(stage: int, stages: int, score: int, next: ElephantDef) ->
 	_set_text("stage_score", GameData.fmt_num(score))
 	_set_text("next_th", next.display_name)
 	_set_text("next_en", next.name_en)
+	_button_text(_dyn["next_btn"], "ด่านต่อไป", "NEXT STAGE")
+	show_screen("stageclear")
+
+
+## Between endless fights: `beaten` opponents down so far, `hp` is the share of health going in.
+func show_endless_clear(beaten: int, score: int, hp: float, next: ElephantDef, boss: bool) -> void:
+	_set_text("stage_kicker", "เล่นเรื่อยๆ · ล้มแล้ว %d เชือก · %d DOWN" % [beaten, beaten])
+	_set_text("stage_score", GameData.fmt_num(score))
+	_set_text("next_th", ("บอส! " if boss else "") + next.display_name)
+	_set_text("next_en", "%s · เลือดคุณ %d%% · YOUR HEALTH" % [next.name_en, roundi(hp * 100.0)])
+	_button_text(_dyn["next_btn"], "สู้ต่อ · เชือกที่ %d" % (beaten + 1), "NEXT OPPONENT")
 	show_screen("stageclear")
 
 
@@ -116,6 +127,18 @@ func show_game_over(cleared: bool, stages_cleared: int, stages: int, score: int,
 	_set_text("over_en", "CHAMPION" if cleared else "DEFEATED")
 	_set_text("over_score", GameData.fmt_num(score))
 	_set_text("over_best", GameData.fmt_num(best))
+	(_dyn["new_hi"] as Control).visible = new_hi
+	set_share_msg("")
+	show_screen("gameover")
+
+
+func show_endless_over(beaten: int, score: int, best_beaten: int, best_score: int, new_hi: bool) -> void:
+	(_dyn["unlocked"] as Control).visible = false
+	_set_text("over_kicker", "เล่นเรื่อยๆ · จบเกม · สถิติ %d เชือก · BEST %d" % [best_beaten, best_beaten])
+	_set_text("over_th", "ล้มได้ %d เชือก" % beaten)
+	_set_text("over_en", "ENDLESS · %d DOWN" % beaten)
+	_set_text("over_score", GameData.fmt_num(score))
+	_set_text("over_best", GameData.fmt_num(best_score))
 	(_dyn["new_hi"] as Control).visible = new_hi
 	set_share_msg("")
 	show_screen("gameover")
@@ -150,6 +173,7 @@ func update_select(mode: String, cursors: Array[int], confirmed: Array[bool]) ->
 	match mode:
 		"vs": kicker = "สองคน · ประลอง · VERSUS"
 		"training": kicker = "ฝึกซ้อม · เลือกช้างที่จะฝึก · TRAINING"
+		"endless": kicker = "เล่นเรื่อยๆ · ไม่จำกัดด่าน · ENDLESS"
 		"online": kicker = "ออนไลน์ · รอคู่ต่อสู้เลือกช้าง… · WAITING FOR OPPONENT" if confirmed[0] else "ออนไลน์ · เลือกช้างของคุณ · PICK YOUR ELEPHANT"
 	_set_text("select_kicker", kicker)
 	(_dyn["select_vrule"] as Control).visible = two
@@ -215,17 +239,24 @@ func _build_title() -> void:
 	v.add_child(_label("ยุทธหัตถี", 67, 800))
 	v.add_child(_label("ELEPHANT DUEL", 19, 800))
 	v.add_child(_spacer())
-	var arcade := _button("เล่นคนเดียว · อาร์เคด", "1 PLAYER · ARCADE — 3 STAGES", "PrimaryButton", "arcade", "01")
+	# one-player modes side by side: the 3-stage arcade and the endless run
+	var arcade := _button("อาร์เคด", "1P · 3 STAGES", "PrimaryButton", "arcade", "01")
 	_dyn["arcade_en"] = arcade.get_meta("en")
 	_first["title"] = arcade
+	var endless := _button("เล่นเรื่อยๆ", "1P · ENDLESS", "SecondaryButton", "endless", "02")
 	var menu := _vbox(8)
-	menu.add_child(arcade)
-	for row_spec in [[["สองคน · ประลอง", "2 PLAYERS", "vs", "02"], ["เล่นออนไลน์", "ONLINE", "online", "03"]],
-			[["ฝึกซ้อม · สอนเล่น", "TRAINING", "training", "04"], ["วิธีเล่น", "HOW TO PLAY", "howto", "05"]]]:
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 8)
+	for btn in [arcade, endless]:
+		btn.size_flags_horizontal = SIZE_EXPAND_FILL
+		top.add_child(btn)
+	menu.add_child(top)
+	for row_spec in [[["สองคน · ประลอง", "2 PLAYERS", "vs", "03"], ["เล่นออนไลน์", "ONLINE", "online", "04"]],
+			[["ฝึกซ้อม · สอนเล่น", "TRAINING", "training", "05"], ["วิธีเล่น", "HOW TO PLAY", "howto", "06"]]]:
 		var row_box := HBoxContainer.new()
 		row_box.add_theme_constant_override("separation", 8)
 		for b in row_spec:
-			var btn := _button(b[0], b[1], "SecondaryButton" if b[3] in ["02", "03"] else "GhostButton", b[2], b[3], false)
+			var btn := _button(b[0], b[1], "SecondaryButton" if b[3] in ["03", "04"] else "GhostButton", b[2], b[3], false)
 			btn.size_flags_horizontal = SIZE_EXPAND_FILL
 			row_box.add_child(btn)
 		menu.add_child(row_box)
@@ -931,6 +962,7 @@ func _build_stage_clear() -> void:
 	v.add_child(_block(DIVIDER, [_label("คู่ต่อสู้ถัดไป · NEXT OPPONENT", 10, 600, MUTED_INK, 1), nth, nen]))
 	v.add_child(_spacer())
 	var next := _button("ด่านต่อไป", "NEXT STAGE", "PrimaryButton", "next")
+	_dyn["next_btn"] = next
 	_first["stageclear"] = next
 	v.add_child(next)
 

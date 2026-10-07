@@ -1,10 +1,14 @@
 extends Node
-## Game flow: title, elephant select, arcade ladder, scoring and the save file.
+## Game flow: title, elephant select, arcade ladder, endless run, scoring and the save file.
 ## Duel simulates a match, Arena draws it, GameUI shows the menus.
 
 const SAVE_PATH := "user://save.cfg"
 const ATTACKS := ["light", "medium", "heavy", "special"]
 const STAGES := 3
+## Endless mode: share of max health recovered between opponents
+const ENDLESS_HEAL := 0.3
+## Endless mode: the boss turns up every this many opponents
+const BOSS_EVERY := 5
 
 @export_group("Roster")
 ## Elephants on the select screen, in order. Add an ElephantDef here to add a character.
@@ -38,6 +42,12 @@ var player1: ElephantDef
 var player2: ElephantDef
 var ladder: Array[ElephantDef] = []
 var training: Training    ## set while in training mode
+var endless_next: ElephantDef  ## endless mode: the coming opponent
+var endless_hp := -1.0    ## endless mode: health carried into the next fight (-1 = full)
+var endless_meter := 0.0
+var endless_best := 0     ## most opponents beaten in one endless run
+var endless_hi := 0       ## best endless score
+var _last_foe: ElephantDef
 var net: Net              ## link to the online relay
 var online: OnlineMatch   ## set during an online match
 var online_side := -1     ## 0 = left / host, 1 = right; -1 = not online
@@ -121,7 +131,7 @@ func _on_ui_action(action: String) -> void:
 		_pick(int(action.get_slice(":", 1)))
 		return
 	match action:
-		"arcade", "vs", "training":
+		"arcade", "vs", "training", "endless":
 			_open_select(action)
 		"reselect":
 			if online_side >= 0:
@@ -131,7 +141,7 @@ func _on_ui_action(action: String) -> void:
 			else:
 				_open_select(duel.mode)
 		"retry":
-			_begin("arcade", 0)
+			_begin(duel.mode, 0)
 		"rematch":
 			if online_side >= 0:
 				_vote_rematch(online_side)
@@ -151,7 +161,7 @@ func _on_ui_action(action: String) -> void:
 			else:
 				_online_request({"t": "join", "code": code}, "กำลังเข้าห้อง %s… · JOINING" % code)
 		"next":
-			_begin("arcade", stage + 1)
+			_begin(duel.mode, stage + 1)
 		"howto", "combos", "controls":
 			Sfx.play("select", true)
 			screen = action
@@ -297,6 +307,8 @@ func _start_from_select() -> void:
 			j = (j + 1) % roster.size()
 		player2 = roster[j]
 		_begin("training", 0)
+	elif select_mode == "endless":
+		_begin("endless", 0)
 	else:
 		_build_ladder()
 		_begin("arcade", 0)
@@ -335,8 +347,13 @@ func _locked_list() -> Array[bool]:
 
 func _begin(mode: String, st: int) -> void:
 	Sfx.play("select", true)
-	if mode == "arcade" and st == 0:
+	if mode in ["arcade", "endless"] and st == 0:
 		run_score = 0
+	if mode == "endless" and st == 0:
+		endless_hp = -1.0
+		endless_meter = 0.0
+		_last_foe = null
+		endless_next = _endless_foe(0)
 	stage = st
 	_start_duel(mode, st)
 	paused = false
@@ -354,6 +371,9 @@ func _start_duel(mode: String, st: int) -> void:
 			ai = stage_ai[mini(st, stage_ai.size() - 1)]
 		"vs":
 			right = player2
+		"endless":
+			right = endless_next
+			ai = stage_ai[mini(st / 2, stage_ai.size() - 1)]
 		"training":
 			right = player2
 			ai = stage_ai[1]
@@ -364,8 +384,10 @@ func _start_duel(mode: String, st: int) -> void:
 			right = roster.pick_random()
 			while right == left:
 				right = roster.pick_random()
-	duel = Duel.new(mode, st, left, right, ai, round_time, rounds_to_win, screen_shake)
+	duel = Duel.new(mode, st, left, right, ai, round_time, 1 if mode == "endless" else rounds_to_win, screen_shake)
 	duel.run_score = run_score
+	if mode == "endless":
+		duel.carry_over(endless_hp, endless_meter)
 	duel.finished.connect(_on_duel_finished)
 	arena.duel = duel
 	arena.frozen = false
@@ -395,6 +417,9 @@ func _on_duel_finished(winner: int) -> void:
 		screen = "vsresult"
 		ui.show_vs_result(winner, duel.wins, def)
 		return
+	if duel.mode == "endless":
+		_endless_finished(winner)
+		return
 	run_score = duel.run_score
 	if winner == 0 and stage < STAGES - 1:
 		Sfx.play("win")
@@ -417,6 +442,50 @@ func _on_duel_finished(winner: int) -> void:
 	Sfx.play("win" if cleared else "lose")
 	screen = "gameover"
 	ui.show_game_over(cleared, passed, STAGES, run_score, hiscore, new_hi, unlocked)
+
+
+# ---------- endless ----------
+
+## A random regular elephant (never the same one twice running), the boss every BOSS_EVERY
+## fights. From the sixth fight on they get 5% more health a fight and a little more power, up to +50%.
+func _endless_foe(st: int) -> ElephantDef:
+	var d: ElephantDef
+	if (st + 1) % BOSS_EVERY == 0 and player1 != boss:
+		d = boss
+	else:
+		var pool := roster.filter(func(e: ElephantDef) -> bool: return e != player1 and e != boss and e != _last_foe)
+		d = pool.pick_random()
+	_last_foe = d
+	var k := minf(1.5, 1.0 + 0.05 * maxi(0, st - 4))
+	if k > 1.0:
+		d = d.duplicate()
+		d.hp *= k
+		d.power *= 1.0 + (k - 1.0) / 2.0
+	return d
+
+
+## A win sends the next opponent with some health back; a loss ends the run.
+func _endless_finished(winner: int) -> void:
+	run_score = duel.run_score
+	if winner == 0:
+		var me := duel.fighters[0]
+		endless_hp = clampf(me.hp + me.max_hp * ENDLESS_HEAL, 1.0, me.max_hp)
+		endless_meter = me.meter
+		endless_next = _endless_foe(stage + 1)
+		Sfx.play("win")
+		screen = "stageclear"
+		ui.show_endless_clear(stage + 1, run_score, endless_hp / me.max_hp, endless_next, (stage + 2) % BOSS_EVERY == 0 and player1 != boss)
+		return
+	var beaten := stage
+	var new_hi := run_score > endless_hi or beaten > endless_best
+	endless_hi = maxi(endless_hi, run_score)
+	endless_best = maxi(endless_best, beaten)
+	if new_hi:
+		_save()
+	share_text = "ยุทธหัตถี · Elephant Duel โหมดเล่นเรื่อยๆ — %s ล้มได้ %d เชือก · %s คะแนน" % [player1.display_name, beaten, GameData.fmt_num(run_score)]
+	Sfx.play("lose")
+	screen = "gameover"
+	ui.show_endless_over(beaten, run_score, endless_best, endless_hi, new_hi)
 
 
 func _set_paused(p: bool) -> void:
@@ -571,6 +640,8 @@ func _load_save() -> void:
 		return
 	hiscore = int(cfg.get_value("arcade", "hiscore", 0))
 	boss_unlocked = bool(cfg.get_value("unlocks", "boss", false))
+	endless_best = int(cfg.get_value("endless", "best", 0))
+	endless_hi = int(cfg.get_value("endless", "hiscore", 0))
 
 
 func _save() -> void:
@@ -578,4 +649,6 @@ func _save() -> void:
 	cfg.load(SAVE_PATH)
 	cfg.set_value("arcade", "hiscore", hiscore)
 	cfg.set_value("unlocks", "boss", boss_unlocked)
+	cfg.set_value("endless", "best", endless_best)
+	cfg.set_value("endless", "hiscore", endless_hi)
 	cfg.save(SAVE_PATH)

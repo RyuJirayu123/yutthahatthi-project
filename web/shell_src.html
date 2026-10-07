@@ -200,9 +200,10 @@ $GODOT_HEAD_INCLUDE
 		<div class="hud-in">
 			<ul class="modes">
 				<li><span class="no">01</span><span><b>อาร์เคด</b><em>1 PLAYER</em></span></li>
-				<li><span class="no">02</span><span><b>สองคน</b><em>2P · ONE KEYBOARD</em></span></li>
-				<li><span class="no">03</span><span><b>ออนไลน์</b><em>PLAY A FRIEND</em></span></li>
-				<li><span class="no">04</span><span><b>ฝึกซ้อม</b><em>14 LESSONS</em></span></li>
+				<li><span class="no">02</span><span><b>เล่นเรื่อยๆ</b><em>ENDLESS</em></span></li>
+				<li><span class="no">03</span><span><b>สองคน</b><em>2P · ONE KEYBOARD</em></span></li>
+				<li><span class="no">04</span><span><b>ออนไลน์</b><em>PLAY A FRIEND</em></span></li>
+				<li><span class="no">05</span><span><b>ฝึกซ้อม</b><em>14 LESSONS</em></span></li>
 				<li class="roster">ช้างศึก <b>6 เชือก</b> · ท่าประจำตัวและอัลติไม่ซ้ำกัน</li>
 			</ul>
 
@@ -273,6 +274,7 @@ const engine = new Engine(GODOT_CONFIG);
 		'โดนตีหรือตีโดนจะเติมหลอดพลัง เต็มแล้วกด H ปล่อยอัลติ',
 		'ไม่ถนัดปุ่ม? เปลี่ยนเองได้ที่ วิธีเล่น → ตั้งปุ่ม',
 		'ชนะอาร์เคดครบ 3 ด่าน เพื่อปลดล็อกพญาคชสาร',
+		'โหมดเล่นเรื่อยๆ: คู่ต่อสู้มาไม่หยุด เลือดติดตัวไป ทุก 5 เชือกเจอบอส ล้มได้กี่เชือก?',
 	];
 	let tipIndex = Math.floor(Math.random() * TIPS.length);
 	function showTip() {

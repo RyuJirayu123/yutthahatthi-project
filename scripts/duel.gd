@@ -46,7 +46,7 @@ const AIR_GAP := 100.0     ## narrower while someone is airborne, so a jump can 
 ## Basic attacks: no chip damage when guarded.
 const NO_CHIP := ["light", "light2", "light3", "mid", "clow", "cmid", "dive", "counter"]
 
-var mode: String          ## "arcade", "vs", "online", "training" or "demo"
+var mode: String          ## "arcade", "endless", "vs", "online", "training" or "demo"
 var stage: int
 var defs: Array[ElephantDef]
 var ctrls: Array[String]
@@ -81,6 +81,9 @@ var injected := [{}, {}]  ## online: both players' inputs for the tick being sim
 var net_wait := 0.0       ## online: seconds spent waiting for the other player's input
 var replaying := false    ## online rollback: re-simulating ticks already shown, so no new particles or callouts
 var run_score := 0
+var scored := false       ## arcade and endless keep a score for the player
+var start_hp := -1.0      ## endless: the player's health carried from the last fight (-1 = full)
+var start_meter := 0.0
 var _presses := {}
 
 
@@ -88,6 +91,7 @@ func _init(p_mode: String, p_stage: int, left: ElephantDef, right: ElephantDef, 
 	ai = p_ai
 	mode = p_mode
 	stage = p_stage
+	scored = mode in ["arcade", "endless"]
 	defs = [left, right]
 	ctrls = ["ai" if mode == "demo" else "p1", "p2" if mode == "vs" else ("dummy" if mode == "training" else "ai")]
 	if mode == "online":
@@ -96,6 +100,13 @@ func _init(p_mode: String, p_stage: int, left: ElephantDef, right: ElephantDef, 
 	rounds_to_win = p_rounds_to_win
 	screen_shake = p_screen_shake
 	Sfx.quiet = mode == "demo"
+	reset_round()
+
+
+## Endless mode: the player's elephant starts with the health and power it had left.
+func carry_over(hp: float, meter: float) -> void:
+	start_hp = hp
+	start_meter = meter
 	reset_round()
 
 
@@ -112,6 +123,10 @@ func reset_round() -> void:
 	fighters = [Fighter.new(defs[0], 300.0, 1, ctrls[0]), Fighter.new(defs[1], 660.0, -1, ctrls[1])]
 	for f in fighters:
 		f.ai = ai
+	if start_hp > 0.0:
+		fighters[0].hp = start_hp
+		fighters[0].trail = start_hp
+	fighters[0].meter = maxf(fighters[0].meter, start_meter)
 	phase = "intro"
 	t = 0.0
 	timer = 99.0 if mode == "demo" else round_time
@@ -231,7 +246,7 @@ func _end_round(why: String) -> void:
 	if round_winner >= 0:
 		wins[round_winner] += 1
 		fighters[round_winner].win = true
-	if mode == "arcade" and round_winner == 0:
+	if scored and round_winner == 0:
 		run_score += roundi((1000 + floorf(timer) * 20 + (2000 if a.hp >= a.max_hp else 0)) * (1 + stage * 0.5))
 	_sfx("ko" if why == "ko" else "bell")
 
@@ -360,7 +375,7 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 			dmg *= GameData.COUNTER_DMG
 		a.combo = b.hits_taken
 		a.combo_t = GameData.COMBO_SHOW
-		if mode == "arcade" and a == fighters[0] and a.combo >= 3:
+		if scored and a == fighters[0] and a.combo >= 3:
 			run_score += roundi(a.combo * 40 * (1 + stage * 0.5))
 		var airborne := b.y < GameData.GROUND - 1.0
 		# a hit can't cut short the reel from a balance break
@@ -395,7 +410,7 @@ func _land(a: Fighter, b: Fighter, m: GameData.Move, h: GameData.Hit) -> void:
 	if mode == "training":
 		events.append({"by": fighters.find(a), "move": m.id, "blocked": blocked, "low": h.low, "crouch": b.crouching,
 			"combo": b.hits_taken if not blocked else 0, "dmg": dmg, "ex": ex, "finisher": finisher})
-	if mode == "arcade" and a == fighters[0]:
+	if scored and a == fighters[0]:
 		run_score += roundi(dmg * 10 * (1 + stage * 0.5))
 	if b.hp <= 0.0:
 		b.ko = true
@@ -580,7 +595,7 @@ func _finisher(a: Fighter, b: Fighter) -> void:
 	white = 0.3
 	_callout("กระแทกปิดฉาก!", "DECISIVE STRIKE", b.x, true)
 	_sfx("finisher")
-	if mode == "arcade" and a == fighters[0]:
+	if scored and a == fighters[0]:
 		run_score += roundi(1500 * (1 + stage * 0.5))
 
 
