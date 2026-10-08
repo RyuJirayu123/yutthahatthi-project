@@ -406,7 +406,7 @@ func _detail_panel(p: int) -> Control:
 	var pad := _vbox(2)
 	pad.size_flags_horizontal = SIZE_EXPAND_FILL
 	var move_labels := []
-	for spec in [["ท่าประจำตัว · ปุ่ม G", INK], ["อัลติ · ปุ่ม H เมื่อพลังเต็ม", ACC]]:
+	for spec in [["พุ่งชน · ปุ่ม G (ทุกเชือก)", INK], ["อัลติ · ปุ่ม H เมื่อพลังเต็ม", ACC]]:
 		pad.add_child(_label(spec[0], 10, 600, MUTED_INK, 1))
 		var mname := _label("", 17, 800, spec[1])
 		var mdesc := _label("", 11, 600, MUTED_INK)
@@ -501,7 +501,7 @@ func _build_howto() -> void:
 		["กระโดด · ย่อ = ป้องกัน", "JUMP · CROUCH TO GUARD", ["up", "down"], false],
 		["งวงรัว · ระยะสั้น", "TRUNK FLURRY · SHORT", ["light"], false],
 		["ขาตวัด · ระยะกลาง", "FORELEG SWIPE · MID", ["medium"], false],
-		["ท่าประจำตัว", "SIGNATURE MOVE", ["heavy"], false],
+		["พุ่งชน", "CHARGE", ["heavy"], false],
 		["อัลติ · พลังเต็ม", "ULTIMATE · FULL POWER", ["special"], true],
 	]
 	cols.add_child(_controls_column("ผู้เล่น 1", "PLAYER 1", ACC, 1, rows))
@@ -523,9 +523,9 @@ func _build_howto() -> void:
 	rv.add_child(_pad(rh, 0, 10))
 	var items := [
 		["01", "rule1", "", ""],
-		["02", "", "ช้างแต่ละเชือกมีท่าประจำตัว (G) และอัลติ (H) ของตัวเอง โดนตีหรือตีโดนจะเติมหลอดพลัง", "Each elephant has its own signature (G) and ultimate (H, full power bar)."],
+		["02", "", "ทุกเชือกมีท่าพื้นฐานและพุ่งชน (G) เหมือนกัน ต่างกันที่อัลติ (H) โดนตีหรือตีโดนจะเติมหลอดพลัง", "Every elephant shares the basics and the G charge; the ultimates (H, full power bar) differ."],
 		["03", "", "ย่อค้างกันได้ทุกท่า ยกเว้นอัลติบางท่า กันได้แล้วรีบตีสวน", "Hold down to guard all but a few ultimates, then strike back."],
-		["04", "", "หลอดทรงตัวหมด = ช้างเสียหลัก มึน 1 วิ กด G ท่าประจำตัวซ้ำ = กระแทกปิดฉาก", "Empty the balance bar to stun them, then land your signature (G) for a Decisive Strike."],
+		["04", "", "หลอดทรงตัวหมด = ช้างเสียหลัก มึน 1 วิ กด G พุ่งชนซ้ำ = กระแทกปิดฉาก", "Empty the balance bar to stun them, then land a charge (G) for a Decisive Strike."],
 		["05", "rule4", "", ""],
 		["06", "", "จอย: X = F · LB = R · Y = G · B = H · A กระโดด", "Gamepad: stick/D-pad move, hold down to guard · Start pause."],
 	]
@@ -604,12 +604,12 @@ func _build_combos() -> void:
 	]))
 	cols.add_child(_vrule(DIVIDER))
 	cols.add_child(_combo_column("ท่าพิเศษ", "SPECIALS", [
-		["พุ่งกระแทก", "RUSH", ["↓ ↘ →", "+", "F"], ["↓ ↘ →", "+", ","],
-			"พุ่งเข้าชนเร็ว ปิดระยะจากไกลๆ (F หรือ R ก็ได้) ป้องกันได้"],
+		["พุ่งชน", "CHARGE", ["G"], ["."],
+			"พุ่งเข้าชนเร็ว ปิดระยะจากไกลๆ ต่อจากท่างวงได้ ป้องกันได้"],
 		["งวงเสย", "TRUNK UPPERCUT", ["→ ↓ ↘", "+", "F"], ["→ ↓ ↘", "+", ","],
 			"ตอนเริ่มท่าไม่โดนอะไร สวนคนกระโดดเข้ามา แต่ถ้าพลาดโดนสวนหนัก"],
-		["ท่า EX", "EX SIGNATURE", ["G", "+", "H"], [".", "+", "/"],
-			"กดพร้อมกัน ใช้พลังครึ่งหลอด ท่าประจำตัวแรงขึ้น ไม่สะดุ้งตอนง้าง"],
+		["ท่า EX", "EX CHARGE", ["G", "+", "H"], [".", "+", "/"],
+			"กดพร้อมกัน ใช้พลังครึ่งหลอด พุ่งชนแรงขึ้น ไม่สะดุ้งตอนพุ่ง"],
 		["ปัดสวน", "GUARD COUNTER", ["↓", "+", "G"], ["↓", "+", "."],
 			"ตอนกันการโจมตีได้ กด G ผลักสวนกลับ ใช้พลัง 1 ช่อง"],
 		["สวนจังหวะ", "COUNTER HIT", [], [],

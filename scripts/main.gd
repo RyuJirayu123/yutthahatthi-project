@@ -428,7 +428,7 @@ func _on_duel_finished(winner: int) -> void:
 		return
 	var cleared := winner == 0
 	var new_hi := run_score > hiscore
-	var unlocked := cleared and not boss_unlocked
+	var unlocked := cleared and not boss_unlocked and boss.locked
 	if new_hi:
 		hiscore = run_score
 		ui.set_hiscore(hiscore)

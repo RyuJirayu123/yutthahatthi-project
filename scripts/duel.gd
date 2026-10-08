@@ -428,7 +428,7 @@ func _move_events(f: Fighter, o: Fighter) -> void:
 				_burst(f.x, f.y - 120.0, GameData.GOLD_LIGHT, 14, 1.2)
 				_callout("EX " + m.name_th + "!", "EX " + m.name_en, f.x, false)
 				_sfx("bless")
-			elif m.id == "counter" or m.id == "uppercut" or m.id == "rush":
+			elif m.id == "counter" or m.id == "uppercut":
 				_callout(m.name_th + "!", m.name_en, f.x, false)
 	if m.event == "" or f.event_done or f.atk_t < m.event_at:
 		return

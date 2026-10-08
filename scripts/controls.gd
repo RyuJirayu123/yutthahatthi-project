@@ -10,7 +10,7 @@ const FILE := "user://controls.cfg"
 const ACTIONS := [
 	["left", "เดินซ้าย", "LEFT"], ["right", "เดินขวา", "RIGHT"], ["up", "กระโดด", "JUMP"],
 	["down", "ย่อ · ป้องกัน", "CROUCH · GUARD"], ["light", "งวงรัว · ระยะสั้น", "TRUNK FLURRY"],
-	["medium", "ขาตวัด · ระยะกลาง", "FORELEG SWIPE"], ["heavy", "ท่าประจำตัว", "SIGNATURE"],
+	["medium", "ขาตวัด · ระยะกลาง", "FORELEG SWIPE"], ["heavy", "พุ่งชน", "CHARGE"],
 	["special", "อัลติ", "ULTIMATE"],
 ]
 ## Default key letters written in help texts -> the action whose current key replaces them.

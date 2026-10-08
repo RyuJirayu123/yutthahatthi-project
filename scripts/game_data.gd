@@ -7,7 +7,7 @@ const H := 540.0
 const GROUND := 440.0
 const WALL := 80.0
 ## Speed of the whole fight (moves, walking, jumps, effects); 1.0 = original pace. The round timer stays in real seconds.
-const GAME_SPEED := 0.7
+const GAME_SPEED := 0.85
 
 ## Thai court palette: lacquer red, gold leaf, cream paper, dark teak.
 const INK := Color("#2a170d")
@@ -70,11 +70,11 @@ class Move:
 	var ai_range := 240.0      ## CPU uses it when the opponent is closer than this
 	var start_sfx := "whoosh"
 	var links := {}            ## next attack button -> move it chains into ("light", "medium", "clight" / "cmedium" = crouching)
-	var cancel_heavy := false  ## once it connects, G cuts its recovery short with the signature move
+	var cancel_heavy := false  ## once it connects, G cuts its recovery short with the charge
 	var cancel_super := false  ## once it connects, H (full power bar) cuts it short with the ultimate
 
 
-## Moves by id. The normals and specials are shared; each ElephantDef picks a signature (G)
+## Moves by id. The normals, specials and the G charge are shared; each ElephantDef picks
 ## and an ultimate (H, full power bar).
 static var MOVES := {}
 
@@ -134,28 +134,15 @@ static func _build_moves() -> void:
 	_move("counter", 0.42, [_hit(0.05, 0.15, 96, 4, 480, 0.36, 0, 10, {"offset": 70.0})],
 		{"name_th": "ปัดสวน", "name_en": "GUARD COUNTER", "armor": 0.16, "start_sfx": "block"})
 	# special moves (motion + F). Like the F string they cancel into the ultimate once they connect.
-	# ↓↘→ + F: rushes in fast and rams; closes the distance
-	_move("rush", 0.55, [_hit(0.12, 0.28, 80, 8, 260, 0.38, 10, 6)],
-		{"cancel_super": true, "name_th": "พุ่งกระแทก", "name_en": "RUSH", "dash_start": 0.08, "dash_stop": 0.26,
+	# G, the same for every elephant: rushes in fast and rams; closes the distance, cancels off
+	# the trunk string, and on a reeling elephant it is the decisive strike
+	_move("rush", 0.55, [_hit(0.12, 0.28, 84, 10, 300, 0.4, 10, 8)],
+		{"cancel_super": true, "name_th": "พุ่งชน", "name_en": "RAM", "desc": "พุ่งเข้าชนเร็ว ปิดระยะ ต่อจากท่างวงได้",
+		"dash_start": 0.08, "dash_stop": 0.26,
 		"dash_speed": 560.0, "dash_until_hit": true, "ai_range": 330.0})
 	# →↓↘ + F: rears up and swats upward. Untouchable as it starts, beats jump-ins, but wide open on a miss.
 	_move("uppercut", 0.74, [_hit(0.07, 0.20, 110, 10, 140, 0.6, 12, 10, {"offset": 70.0, "vreach": 240.0, "lift": -560.0})],
 		{"name_th": "งวงเสย", "name_en": "TRUNK UPPERCUT", "invuln": 0.13, "cancel_super": true, "ai_range": 200.0})
-
-	# signature moves (G)
-	_move("gore", 0.62, [_hit(0.22, 0.34, 96, 11, 340, 0.42, 12, 10, {"lift": -220.0})],
-		{"cancel_super": true, "name_th": "แทงงา", "name_en": "TUSK GORE", "desc": "แทงงาหนัก กระเด็นไกล"})
-	_move("hook", 0.60, [_hit(0.20, 0.32, 100, 8, 260, 0.55, 12, 8, {"pull": true})],
-		{"cancel_super": true, "name_th": "งาเกี่ยว", "name_en": "TUSK HOOK", "desc": "เกี่ยวดึงเข้ามาใกล้ แล้วต่อท่าได้"})
-	_move("rise", 0.60, [_hit(0.15, 0.28, 108, 11, 160, 0.5, 12, 10, {"lift": -500.0})],
-		{"cancel_super": true, "name_th": "งางัด", "name_en": "RISING TUSK", "desc": "งัดงาเสยจากต่ำขึ้นสูง อีกฝ่ายลอย ต่อคอมโบกลางอากาศได้",
-		"ai_range": 200.0})
-	_move("headbutt", 0.78, [_hit(0.34, 0.44, 90, 14, 520, 0.5, 12, 16, {"lift": -180.0})],
-		{"cancel_super": true, "name_th": "หัวโขก", "name_en": "HEADBUTT", "desc": "ช้า แต่ตอนง้างโดนตีไม่สะดุ้ง กระเด็นไกล", "armor": 0.34})
-	_move("sweep", 0.55, [_hit(0.14, 0.26, 140, 8, 200, 0.3, 22, 4, {"offset": 80.0, "sound": "hit"})],
-		{"cancel_super": true, "name_th": "งวงหวด", "name_en": "TRUNK SWEEP", "desc": "ฟาดกวาดระยะยาว ได้หลอดพลังเยอะ", "ai_range": 280.0})
-	_move("double", 0.80, [_hit(0.18, 0.26, 90, 6, 120, 0.45, 8, 6), _hit(0.40, 0.50, 96, 9, 380, 0.45, 10, 10, {"lift": -200.0})],
-		{"cancel_super": true, "name_th": "งาคู่", "name_en": "TWIN GORE", "desc": "แทงงาสองจังหวะติดกัน"})
 
 	# ultimates (H, full power bar)
 	var u := {"ultimate": true}
@@ -207,8 +194,8 @@ const WHIFF_LAG := 0.14         ## extra recovery after an attack that touched n
 const F_COOLDOWN := 0.15        ## F can't start a new string this long after the trunk slam (3rd F) ends
 
 ## Street-fighter style extras
-const MOTION_WINDOW := 0.4      ## a motion (↓↘→ / →↓↘) must be finished this long before the button
-const EX_COST := 50.0           ## G + H together: power for an EX signature move
+const MOTION_WINDOW := 0.4      ## a motion (→↓↘) must be finished this long before the button
+const EX_COST := 50.0           ## G + H together: power for an EX charge
 const EX_WINDOW := 0.06         ## G and H count as "together" when pressed this close
 const EX_POWER := 1.4           ## EX damage
 const COUNTER_DMG := 1.2        ## hitting an opponent in the middle of an attack

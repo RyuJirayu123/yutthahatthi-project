@@ -17,13 +17,13 @@ const LESSONS := [
 	["ตีระยะกลาง", "F ตีได้แค่ใกล้ๆ จากตรงนี้ต้องใช้ R ขาตวัด (โดน 2 ครั้ง)", "Only R reaches from here: land two foreleg swipes.", "R", "stand", 250.0, 0.0, "mid_hit", 2],
 	["คอมโบงวง", "กด F รัวๆ ให้ได้ 3 ฮิตติดกัน", "Mash F for a 3-hit string.", "F  F  F", "stand", 205.0, 0.0, "string3", 1],
 	["สั้น › กลาง › กวาด", "F แล้ว R แล้ว S + R กวาดขาให้ล้ม", "F, then R, then down + R to sweep.", "F › R › S+R", "stand", 205.0, 0.0, "smsweep", 1],
-	["ยกเลิกท่า", "F โดนแล้วกด G ทันที ตัดเข้าท่าประจำตัว", "Cancel a connecting F into your signature with G.", "F › G", "stand", 205.0, 0.0, "cancel", 1],
-	["พุ่งกระแทก", "อยู่ไกลๆ กด ↓ ↘ → (S, S+D, D) แล้วกด F พุ่งเข้าชนหุ่น", "From afar: quarter-circle forward + F to rush in.", "↓ ↘ → + F", "stand", 330.0, 0.0, "rush", 1],
+	["ยกเลิกท่า", "F โดนแล้วกด G ทันที ตัดเข้าพุ่งชน", "Cancel a connecting F into a charge with G.", "F › G", "stand", 205.0, 0.0, "cancel", 1],
+	["พุ่งชน", "อยู่ไกลๆ กด G พุ่งเข้าชนหุ่น", "From afar: press G to charge in.", "G", "stand", 330.0, 0.0, "rush", 1],
 	["งวงเสย", "หุ่นจะกระโดดเข้ามา กด → ↓ ↘ แล้ว F เสยกลางอากาศ", "Forward, down, down-forward + F to swat the jump-in.", "→ ↓ ↘ + F", "jumpin", 440.0, 0.0, "uppercut", 1],
 	["กระโดดข้ามหัว", "ยืนใกล้ๆ แล้วกระโดดเข้าหา ลงข้างหลังหุ่น", "Jump forward from close to land behind it.", "W + D", "stand", 200.0, 0.0, "jumpover", 1],
-	["ท่า EX", "กด G + H พร้อมกัน ใช้พลังครึ่งหลอด ท่าประจำตัวแรงขึ้น", "Press G and H together for an EX signature.", "G + H", "stand", 210.0, 100.0, "ex", 1],
+	["ท่า EX", "กด G + H พร้อมกัน ใช้พลังครึ่งหลอด พุ่งชนแรงขึ้น", "Press G and H together for an EX charge.", "G + H", "stand", 210.0, 100.0, "ex", 1],
 	["ปัดสวน", "ย่อกันท่าของหุ่นได้แล้วกด G ผลักสวนกลับ", "Guard a hit, then press G to shove back.", "S ค้าง › G", "attack", 230.0, 100.0, "gcounter", 1],
-	["กระแทกปิดฉาก", "ตีจนหลอดทรงตัวหุ่นหมด (หุ่นเซ) แล้วกด G ท่าประจำตัวใส่", "Empty its balance bar, then land your signature move (G).", "ตี… › G", "stand", 210.0, 0.0, "finisher", 1],
+	["กระแทกปิดฉาก", "ตีจนหลอดทรงตัวหุ่นหมด (หุ่นเซ) แล้วกด G พุ่งชนใส่", "Empty its balance bar, then land a charge (G).", "ตี… › G", "stand", 210.0, 0.0, "finisher", 1],
 	["อัลติ", "พลังเต็มแล้ว กด H ปล่อยท่าไม้ตาย", "Full power: press H.", "H", "stand", 240.0, 100.0, "ult", 1],
 ]
 
