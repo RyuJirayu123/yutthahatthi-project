@@ -8,6 +8,7 @@ var def: ElephantDef:
 		def = v
 		_fighter = Fighter.new(def, 0.0, face, "none") if def else null
 		_rig = ElephantRig.new()
+		material = ElephantRig.material_for(def) if def else null
 var face := 1:
 	set(v):
 		face = v
@@ -22,6 +23,7 @@ var _rig: ElephantRig
 func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	clip_contents = true
+	texture_filter = TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 
 
 func _process(delta: float) -> void:

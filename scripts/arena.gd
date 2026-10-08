@@ -1,6 +1,18 @@
 extends Node2D
 ## Draws the current Duel: painted backdrop, elephants, particles, HUD and round banners.
 ## Elephants are drawn by one ElephantRig per fighter. Everything is in 960×540 arena space.
+## Child layers drawn behind the arena's own drawing, in order: the backdrop, then _back
+## (ultimate backdrop, dust, shadows and auras), then one layer per elephant carrying its
+## recolour material; the arena itself then draws effects and the HUD on top.
+
+## A child canvas item that draws with a callable.
+class Layer extends Node2D:
+	var paint: Callable
+
+	func _draw() -> void:
+		if paint.is_valid():
+			paint.call(self)
+
 
 const W := GameData.W
 const H := GameData.H
@@ -27,6 +39,8 @@ var cam_x := 0.0          ## slides the fight aside on the title screen and the 
 var frozen := false       ## true while paused: animation holds its pose
 var _pan := 0.0           ## gentle follow of the fighters during a fight (parallax)
 var _rigs := {}           ## Fighter -> ElephantRig
+var _back: Layer          ## behind the elephants
+var _bodies := {}         ## Fighter -> Layer drawing that elephant's sprite
 var _backdrop: Backdrop   ## child node drawn behind the arena's own drawing
 var _backdrop_duel: Duel
 var _time := 0.0
@@ -62,6 +76,7 @@ func _process(delta: float) -> void:
 	if not frozen:
 		_update_camera(minf(delta, 0.05))
 	_sync_backdrop()
+	_sync_layers()
 	_backdrop.update(view_x(), _time, _shake)
 	_backdrop.transform = _cam()
 	_backdrop.show_front(training == null)
@@ -107,17 +122,9 @@ func _draw() -> void:
 		return
 	_sync_rigs()
 	_sync_backdrop()
-	var world := _cam() * Transform2D(0.0, _shake + Vector2(view_x(), 0.0))
-	if _cut > 0.0:
-		_draw_super_bg()
-	for f in duel.fighters:
-		(_rigs[f] as ElephantRig).draw_dust(self, world)
-	# the elephant doing an ultimate is drawn in front
-	var order := duel.fighters.duplicate()
-	if duel.super_f and duel.super_f == order[0]:
-		order.reverse()
-	for f in order:
-		(_rigs[f] as ElephantRig).draw(self, f, world)
+	var world := _world()
+	for f in _order():
+		(_rigs[f] as ElephantRig).draw_front(self, f, world)
 	draw_set_transform_matrix(world)
 	for w in duel.waves:
 		_draw_wave(w)
@@ -139,6 +146,64 @@ func _draw() -> void:
 			_otext("รอสัญญาณคู่ต่อสู้… · WAITING FOR OPPONENT", W / 2.0, 200.0, 16, 800, Color.WHITE, CENTER, 6)
 		if _cut > 0.0 and duel.super_f:
 			_draw_cut_in(duel.super_f)
+
+
+func _world() -> Transform2D:
+	return _cam() * Transform2D(0.0, _shake + Vector2(view_x(), 0.0))
+
+
+## The elephant doing an ultimate is drawn in front.
+func _order() -> Array:
+	var order := duel.fighters.duplicate()
+	if duel.super_f and duel.super_f == order[0]:
+		order.reverse()
+	return order
+
+
+## Keeps the layers behind the arena's drawing in order (backdrop, _back, elephants) and in step
+## with the current fighters; each elephant's layer carries its recolour material.
+func _sync_layers() -> void:
+	if _back == null:
+		_back = Layer.new()
+		_back.show_behind_parent = true
+		_back.paint = _paint_back
+		add_child(_back)
+	for f in _bodies.keys():
+		if not f in duel.fighters:
+			(_bodies[f] as Layer).queue_free()
+			_bodies.erase(f)
+	for f in duel.fighters:
+		if not _bodies.has(f):
+			var l := Layer.new()
+			l.show_behind_parent = true
+			l.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			l.material = ElephantRig.material_for(f.def)
+			l.paint = func(c: CanvasItem) -> void:
+				if duel and _rigs.has(f):
+					(_rigs[f] as ElephantRig).draw_body(c, f, _world())
+			add_child(l)
+			_bodies[f] = l
+	move_child(_backdrop, 0)
+	move_child(_back, 1)
+	var i := 2
+	for f in _order():
+		move_child(_bodies[f], i)
+		i += 1
+	_back.queue_redraw()
+	for f in _bodies:
+		(_bodies[f] as Layer).queue_redraw()
+
+
+func _paint_back(c: CanvasItem) -> void:
+	if duel == null or not _rigs.has(duel.fighters[0]) or not _rigs.has(duel.fighters[1]):
+		return
+	var world := _world()
+	if _cut > 0.0:
+		_draw_super_bg(c)
+	for f in duel.fighters:
+		(_rigs[f] as ElephantRig).draw_dust(c, world)
+	for f in _order():
+		(_rigs[f] as ElephantRig).draw_back(c, f, world)
 
 
 ## Fighters are recreated every round; give each new one a fresh rig.
@@ -377,8 +442,8 @@ func _panel(x0: float, y0: float, x1: float, y1: float) -> void:
 
 
 ## Super freeze backdrop: the scene darkens and speed lines burst from the elephant.
-func _draw_super_bg() -> void:
-	draw_rect(Rect2(0, 0, W, H), Color(0.08, 0.02, 0.02, 0.62 * _cut))
+func _draw_super_bg(cv: CanvasItem) -> void:
+	cv.draw_rect(Rect2(0, 0, W, H), Color(0.08, 0.02, 0.02, 0.62 * _cut))
 	var c := _focus
 	for i in 30:
 		var a := TAU * i / 30.0 + sin(i * 7.3) * 0.08 + _time * 0.15
@@ -386,7 +451,7 @@ func _draw_super_bg() -> void:
 		var n := d.orthogonal() * (3.0 + fposmod(i * 2.7, 4.0))
 		var r0 := 120.0 + fposmod(i * 37.0, 60.0)
 		var col := Color(GOLD_LIGHT if i % 3 == 0 else Color.WHITE, 0.32 * _cut)
-		DrawKit.fill(self, PackedVector2Array([c + d * r0 + n, c + d * 1100.0, c + d * r0 - n]), PackedColorArray([col, Color(col, 0.0), col]))
+		DrawKit.fill(cv, PackedVector2Array([c + d * r0 + n, c + d * 1100.0, c + d * r0 - n]), PackedColorArray([col, Color(col, 0.0), col]))
 
 
 ## Ultimate cut-in: a lacquer band slides in from the elephant's side with its face and the move's name.

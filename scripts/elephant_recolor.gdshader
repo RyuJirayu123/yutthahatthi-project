@@ -1,18 +1,19 @@
 shader_type canvas_item;
-render_mode blend_disabled, unshaded;
-// Recolours the elephant sprite sheet for one ElephantDef, keeping the painted shading: the red
-// cloth (and crest and jewels) becomes `cloth`, the blue-grey skin `skin`, the gold trim `trim`.
-// ElephantRig renders the sheet through this once per elephant (blend_disabled keeps the alpha
-// exact in the offscreen pass).
+// Recolours the painted elephant for one ElephantDef while it is drawn, keeping the painted
+// shading: the red cloth (and crest and jewels) becomes `cloth`, the blue-grey skin `skin`, the
+// gold trim `trim`. ElephantRig.material_for() makes one material per elephant; the draw call's
+// modulate (the hit flash) still applies.
 
 uniform vec4 cloth = vec4(0.78, 0.1, 0.12, 1.0);
 uniform vec4 skin = vec4(0.45, 0.47, 0.55, 1.0);
 uniform vec4 trim = vec4(0.91, 0.7, 0.23, 1.0);
 
-// typical colours in the painted sheet (hue, saturation, value) and the skin's mid value
+// typical colours in the painted sheets (hue, saturation, value) and the skin's mid value
 const vec3 SRC_CLOTH = vec3(0.979, 0.76, 0.72);
 const vec3 SRC_GOLD = vec3(0.103, 0.55, 0.86);
 const float SRC_SKIN_V = 0.55;
+
+varying vec4 modulate;
 
 vec3 rgb2hsv(vec3 c) {
 	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -40,6 +41,10 @@ vec3 shift(vec3 px, vec3 src, vec3 dst) {
 	return hsv2rgb(vec3(t.x, clamp(px.y * t.y / src.y, 0.0, 1.0), clamp(px.z * t.z / src.z, 0.0, 1.0)));
 }
 
+void vertex() {
+	modulate = COLOR;
+}
+
 void fragment() {
 	vec4 px = texture(TEXTURE, UV);
 	vec3 hsv = rgb2hsv(px.rgb);
@@ -50,5 +55,5 @@ void fragment() {
 	col = mix(col, clamp(skin.rgb * (hsv.z / SRC_SKIN_V), 0.0, 1.0), ws);
 	col = mix(col, shift(hsv, SRC_CLOTH, cloth.rgb), wc);
 	col = mix(col, shift(hsv, SRC_GOLD, trim.rgb), wg);
-	COLOR = vec4(col, px.a);
+	COLOR = vec4(col, px.a) * modulate;
 }

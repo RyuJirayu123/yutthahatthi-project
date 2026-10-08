@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#ece8e0;color:#25211d;font-family:'IBM Plex Sans Thai',sans-serif}a{color:#8a3b1e}a:hover{color:#5e2510}</style>
+</helmet>
+<div style="max-width:1280px;margin:0 auto;padding:48px 32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">10 ท่า · ตัดจากวิดีโอ Google Flow 5 คลิป</div>
+<h1 style="margin:0;font-size:34px;font-weight:600">ช้างศึก · ชุดท่าทางครบ</h1>
+<div style="font-size:16px;color:#5c554d;max-width:780px;text-wrap:pretty">ทุกเฟรมขนาด 880×540 เส้นพื้นและจุด pivot ตรงกันทุกท่า กดการ์ดเพื่อดูท่านั้นในจอใหญ่</div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:start">
+<div style="position:relative;aspect-ratio:880/540;border-radius:6px;overflow:hidden;background:linear-gradient(180deg,#bcd6d9 0%,#dfe8d6 76%,#b39a70 76%,#8f7650 100%)">
+<div ref="{{ heroRef }}" style="position:absolute;inset:0;background-repeat:no-repeat"></div>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#25211d;background:#fbfaf7;padding:3px 8px;border-radius:3px;white-space:nowrap">▶ {{ selName }} · {{ selFps }} fps</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="font-weight:600;color:#25211d">ไฟล์สำหรับ Godot</div>
+<div style="display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px 12px">
+<span style="color:#7a7268">sprite sheet</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px">assets/sheets/*.png</span>
+<span style="color:#7a7268">SpriteFrames</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px">assets/elephant_frames.tres</span>
+<span style="color:#7a7268">ต่อเฟรม</span><span>880×540 px · 4 คอลัมน์</span>
+<span style="color:#7a7268">offset</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px">Vector2(0, -242)</span>
+</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<sc-for list="{{ cards }}" as="a" hint-placeholder-count="10">
+<div onClick="{{ a.pick }}" style="{{ a.cardStyle }}">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px"><span style="font-weight:500;font-size:14px;white-space:nowrap">{{ a.th }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a8278">{{ a.key }}</span></div>
+<div ref="{{ a.ref }}" style="aspect-ratio:880/540;background-repeat:no-repeat;background-color:#efe9dd;border-radius:3px"></div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a8278">{{ a.meta }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  static A = [
+    ['idle', 'ยืน', 12, 12, true], ['walk', 'เดิน', 12, 12, true], ['run', 'วิ่ง', 12, 14, true], ['guard', 'ตั้งการ์ด', 12, 10, false],
+    ['attack_tusk', 'แทงงา', 12, 14, false], ['attack_trunk', 'ฟาดงวง', 16, 12, false], ['charge', 'พุ่งชน', 16, 12, false],
+    ['hit', 'โดนตี', 12, 14, false], ['victory', 'ชนะ', 16, 10, false], ['death', 'ตาย', 16, 10, false]
+  ];
+  state = { sel: 0 };
+  heroRef = React.createRef();
+  cardRefs = Component.A.map(() => React.createRef());
+  componentDidMount() {
+    const t0 = this.t0 = performance.now();
+    const paint = (el, a, t) => {
+      if (!el) return;
+      const [key, , n, fps, loop] = a, rows = Math.ceil(n / 4);
+      let f = Math.floor(t * fps);
+      f = loop ? f % n : Math.min(f % (n + Math.round(fps * .8)), n - 1);
+      el.style.backgroundImage = `url(assets/sheets/${key}.png)`;
+      el.style.backgroundSize = `400% ${rows * 100}%`;
+      el.style.backgroundPosition = `${(f % 4) * 100 / 3}% ${rows > 1 ? Math.floor(f / 4) * 100 / (rows - 1) : 0}%`;
+    };
+    const step = () => {
+      const t = (performance.now() - t0) / 1000;
+      Component.A.forEach((a, i) => { try { paint(this.cardRefs[i]?.current, a, t); } catch (e) {} });
+      paint(this.heroRef.current, Component.A[this.state.sel], t - (this.selT || 0));
+      this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  renderVals() {
+    const sel = Component.A[this.state.sel];
+    return {
+      heroRef: this.heroRef,
+      selName: `${sel[1]} (${sel[0]})`, selFps: sel[3],
+      cards: Component.A.map((a, i) => ({
+        key: a[0], th: a[1], ref: this.cardRefs[i],
+        meta: `${a[2]} เฟรม · ${a[3]} fps · ${a[4] ? 'loop' : 'ครั้งเดียว'}`,
+        pick: () => { this.selT = (performance.now() - (this.t0 || 0)) / 1000; this.setState({ sel: i }); },
+        cardStyle: { background: '#fbfaf7', border: i === this.state.sel ? '2px solid #8a3b1e' : '1px solid #ddd6ca', borderRadius: 6, padding: i === this.state.sel ? 9 : 10, display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer' }
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
