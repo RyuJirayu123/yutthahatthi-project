@@ -33,6 +33,23 @@ const LEGS := [
 	[Vector2(-40, 0), 0.5],
 	[Vector2(88, 0), 0.75],
 ]
+## Joints in frame pixels: the picture bends about these (see _draw_sprite).
+const NECK_PX := Vector2(318, 172)       ## behind the ear: the head nods about it
+const TRUNK_PX := Vector2(440, 222)      ## trunk root, under the tusks
+const SHOULDER_PX := Vector2(318, 252)   ## the forelegs swing from here
+const TAIL_PX := Vector2(84, 186)
+const HEAD_GAIN := 0.8                   ## head spring degrees -> head bend
+const TRUNK_GAIN := 0.7                  ## design trunk angles -> trunk bend
+const GX := 30                           ## grid over the frame for bending: columns, rows
+const GY := 22
+
+## Trunk poses: the trunk's angle in degrees (90 = hanging straight down, 0 = straight ahead,
+## negative = raised). The picture's trunk hangs at about 88.
+const TRUNK := {
+	"rest": 88, "air": 55, "wind": -35, "whip": 12, "tuck": 105, "up": -62, "guard": 72,
+	"hurt": 58, "droop": 95, "ko": 62, "sweep": 30, "roar": -70, "upper": -12, "slam": 52, "spray": -6,
+}
+
 const PITCH_PIVOT := Vector2(20, -90)
 const REAR_PIVOT := Vector2(-60, -6)     ## hind feet
 const NECK := Vector2(95, -120)          ## where the head is
@@ -42,6 +59,7 @@ const HEAD_TOP := Vector2(88, -176)      ## over the crown
 const SPRING := {
 	"bob": [5.0, 0.45], "pitch": [4.5, 0.55], "rear": [2.6, 0.42], "shift": [6.0, 0.6],
 	"head": [5.5, 0.5], "sq": [4.5, 0.25],
+	"trunk": [6.5, 0.6], "front": [5.0, 0.5], "tail": [1.6, 0.25],
 }
 
 class Puff:
@@ -55,6 +73,10 @@ class Puff:
 static var _src: Texture2D
 static var _shader: Shader
 static var _tex := {}          ## "body/cloth/trim" colours -> the sheet recoloured for them
+static var _gp := PackedVector2Array()    ## bending grid: vertex positions in frame pixels
+static var _gi := PackedInt32Array()      ## ...triangles
+static var _gw := []                      ## ...weights per vertex: [head, trunk, forelegs, tail]
+static var _guv := {}                     ## frame -> the grid's texture coordinates
 
 var _x := {}
 var _v := {}
@@ -164,39 +186,55 @@ func _targets(f: Fighter, over: bool, air: bool) -> Dictionary:
 		"bob": 1.0 + sin(tm * 2.2) * 1.2 + absf(sin(_phase)) * 3.0 * _move,
 		"pitch": 0.0, "rear": 0.0, "shift": 0.0, "sq": 0.0,
 		"head": sin(tm * 1.7) * 2.0 + sin(_phase * 2.0) * 3.0 * _move,
+		"tail": sin(tm * 1.9) * 10.0 + f.vx * f.face * 0.03,
+		"front": 0.0,
 	}
+	_trunk(p, "rest")
+	p["trunk"] += sin(tm * 1.5) * 4.0
 
 	if air:
 		p["pitch"] = clampf(f.vy * 0.015, -10.0, 10.0)
+		_trunk(p, "air")
 	if f.dash_t > 0.0 and f.atk == "" and not air:
 		if f.dash_dir == f.face:
 			_apply(p, {"pitch": 5.0, "head": 12.0, "shift": 8.0})
+			_trunk(p, "tuck")
 		else:
 			_apply(p, {"pitch": -6.0, "head": -14.0, "shift": -8.0})
 	if f.atk != "":
 		_attack_pose(p, f)
 	if f.stun > 0.0 and not f.ko:
 		_apply(p, {"pitch": -8.0, "head": -18.0, "shift": -6.0})
+		_trunk(p, "hurt")
 	if f.dazed > 0.0 and not f.ko:
 		if f.stun > 0.0:
 			# reeling from the balance break: head lolls, body sways, trunk hangs
 			_apply(p, {"head": 16.0 + sin(tm * 5.5) * 9.0, "pitch": sin(tm * 4.0) * 4.0, "shift": sin(tm * 4.0) * 6.0, "bob": 4.0})
+			_trunk(p, "droop")
+			p["trunk"] += sin(tm * 5.5) * 8.0
 	if f.crouching and f.atk == "" and not f.ko:
 		# hunkered down: knees bent, head low
 		_apply(p, {"bob": 14.0, "head": 14.0, "pitch": 2.0})
+		_trunk(p, "guard" if f.blocking else "tuck")
 	elif f.blocking:
 		_apply(p, {"bob": 7.0, "head": 12.0, "pitch": 3.0})
+		_trunk(p, "guard")
 	if over and f.atk == "" and not f.ko:
 		if f.win:
 			_apply(p, {"rear": -22.0 + sin(tm * 3.0) * 3.0, "head": -20.0})
+			_trunk(p, "up")
 		else:
 			_apply(p, {"head": 14.0})
+			_trunk(p, "droop")
 	if f.ko:
 		# thrown back while airborne, then collapse onto the belly
 		if air:
 			_apply(p, {"rear": -24.0, "pitch": 0.0, "head": -25.0, "bob": 0.0})
 		else:
 			_apply(p, {"rear": 0.0, "pitch": 5.0, "head": 24.0, "bob": 24.0})
+		_trunk(p, "ko")
+	# the forelegs come up as the body rears back
+	p["front"] += minf(0.0, p["rear"]) * 1.3
 	return p
 
 
@@ -213,60 +251,78 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 		"light":
 			if pre:
 				_apply(p, {"head": -8.0})
+				_trunk(p, "wind")
 			elif act:
 				_apply(p, {"head": 6.0, "shift": 6.0})
+				_trunk(p, "whip")
 		"mid":
 			# rocks back, then drives both tusks straight ahead
 			if pre:
 				_apply(p, {"shift": -10.0, "head": -10.0, "pitch": -3.0})
 			else:
 				_apply(p, {"shift": 20.0 * k, "head": 16.0 * k, "pitch": 6.0 * k})
+			_trunk(p, "tuck")
 		"clow":
 			# from a crouch, flicks the trunk along the ground
 			_apply(p, {"bob": 18.0, "head": 20.0 if act else 10.0, "pitch": 4.0, "shift": 6.0 if act else 0.0})
+			_trunk(p, "sweep" if act else "tuck")
 		"cmid":
 			# low sweep at the legs
 			if pre:
 				_apply(p, {"bob": 16.0, "head": 8.0, "shift": -6.0})
+				_trunk(p, "wind")
 			else:
 				_apply(p, {"bob": 16.0 * maxf(k, 0.4), "head": 26.0 * k, "pitch": 6.0 * k, "shift": 12.0 * k})
+				_trunk(p, "sweep" if k > 0.3 else "tuck")
 		"spout":
 			# draws water up the trunk, then sprays it forward
 			if t < m.event_at:
 				_apply(p, {"head": -6.0, "pitch": -2.0, "shift": -6.0, "bob": 4.0})
+				_trunk(p, "tuck")
 			else:
 				var ks := maxf(0.0, 1.0 - (t - m.event_at) / (m.dur - m.event_at))
 				_apply(p, {"head": -14.0 * ks, "shift": 8.0 * ks, "pitch": 3.0 * ks})
+				_trunk(p, "spray")
 		"uppercut":
 			# crouches, then rears up swatting the trunk skywards
 			if pre:
 				_apply(p, {"bob": 8.0, "head": 12.0, "pitch": 4.0})
+				_trunk(p, "tuck")
 			else:
 				_apply(p, {"rear": -20.0 * k, "head": -26.0 * k, "pitch": -4.0 * k})
+				_trunk(p, "upper" if k > 0.5 else "rest")
 		"light2":
 			# backhand: the trunk drops low, then swings up and across
 			if pre:
 				_apply(p, {"head": 6.0})
+				_trunk(p, "tuck")
 			elif act:
 				_apply(p, {"head": -10.0, "shift": 8.0, "pitch": -2.0})
+				_trunk(p, "upper")
 		"light3":
 			# trunk raised high, then slammed down in front
 			if pre:
 				_apply(p, {"rear": -8.0, "head": -20.0})
+				_trunk(p, "up")
 			else:
 				_apply(p, {"rear": 2.0 * k, "pitch": 9.0 * k, "head": 22.0 * k, "shift": 14.0 * k})
+				_trunk(p, "slam")
 		"dive":
 			_apply(p, {"pitch": 14.0, "head": 26.0, "shift": 8.0})
+			_trunk(p, "tuck")
 		"counter":
 			if pre:
 				_apply(p, {"bob": 6.0, "head": 10.0, "shift": -8.0})
+				_trunk(p, "guard")
 			else:
 				_apply(p, {"pitch": 6.0 * k, "head": 20.0 * k, "shift": 22.0 * k})
+				_trunk(p, "tuck")
 		"gore":
 			if pre:
 				_apply(p, {"pitch": -6.0, "shift": -8.0, "head": -12.0})
 			else:
 				_apply(p, {"pitch": 8.0 * k, "shift": 18.0 * k, "head": 22.0 * k})
+			_trunk(p, "tuck")
 		"hook":
 			# tusk sweeps down then yanks back
 			if pre:
@@ -275,22 +331,27 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 				_apply(p, {"pitch": 6.0, "shift": 10.0, "head": 22.0})
 			else:
 				_apply(p, {"shift": -12.0 * k, "head": -8.0 * k, "pitch": -3.0 * k})
+			_trunk(p, "tuck")
 		"lunge":
 			if pre:
 				_apply(p, {"bob": 7.0, "pitch": 4.0, "head": 6.0})
 			else:
 				_apply(p, {"pitch": 10.0 * k, "head": 22.0 * k, "shift": 14.0 * k})
+			_trunk(p, "tuck")
 		"headbutt":
 			# long rear-back while armored, then the head comes down hard
 			if pre:
 				_apply(p, {"pitch": -10.0, "rear": -5.0, "head": -26.0, "shift": -14.0})
 			else:
 				_apply(p, {"pitch": 12.0 * k, "head": 30.0 * k, "shift": 24.0 * k})
+			_trunk(p, "tuck")
 		"sweep":
 			if pre:
 				_apply(p, {"head": -6.0})
+				_trunk(p, "wind")
 			elif act:
 				_apply(p, {"head": 10.0, "shift": 6.0, "pitch": 3.0})
+				_trunk(p, "sweep")
 		"double":
 			var h2 := m.hits[1]
 			if t < h.start:
@@ -302,25 +363,33 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 			else:
 				var k2 := 1.0 if t <= h2.stop else maxf(0.0, 1.0 - (t - h2.stop) / (m.dur - h2.stop))
 				_apply(p, {"pitch": 10.0 * k2, "shift": 20.0 * k2, "head": 26.0 * k2})
+			_trunk(p, "tuck")
 		"charge3":
 			# trumpet, ram, gore, then rear up and bring the head down for the last blow
 			var h2 := m.hits[1]
 			var h3 := m.hits[2]
 			if t < h.start:
 				_apply(p, {"rear": -8.0, "head": -16.0})
+				_trunk(p, "up")
 			elif t < h.stop:
 				_apply(p, {"pitch": 7.0, "head": 14.0, "shift": 10.0})
+				_trunk(p, "tuck")
 			elif t < h2.stop + 0.04:
 				_apply(p, {"pitch": 8.0, "head": 24.0, "shift": 16.0})
+				_trunk(p, "tuck")
 			elif t < h3.start:
 				_apply(p, {"rear": -12.0, "head": -22.0, "pitch": -4.0})
+				_trunk(p, "up")
 			else:
 				var k3 := 1.0 if t <= h3.stop + 0.06 else maxf(0.0, 1.0 - (t - h3.stop) / (m.dur - h3.stop))
 				_apply(p, {"pitch": 12.0 * k3, "head": 30.0 * k3, "shift": 20.0 * k3})
+				_trunk(p, "tuck")
 		"storm":
 			# trumpets, then whirls the trunk round and round
 			var spin := clampf((t - 0.15) / 0.8, 0.0, 1.0)
 			_apply(p, {"head": -10.0, "bob": 4.0})
+			_trunk(p, "sweep")
+			p["trunk"] = -55.0 + sin(spin * TAU * 3.0) * 50.0   # whipped round and round
 		"blink":
 			if t < m.event_at:
 				_apply(p, {"bob": 8.0, "pitch": 6.0, "head": 10.0})
@@ -328,16 +397,25 @@ func _attack_pose(p: Dictionary, f: Fighter) -> void:
 				_apply(p, {"pitch": -4.0, "head": -12.0, "shift": -4.0})
 			else:
 				_apply(p, {"pitch": 10.0 * k, "head": 24.0 * k, "shift": 16.0 * k})
+			_trunk(p, "tuck")
 		"quake":
 			# rear up on the hind legs, then slam the forefeet down
 			if t < 0.45:
-				_apply(p, {"rear": -26.0, "head": -20.0})
+				_apply(p, {"rear": -26.0, "head": -20.0, "front": -22.0})
+				_trunk(p, "up")
 			elif t < 0.75:
 				_apply(p, {"rear": 4.0, "pitch": 6.0, "head": 14.0, "bob": 6.0})
+				_trunk(p, "droop")
 		"blessing":
 			_apply(p, {"rear": -10.0, "head": -18.0})
+			_trunk(p, "up")
 		"roar":
 			_apply(p, {"rear": -6.0, "head": -24.0, "shift": 4.0})
+			_trunk(p, "roar")
+
+
+func _trunk(p: Dictionary, pose: String) -> void:
+	p["trunk"] = (float(TRUNK[pose]) - 88.0) * TRUNK_GAIN
 
 
 func _apply(p: Dictionary, values: Dictionary) -> void:
@@ -425,7 +503,7 @@ func draw(c: CanvasItem, f: Fighter, base: Transform2D) -> void:
 		tint = Color(1.0, 0.62, 0.58)
 	elif f.ko:
 		tint = Color(0.82, 0.8, 0.82)
-	c.draw_texture_rect_region(_texture(f.def), Rect2(Vector2.ZERO, FRAME), Rect2(Vector2(fr % COLS, fr / COLS) * FRAME, FRAME), tint)
+	_draw_sprite(c, _texture(f.def), fr, tint)
 
 	if _mood == "dizzy":
 		c.draw_set_transform_matrix(body)
@@ -464,14 +542,88 @@ func _frame(f: Fighter) -> int:
 
 
 ## Whole-sprite pose from the springs: squash (bob, landing), lunge (shift), rear up on the hind
-## feet, and lean (pitch, plus part of the head's nod since the head can't turn on its own).
+## feet, and lean (pitch, plus a little of the head's nod).
 func _body_xform() -> Transform2D:
 	var sq := _g("sq") + clampf(_g("bob") - 1.0, -4.0, 30.0) * 0.011
 	var xf := Transform2D.IDENTITY.scaled(Vector2(1.0 + sq * 0.45, 1.0 - sq))
 	xf = xf * Transform2D(0.0, Vector2(_g("shift"), 0.0))
 	xf = xf * _about(REAR_PIVOT, deg_to_rad(_g("rear")))
-	xf = xf * _about(PITCH_PIVOT, deg_to_rad(_g("pitch") + _g("head") * 0.3))
+	xf = xf * _about(PITCH_PIVOT, deg_to_rad(_g("pitch") + _g("head") * 0.1))
 	return xf
+
+
+## The frame, bent at the neck, trunk root, shoulders and tail by the springs. Each vertex of a
+## grid laid over the frame follows those joints by its weight (weights fade smoothly between
+## regions), so the picture bends without seams. Standing perfectly still it is one quad.
+func _draw_sprite(c: CanvasItem, tex: Texture2D, fr: int, tint: Color) -> void:
+	var ah := deg_to_rad(_g("head") * HEAD_GAIN)
+	var at := deg_to_rad(_g("trunk"))
+	var af := deg_to_rad(_g("front"))
+	var al := deg_to_rad(_g("tail"))
+	if absf(ah) + absf(at) + absf(af) + absf(al) < 0.004:
+		c.draw_texture_rect_region(tex, Rect2(Vector2.ZERO, FRAME), Rect2(Vector2(fr % COLS, fr / COLS) * FRAME, FRAME), tint)
+		return
+	_build_grid()
+	var hx := _about(NECK_PX, ah)
+	var tx := hx * _about(TRUNK_PX, at)
+	var fx := _about(SHOULDER_PX, af)
+	var lx := _about(TAIL_PX, al)
+	var wh: PackedFloat32Array = _gw[0]
+	var wt: PackedFloat32Array = _gw[1]
+	var wf: PackedFloat32Array = _gw[2]
+	var wl: PackedFloat32Array = _gw[3]
+	var n := _gp.size()
+	var pts := PackedVector2Array()
+	pts.resize(n)
+	for i in n:
+		var p := _gp[i]
+		var w := wh[i] + wt[i] + wf[i] + wl[i]
+		if w < 0.001:
+			pts[i] = p
+		else:
+			pts[i] = p * (1.0 - w) + (hx * p) * wh[i] + (tx * p) * wt[i] + (fx * p) * wf[i] + (lx * p) * wl[i]
+	RenderingServer.canvas_item_add_triangle_array(c.get_canvas_item(), _gi, pts, PackedColorArray([tint]), _uvs(fr, tex), PackedInt32Array(), PackedFloat32Array(), tex.get_rid())
+
+
+## Grid vertices and how much each follows the head, the trunk (which also follows the head),
+## the forelegs and the tail, from where those sit in the picture.
+static func _build_grid() -> void:
+	if not _gp.is_empty():
+		return
+	var wh := PackedFloat32Array()
+	var wt := PackedFloat32Array()
+	var wf := PackedFloat32Array()
+	var wl := PackedFloat32Array()
+	for j in GY + 1:
+		for i in GX + 1:
+			var p := Vector2(FRAME.x * i / GX, FRAME.y * j / GY)
+			_gp.append(p)
+			var t := smoothstep(200.0, 238.0, p.y) * smoothstep(372.0, 392.0, p.x) * (1.0 - smoothstep(455.0, 478.0, p.x)) * (1.0 - smoothstep(285.0, 300.0, p.y))
+			var h := smoothstep(285.0, 345.0, p.x) * (1.0 - smoothstep(232.0, 262.0, p.y)) * (1.0 - t)
+			var fl := minf(smoothstep(255.0, 290.0, p.y) * smoothstep(228.0, 248.0, p.x) * (1.0 - smoothstep(415.0, 435.0, p.x)), 1.0 - t - h)
+			var tl := (1.0 - smoothstep(72.0, 100.0, p.x)) * (1.0 - smoothstep(235.0, 255.0, p.y))
+			wt.append(t)
+			wh.append(h)
+			wf.append(maxf(0.0, fl))
+			wl.append(tl)
+	_gw = [wh, wt, wf, wl]
+	for j in GY:
+		for i in GX:
+			var a := j * (GX + 1) + i
+			var b := a + GX + 1
+			_gi.append_array([a, a + 1, b + 1, a, b + 1, b])
+
+
+## Texture coordinates of the grid for one frame of the sheet.
+static func _uvs(fr: int, tex: Texture2D) -> PackedVector2Array:
+	var uv: PackedVector2Array = _guv.get(fr, PackedVector2Array())
+	if uv.is_empty():
+		var size := Vector2(tex.get_size())
+		var cell := Vector2(fr % COLS, fr / COLS) * FRAME
+		for p in _gp:
+			uv.append((cell + p) / size)
+		_guv[fr] = uv
+	return uv
 
 
 ## Extra shapes for ultimates, drawn in the elephant's root space before the body.

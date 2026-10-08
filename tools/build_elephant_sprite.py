@@ -10,7 +10,7 @@ Prints the numbers ElephantRig needs (frame size, pivot between the feet, portra
 import pathlib
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHEET = ROOT / "ออกแบบช้างเกม Godot" / "assets" / "elephant-walk-sheet.png"
@@ -20,6 +20,7 @@ SCALE = 0.75
 IDLE = 4                      # frame used standing still: all four feet planted
 HEAD = (540, 185, 135)        # portrait circle in sheet-frame pixels: centre x, y, radius
 PORTRAIT = 256
+INK = (46, 32, 28)            # the art's outline colour
 
 
 def shrink(img: Image.Image, size: tuple) -> Image.Image:
@@ -28,6 +29,14 @@ def shrink(img: Image.Image, size: tuple) -> Image.Image:
 
 
 sheet = Image.open(SHEET).convert("RGBA")
+# the cut-out edge still carries the video's cream background: paint the outermost pixel ring
+# (and any half-transparent pixel) the colour of the dark outline just inside it
+px = np.array(sheet)
+solid = px[..., 3] > 200
+inner = np.array(Image.fromarray((solid * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3))) > 0
+edge = (px[..., 3] > 0) & ~inner
+px[edge, :3] = INK
+sheet = Image.fromarray(px)
 fw, fh = sheet.width // COLS, sheet.height // ROWS
 frames = [sheet.crop((c * fw, r * fh, (c + 1) * fw, (r + 1) * fh)) for r in range(ROWS) for c in range(COLS)]
 
