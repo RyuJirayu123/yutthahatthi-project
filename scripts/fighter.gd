@@ -45,7 +45,6 @@ var dash_dir := 0         ## world direction of the dash, +1 / -1
 var atk_ex := false       ## the current signature move is the EX version
 var lag := 0.0            ## stuck recovering from a whiffed attack (hits here count as counter hits)
 var f_cd := 0.0           ## F is resting after the trunk slam ends the F string
-var spout_live := false   ## this elephant's water spout is still flying (one at a time)
 var _held_dir := 0
 var _tap_dir := 0
 var _tap_t := 9.0
@@ -118,7 +117,7 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 				pressed = "ex"
 			elif pressed == "light" or pressed == "medium":
 				var mo := _motion(inp)
-				if mo != "" and not (mo == "spout" and spout_live):
+				if mo != "":
 					pressed = mo
 				elif inp.get("down", false) and y >= G:
 					pressed = "c" + pressed     # crouching (low) version
@@ -203,10 +202,8 @@ func step(o: Fighter, inp: Dictionary, dt: float, facing_locked: bool) -> void:
 			if buf != "" and not _ex_pending():
 				# F / R dive when airborne; G and H are this elephant's own signature move and ultimate
 				var kind := buf
-				if not grounded and kind in ["light", "medium", "clight", "cmedium", "spout", "uppercut"]:
+				if not grounded and kind in ["light", "medium", "clight", "cmedium", "rush", "uppercut"]:
 					kind = "dive"
-				elif kind == "spout" and spout_live:
-					kind = "light"
 				_begin(kind)
 			elif blocking or crouching:
 				vx = 0.0
@@ -289,7 +286,7 @@ func _follow_up(m: GameData.Move) -> String:
 		# the string only goes on if it really hit; a guarded hit ends it, so the guard can strike back
 		return m.links[buf] if atk_hit else ""
 	match buf:
-		"heavy", "ex", "spout", "uppercut":
+		"heavy", "ex", "rush", "uppercut":
 			return buf if m.cancel_heavy else ""
 		"special":
 			return buf if m.cancel_super and meter >= 100.0 else ""
@@ -301,13 +298,13 @@ func _ex_pending() -> bool:
 	return _buf_age < GameData.EX_WINDOW and (buf == "special" or (buf == "heavy" and meter >= GameData.EX_COST))
 
 
-## Special move from the last directions: →↓↘ (ending on ↘) is the uppercut, ↓↘→ the water spout.
+## Special move from the last directions: →↓↘ (ending on ↘) is the uppercut, ↓↘→ the rush.
 ## The CPU asks for them directly with "dp" / "qcf".
 func _motion(inp: Dictionary) -> String:
 	if inp.get("dp", false):
 		return "uppercut"
 	if inp.get("qcf", false):
-		return "spout"
+		return "rush"
 	var seq := []
 	for i in range(_dirs.size() - 1, -1, -1):
 		seq.push_front(_dirs[i][0])
@@ -316,7 +313,7 @@ func _motion(inp: Dictionary) -> String:
 	if _last_num == 3 and _subseq(seq, [6, 2, 3]):
 		return "uppercut"
 	if _last_num in [3, 6] and (_subseq(seq, [2, 3]) or _subseq(seq, [2, 6])):
-		return "spout"
+		return "rush"
 	return ""
 
 
@@ -447,8 +444,8 @@ func think(o: Fighter, dt: float) -> Dictionary:
 					ai_act = "away" if randf() < 0.5 else "block"
 			elif dist < GameData.move(def.signature).ai_range and r < 0.35:
 				ai_act = "heavy"
-			elif dist > 300.0 and not spout_live and randf() < ai.special * 0.35:
-				ai_act = "spout"
+			elif dist > 280.0 and dist < 380.0 and randf() < ai.special * 0.35:
+				ai_act = "rush"
 			elif dist > 400.0 and r < ai.aggr * 0.3:
 				ai_act = "dash"
 			else:
@@ -469,7 +466,7 @@ func think(o: Fighter, dt: float) -> Dictionary:
 			inp["up"] = true
 			inp[tw] = true
 			ai_act = "toward"
-		"spout":
+		"rush":
 			inp["light"] = true
 			inp["qcf"] = true
 			ai_act = "idle"

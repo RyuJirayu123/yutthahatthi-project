@@ -12,7 +12,7 @@ extends Resource
 
 @export_group("Moves")
 ## Move on the heavy button (G).
-@export_enum("gore", "hook", "lunge", "headbutt", "sweep", "double") var signature: String = "gore"
+@export_enum("gore", "hook", "rise", "headbutt", "sweep", "double") var signature: String = "gore"
 ## Move on the charge button (H) when the power bar is full.
 @export_enum("charge3", "storm", "blink", "quake", "blessing", "roar") var ultimate: String = "charge3"
 

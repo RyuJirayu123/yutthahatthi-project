@@ -21,15 +21,6 @@ class Wave:
 	var traveled := 0.0
 	var hit := false
 
-## Ball of water sprayed by the water spout special.
-class Spout:
-	var x: float
-	var y: float
-	var dir: int
-	var owner: Fighter
-	var traveled := 0.0
-	var done := false
-
 class Particle:
 	var x: float
 	var y: float
@@ -70,7 +61,6 @@ var hitstop := 0.0
 var white := 0.0          ## full-screen flash on a decisive strike
 var callouts: Array[Callout] = []
 var waves: Array[Wave] = []
-var spouts: Array[Spout] = []
 var super_t := 0.0        ## world frozen for an ultimate's cut-in (or the flash of an EX move)
 var super_f: Fighter      ## who is doing it
 var super_ex := false     ## the freeze is an EX flash, not an ultimate
@@ -133,7 +123,6 @@ func reset_round() -> void:
 	belled = false
 	parts.clear()
 	waves.clear()
-	spouts.clear()
 	super_t = 0.0
 	super_f = null
 
@@ -179,7 +168,6 @@ func update(dt: float) -> void:
 		_move_events(fighters[i], fighters[1 - i])
 	_separate()
 	_update_waves(sdt)
-	_update_spouts(sdt)
 	if phase == "fight":
 		_check_hit(fighters[0], fighters[1])
 		_check_hit(fighters[1], fighters[0])
@@ -440,21 +428,12 @@ func _move_events(f: Fighter, o: Fighter) -> void:
 				_burst(f.x, f.y - 120.0, GameData.GOLD_LIGHT, 14, 1.2)
 				_callout("EX " + m.name_th + "!", "EX " + m.name_en, f.x, false)
 				_sfx("bless")
-			elif m.id == "counter" or m.id == "uppercut" or m.id == "spout":
+			elif m.id == "counter" or m.id == "uppercut" or m.id == "rush":
 				_callout(m.name_th + "!", m.name_en, f.x, false)
 	if m.event == "" or f.event_done or f.atk_t < m.event_at:
 		return
 	f.event_done = true
 	match m.event:
-		"spout":
-			var s := Spout.new()
-			s.x = f.x + f.face * 120.0
-			s.y = GameData.GROUND - GameData.SPOUT_HEIGHT
-			s.dir = f.face
-			s.owner = f
-			spouts.append(s)
-			f.spout_live = true
-			_sfx("whoosh")
 		"teleport":
 			# lightning step: reappear behind the opponent (or in front if a wall is in the way)
 			var dir := signf(o.x - f.x) if o.x != f.x else float(f.face)
@@ -504,56 +483,10 @@ func _update_waves(dt: float) -> void:
 	waves = live
 
 
-func _update_spouts(dt: float) -> void:
-	for s in spouts:
-		var step := GameData.SPOUT_SPEED * dt
-		s.x += s.dir * step
-		s.traveled += step
-		if randf() < 0.6:
-			var p := Particle.new()
-			p.x = s.x - s.dir * 14.0
-			p.y = s.y + randf_range(-8.0, 8.0)
-			p.vx = -s.dir * randf_range(20.0, 80.0)
-			p.vy = randf_range(-60.0, 20.0)
-			p.life = 0.3
-			p.size = randf_range(3.0, 6.0)
-			p.color = Color("#bfe9ff")
-			parts.append(p)
-		var target := fighters[1] if s.owner == fighters[0] else fighters[0]
-		# jumping elephants clear it when their feet are above the water
-		if phase == "fight" and not target.ko and absf(target.x - s.x) < 55.0 and target.y > s.y + 12.0 and not _invulnerable(target):
-			s.done = true
-			var m := GameData.move("spout")
-			_land(s.owner, target, m, m.wave)
-		if s.traveled > GameData.SPOUT_RANGE:
-			s.done = true
-	# two spouts meeting cancel out
-	for a in spouts:
-		for b in spouts:
-			if a != b and a.owner != b.owner and not a.done and not b.done and absf(a.x - b.x) < 30.0:
-				a.done = true
-				b.done = true
-				_burst((a.x + b.x) / 2.0, a.y, Color("#7fd3ff"), 14, 1.0)
-	var live: Array[Spout] = []
-	for s in spouts:
-		if s.done:
-			_burst(s.x, s.y, Color("#7fd3ff"), 8, 0.7)
-		else:
-			live.append(s)
-	spouts = live
-	for f in fighters:
-		f.spout_live = false
-	for s in spouts:
-		s.owner.spout_live = true
-
-
-## True when an enemy shockwave or water spout is close and heading this way (the CPU jumps it).
+## True when an enemy shockwave is close and heading this way (the CPU jumps it).
 func _wave_near(f: Fighter) -> bool:
 	for w in waves:
 		if w.owner != f and signf(f.x - w.x) == w.dir and absf(f.x - w.x) < 150.0:
-			return true
-	for s in spouts:
-		if s.owner != f and signf(f.x - s.x) == s.dir and absf(f.x - s.x) < 190.0:
 			return true
 	return false
 

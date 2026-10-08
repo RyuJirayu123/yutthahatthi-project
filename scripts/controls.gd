@@ -9,8 +9,8 @@ const FILE := "user://controls.cfg"
 ## Rebindable actions of each player, in screen order: [suffix, Thai, English]
 const ACTIONS := [
 	["left", "เดินซ้าย", "LEFT"], ["right", "เดินขวา", "RIGHT"], ["up", "กระโดด", "JUMP"],
-	["down", "ย่อ · ป้องกัน", "CROUCH · GUARD"], ["light", "งวงฟาด · ระยะสั้น", "TRUNK WHIP"],
-	["medium", "แทงงา · ระยะกลาง", "TUSK POKE"], ["heavy", "ท่าประจำตัว", "SIGNATURE"],
+	["down", "ย่อ · ป้องกัน", "CROUCH · GUARD"], ["light", "งวงรัว · ระยะสั้น", "TRUNK FLURRY"],
+	["medium", "ขาตวัด · ระยะกลาง", "FORELEG SWIPE"], ["heavy", "ท่าประจำตัว", "SIGNATURE"],
 	["special", "อัลติ", "ULTIMATE"],
 ]
 ## Default key letters written in help texts -> the action whose current key replaces them.

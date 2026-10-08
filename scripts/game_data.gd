@@ -66,7 +66,7 @@ class Move:
 	var invuln := 0.0          ## can't be hit at all before this time
 	var event := ""            ## "teleport", "wave" or "bless", fired once at event_at
 	var event_at := 0.0
-	var wave: Hit              ## the ground shockwave of an earthquake stomp, or the water spout projectile
+	var wave: Hit              ## the ground shockwave of an earthquake stomp
 	var ai_range := 240.0      ## CPU uses it when the opponent is closer than this
 	var start_sfx := "whoosh"
 	var links := {}            ## next attack button -> move it chains into ("light", "medium", "clight" / "cmedium" = crouching)
@@ -106,20 +106,21 @@ static func _move(id: String, dur: float, hits: Array, extra := {}) -> Move:
 
 static func _build_moves() -> void:
 	var unblockable := {"overhead": true, "vreach": 200.0, "sound": "clang"}
-	# Normals. F = short range, R = mid range, holding down makes them low (crouch to guard).
+	# Normals, the same for every elephant. F = trunk flurry (short range), R = foreleg swipe
+	# (mid range), holding down makes them low (crouch to guard).
 	# Pressing the next button during a move chains along `links` once it hit (a guarded hit ends the string);
 	# G / specials / H cut a move short once it connected (hit or guarded). G on a reeling elephant = decisive strike.
 	var string := {"cancel_heavy": true, "cancel_super": true}
 	_move("light", 0.34, [_hit(0.07, 0.17, 72, 5, 150, 0.26, 8, 3, {"sound": "hit"})],
-		string.merged({"links": {"light": "light2", "medium": "mid", "clight": "clow", "cmedium": "cmid"}}))
+		string.merged({"links": {"light": "light2", "medium": "mid", "clight": "clow", "cmedium": "cmid"}, "name_th": "งวงรัว", "name_en": "TRUNK FLURRY"}))
 	_move("light2", 0.38, [_hit(0.08, 0.18, 76, 6, 170, 0.30, 8, 4, {"sound": "hit"})],
 		string.merged({"links": {"light": "light3", "medium": "mid", "cmedium": "cmid"}, "name_th": "ตวัดงวง", "name_en": "BACKHAND",
 		"dash_stop": 0.10, "dash_speed": 300.0}))
 	_move("light3", 0.50, [_hit(0.16, 0.26, 84, 9, 330, 0.50, 10, 8, {"lift": -460.0})],
 		string.merged({"name_th": "ทุบงวง", "name_en": "TRUNK SLAM", "dash_stop": 0.14, "dash_speed": 320.0}))
-	# R: a long tusk poke for mid range
+	# R: rears a little and swipes a foreleg out at mid range
 	_move("mid", 0.50, [_hit(0.13, 0.24, 110, 7, 220, 0.36, 9, 5, {"sound": "hit"})],
-		string.merged({"links": {"cmedium": "cmid"}, "name_th": "แทงงาตรง", "name_en": "TUSK POKE", "dash_stop": 0.12, "dash_speed": 200.0}))
+		string.merged({"links": {"cmedium": "cmid"}, "name_th": "ขาตวัด", "name_en": "FORELEG SWIPE", "dash_stop": 0.12, "dash_speed": 200.0}))
 	# down + F: quick whip at the feet
 	_move("clow", 0.34, [_hit(0.06, 0.15, 76, 4, 120, 0.26, 6, 2, {"offset": 90.0, "low": true, "sound": "hit"})],
 		string.merged({"links": {"light": "light2", "medium": "mid", "cmedium": "cmid"}, "name_th": "ย่อฟาดขา", "name_en": "LOW WHIP"}))
@@ -133,10 +134,10 @@ static func _build_moves() -> void:
 	_move("counter", 0.42, [_hit(0.05, 0.15, 96, 4, 480, 0.36, 0, 10, {"offset": 70.0})],
 		{"name_th": "ปัดสวน", "name_en": "GUARD COUNTER", "armor": 0.16, "start_sfx": "block"})
 	# special moves (motion + F). Like the F string they cancel into the ultimate once they connect.
-	# ↓↘→ + F: a ball of water sprayed from the trunk; travels along the ground, jump or block it
-	var spout := _move("spout", 0.62, [], {"name_th": "งวงพ่นน้ำ", "name_en": "WATER SPOUT", "event": "spout", "event_at": 0.22,
-		"ai_range": 700.0, "start_sfx": "whoosh"})
-	spout.wave = _hit(0.0, 0.0, 0, 7, 220, 0.45, 8, 6, {"sound": "hit"})
+	# ↓↘→ + F: rushes in fast and rams; closes the distance
+	_move("rush", 0.55, [_hit(0.12, 0.28, 80, 8, 260, 0.38, 10, 6)],
+		{"cancel_super": true, "name_th": "พุ่งกระแทก", "name_en": "RUSH", "dash_start": 0.08, "dash_stop": 0.26,
+		"dash_speed": 560.0, "dash_until_hit": true, "ai_range": 330.0})
 	# →↓↘ + F: rears up and swats upward. Untouchable as it starts, beats jump-ins, but wide open on a miss.
 	_move("uppercut", 0.74, [_hit(0.07, 0.20, 110, 10, 140, 0.6, 12, 10, {"offset": 70.0, "vreach": 240.0, "lift": -560.0})],
 		{"name_th": "งวงเสย", "name_en": "TRUNK UPPERCUT", "invuln": 0.13, "cancel_super": true, "ai_range": 200.0})
@@ -146,9 +147,9 @@ static func _build_moves() -> void:
 		{"cancel_super": true, "name_th": "แทงงา", "name_en": "TUSK GORE", "desc": "แทงงาหนัก กระเด็นไกล"})
 	_move("hook", 0.60, [_hit(0.20, 0.32, 100, 8, 260, 0.55, 12, 8, {"pull": true})],
 		{"cancel_super": true, "name_th": "งาเกี่ยว", "name_en": "TUSK HOOK", "desc": "เกี่ยวดึงเข้ามาใกล้ แล้วต่อท่าได้"})
-	_move("lunge", 0.55, [_hit(0.12, 0.28, 80, 8, 260, 0.38, 10, 6)],
-		{"cancel_super": true, "name_th": "พุ่งแทง", "name_en": "LUNGE", "desc": "พุ่งไปข้างหน้าเร็วพร้อมแทง ระยะไกล",
-		"dash_start": 0.08, "dash_stop": 0.26, "dash_speed": 560.0, "ai_range": 330.0})
+	_move("rise", 0.60, [_hit(0.15, 0.28, 108, 11, 160, 0.5, 12, 10, {"lift": -500.0})],
+		{"cancel_super": true, "name_th": "งางัด", "name_en": "RISING TUSK", "desc": "งัดงาเสยจากต่ำขึ้นสูง อีกฝ่ายลอย ต่อคอมโบกลางอากาศได้",
+		"ai_range": 200.0})
 	_move("headbutt", 0.78, [_hit(0.34, 0.44, 90, 14, 520, 0.5, 12, 16, {"lift": -180.0})],
 		{"cancel_super": true, "name_th": "หัวโขก", "name_en": "HEADBUTT", "desc": "ช้า แต่ตอนง้างโดนตีไม่สะดุ้ง กระเด็นไกล", "armor": 0.34})
 	_move("sweep", 0.55, [_hit(0.14, 0.26, 140, 8, 200, 0.3, 22, 4, {"offset": 80.0, "sound": "hit"})],
@@ -212,9 +213,6 @@ const EX_WINDOW := 0.06         ## G and H count as "together" when pressed this
 const EX_POWER := 1.4           ## EX damage
 const COUNTER_DMG := 1.2        ## hitting an opponent in the middle of an attack
 const COUNTER_STUN := 0.18      ## extra stun on a counter hit, enough to link another move
-const SPOUT_SPEED := 430.0
-const SPOUT_RANGE := 720.0
-const SPOUT_HEIGHT := 100.0     ## above the ground; jumping elephants clear it
 const SUPER_FREEZE := 0.85      ## the world stops while the ultimate's cut-in plays
 const EX_FREEZE := 0.2
 

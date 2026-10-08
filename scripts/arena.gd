@@ -128,8 +128,6 @@ func _draw() -> void:
 	draw_set_transform_matrix(world)
 	for w in duel.waves:
 		_draw_wave(w)
-	for s in duel.spouts:
-		_draw_spout(s)
 	for p in duel.parts:
 		draw_rect(Rect2(p.x - p.size / 2.0, p.y - p.size / 2.0, p.size, p.size), Color(p.color, minf(1.0, p.life * 3.0)))
 	draw_set_transform_matrix(Transform2D.IDENTITY)
@@ -488,19 +486,6 @@ func _draw_cut_in(f: Fighter) -> void:
 	_otext(m.name_th + "!", tx + sx * 3.0, cy + 24.0 + 3.0, 50, 800, Color(GameData.ACC_700, 0.9 * a), al, 0)
 	_otext(m.name_th + "!", tx, cy + 24.0, 50, 800, Color(GOLD_LIGHT, a), al, 9, Color("#3a0d06", a))
 	_otext(m.name_en, tx, cy + 46.0, 15, 800, Color(1, 1, 1, a), al, 4, Color("#3a0d06", a))
-
-
-## Water spout: a wobbling ball of water with a spray trail.
-func _draw_spout(s: Duel.Spout) -> void:
-	var p := Vector2(s.x, s.y)
-	var wob := sin(s.traveled * 0.08) * 2.0
-	for i in 3:
-		var tp := p - Vector2(s.dir * (20.0 + i * 16.0), sin(s.traveled * 0.05 + i) * 4.0)
-		DrawKit.circle(self, tp, 9.0 - i * 2.5, Color(0.55, 0.85, 1.0, 0.6 - i * 0.15))
-	DrawKit.ellipse(self, p, 20.0 + wob, 16.0 - wob, Color("#3fa9e8"))
-	DrawKit.ellipse(self, p + Vector2(s.dir * 2.0, -1.0), 15.0 + wob, 11.0 - wob, Color("#8fd8ff"))
-	DrawKit.circle(self, p + Vector2(s.dir * 5.0, -6.0), 4.5, Color(1, 1, 1, 0.9))
-	draw_arc(p, 21.0, 0.0, TAU, 20, Color(1, 1, 1, 0.5), 2.0, true)
 
 
 ## Earthquake shockwave: jagged earth spikes bursting out of the ground as it travels.

@@ -259,10 +259,7 @@ func snapshot() -> Dictionary:
 	var waves := []
 	for w in duel.waves:
 		waves.append([w.x, w.dir, duel.fighters.find(w.owner), w.traveled, w.hit])
-	var spouts := []
-	for s in duel.spouts:
-		spouts.append([s.x, s.y, s.dir, duel.fighters.find(s.owner), s.traveled, s.done])
-	return {"fighters": fs, "waves": waves, "spouts": spouts,
+	return {"fighters": fs, "waves": waves,
 		"duel": [duel.phase, duel.t, duel.timer, duel.belled, duel.reason, duel.round_winner, duel.round_no,
 			duel.wins.duplicate(), duel.hitstop, duel.super_t, duel.super_ex, duel.fighters.find(duel.super_f)]}
 
@@ -278,11 +275,6 @@ func _restore(s: Dictionary) -> void:
 		var nw := Duel.Wave.new()
 		nw.x = w[0]; nw.dir = w[1]; nw.owner = duel.fighters[w[2]]; nw.traveled = w[3]; nw.hit = w[4]
 		duel.waves.append(nw)
-	duel.spouts.clear()
-	for sp in s.spouts:
-		var ns := Duel.Spout.new()
-		ns.x = sp[0]; ns.y = sp[1]; ns.dir = sp[2]; ns.owner = duel.fighters[sp[3]]; ns.traveled = sp[4]; ns.done = sp[5]
-		duel.spouts.append(ns)
 	var d: Array = s.duel
 	duel.phase = d[0]; duel.t = d[1]; duel.timer = d[2]; duel.belled = d[3]; duel.reason = d[4]
 	duel.round_winner = d[5]; duel.round_no = d[6]; duel.wins.assign(d[7]); duel.hitstop = d[8]

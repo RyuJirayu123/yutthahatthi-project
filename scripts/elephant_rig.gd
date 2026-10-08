@@ -42,26 +42,27 @@ const RUN_CYCLES := 22.0 / 12.0          ## run cycles a second while dashing
 ## Move -> [action, first frame, impact frame, last frame]. The frames from first to impact play
 ## during the wind-up, the impact frame while the hit is out, the rest during recovery.
 ## Impact -1: the frames simply play across the whole move; -2: they swing back and forth.
+## A last frame before the impact frame plays the recovery backwards (back to that frame).
 const MOVE_ANIM := {
 	"light": ["attack_trunk", 8, 10, 15],
 	"light2": ["attack_trunk", 5, 10, 15],
 	"light3": ["attack_trunk", 3, 10, 15],
 	"clow": ["attack_trunk", 8, 10, 15],
 	"cmid": ["attack_trunk", 6, 10, 15],
-	"spout": ["attack_trunk", 3, 10, 15],
 	"uppercut": ["attack_trunk", 1, 5, 9],
 	"sweep": ["attack_trunk", 5, 10, 15],
 	"storm": ["attack_trunk", 4, -2, 11],
 	"roar": ["victory", 0, -1, 15],
 	"blessing": ["victory", 0, -1, 15],
-	"mid": ["attack_tusk", 0, 3, 11],
+	"mid": ["charge", 0, 3, 0],
 	"gore": ["attack_tusk", 0, 3, 11],
 	"hook": ["attack_tusk", 0, 3, 11],
 	"headbutt": ["attack_tusk", 0, 3, 11],
 	"double": ["attack_tusk", 0, 3, 11],
 	"counter": ["attack_tusk", 1, 3, 11],
 	"dive": ["attack_tusk", 3, 3, 3],
-	"lunge": ["charge", 9, 12, 15],
+	"rush": ["charge", 9, 12, 15],
+	"rise": ["charge", 1, 4, 0],
 	"blink": ["charge", 9, 12, 15],
 	"charge3": ["charge", 8, -1, 15],
 	"quake": ["victory", 1, 5, 10],
@@ -287,8 +288,13 @@ func _attack_frame(f: Fighter) -> void:
 	elif t <= stop:
 		fr = impact
 	else:
-		fr = impact + int((t - stop) / maxf(0.01, m.dur - stop) * (last - impact + 1))
-	_show(spec[0], fr, last)
+		var k := (t - stop) / maxf(0.01, m.dur - stop)
+		if last < impact:
+			fr = impact - int(k * (impact - last + 1))
+			fr = maxi(fr, last)
+		else:
+			fr = impact + int(k * (last - impact + 1))
+	_show(spec[0], fr, maxi(last, impact))
 
 
 ## Frame of a looping action at cycle position `c` (any real number; it wraps).

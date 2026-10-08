@@ -14,11 +14,11 @@ const LESSONS := [
 	["เดินและพุ่งตัว", "แตะไปข้างหน้า 2 ครั้งเร็วๆ เพื่อพุ่งตัว (ทำ 2 ครั้ง)", "Double-tap forward to dash.", "D  D", "stand", 440.0, 0.0, "dash", 2],
 	["ย่อป้องกัน", "กด S ค้างไว้ ย่อกันท่าที่หุ่นตี 3 ครั้ง", "Hold down to guard three attacks.", "S ค้าง", "attack", 230.0, 0.0, "guard", 3],
 	["กันท่าต่ำ", "หุ่นจะย่อตีต่ำ ย่อกัน (S ค้าง) ได้เหมือนกัน 3 ครั้ง", "It attacks low: hold down to guard it too.", "S ค้าง", "attack_low", 230.0, 0.0, "guard_low", 3],
-	["ตีระยะกลาง", "F ตีได้แค่ใกล้ๆ จากตรงนี้ต้องใช้ R แทงงา (โดน 2 ครั้ง)", "Only R reaches from here: land two tusk pokes.", "R", "stand", 250.0, 0.0, "mid_hit", 2],
+	["ตีระยะกลาง", "F ตีได้แค่ใกล้ๆ จากตรงนี้ต้องใช้ R ขาตวัด (โดน 2 ครั้ง)", "Only R reaches from here: land two foreleg swipes.", "R", "stand", 250.0, 0.0, "mid_hit", 2],
 	["คอมโบงวง", "กด F รัวๆ ให้ได้ 3 ฮิตติดกัน", "Mash F for a 3-hit string.", "F  F  F", "stand", 205.0, 0.0, "string3", 1],
 	["สั้น › กลาง › กวาด", "F แล้ว R แล้ว S + R กวาดขาให้ล้ม", "F, then R, then down + R to sweep.", "F › R › S+R", "stand", 205.0, 0.0, "smsweep", 1],
 	["ยกเลิกท่า", "F โดนแล้วกด G ทันที ตัดเข้าท่าประจำตัว", "Cancel a connecting F into your signature with G.", "F › G", "stand", 205.0, 0.0, "cancel", 1],
-	["งวงพ่นน้ำ", "กด ↓ ↘ → (S, S+D, D) แล้วกด F พ่นน้ำใส่หุ่น", "Quarter-circle forward + F.", "↓ ↘ → + F", "stand", 460.0, 0.0, "spout", 1],
+	["พุ่งกระแทก", "อยู่ไกลๆ กด ↓ ↘ → (S, S+D, D) แล้วกด F พุ่งเข้าชนหุ่น", "From afar: quarter-circle forward + F to rush in.", "↓ ↘ → + F", "stand", 330.0, 0.0, "rush", 1],
 	["งวงเสย", "หุ่นจะกระโดดเข้ามา กด → ↓ ↘ แล้ว F เสยกลางอากาศ", "Forward, down, down-forward + F to swat the jump-in.", "→ ↓ ↘ + F", "jumpin", 440.0, 0.0, "uppercut", 1],
 	["กระโดดข้ามหัว", "ยืนใกล้ๆ แล้วกระโดดเข้าหา ลงข้างหลังหุ่น", "Jump forward from close to land behind it.", "W + D", "stand", 200.0, 0.0, "jumpover", 1],
 	["ท่า EX", "กด G + H พร้อมกัน ใช้พลังครึ่งหลอด ท่าประจำตัวแรงขึ้น", "Press G and H together for an EX signature.", "G + H", "stand", 210.0, 100.0, "ex", 1],
@@ -95,7 +95,6 @@ func cycle_dummy() -> void:
 func _reset_positions(gap: float) -> void:
 	duel.phase = "fight"
 	duel.t = 0.0
-	duel.spouts.clear()
 	duel.waves.clear()
 	for k in 2:
 		var f := duel.fighters[k]
@@ -180,8 +179,8 @@ func _goal_met(ev: Dictionary) -> bool:
 			return mine and not ev.blocked and ev.move == "cmid" and ev.combo >= 3
 		"cancel":
 			return mine and not ev.blocked and ev.move == duel.fighters[0].def.signature and ev.combo >= 2
-		"spout":
-			return mine and not ev.blocked and ev.move == "spout"
+		"rush":
+			return mine and not ev.blocked and ev.move == "rush"
 		"uppercut":
 			return mine and not ev.blocked and ev.move == "uppercut"
 		"ex":
