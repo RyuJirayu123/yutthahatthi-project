@@ -24,8 +24,8 @@ func _grab(def_name: String, face: int, happy: bool) -> Image:
 	p.def = load("res://data/elephants/%s.tres" % def_name)
 	p.face = face
 	p.happy = happy
-	# the victory action is rearing up about 0.45 s in
-	await create_timer(0.45 if happy else 0.5).timeout
+	# the victory action (16 fps) is rearing up about 0.28 s in
+	await create_timer(0.28 if happy else 0.5).timeout
 	await RenderingServer.frame_post_draw
 	var img := root.get_texture().get_image()
 	img.convert(Image.FORMAT_RGBA8)

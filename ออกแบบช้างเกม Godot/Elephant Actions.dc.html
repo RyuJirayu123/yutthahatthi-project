@@ -47,33 +47,38 @@
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   static A = [
-    ['idle', 'ยืน', 12, 12, true], ['walk', 'เดิน', 12, 12, true], ['run', 'วิ่ง', 12, 14, true], ['guard', 'ตั้งการ์ด', 12, 10, false],
-    ['attack_tusk', 'แทงงา', 12, 14, false], ['attack_trunk', 'ฟาดงวง', 16, 12, false], ['charge', 'พุ่งชน', 16, 12, false],
-    ['hit', 'โดนตี', 12, 14, false], ['victory', 'ชนะ', 16, 10, false], ['death', 'ตาย', 16, 10, false]
+    ['idle', 'ยืน', 12, 16, true], ['walk', 'เดิน', 12, 18, true], ['run', 'วิ่ง', 12, 22, true], ['guard', 'ตั้งการ์ด', 12, 16, false],
+    ['attack_tusk', 'แทงงา', 12, 22, false], ['attack_trunk', 'ฟาดงวง', 16, 18, false], ['charge', 'พุ่งชน', 16, 18, false],
+    ['hit', 'โดนตี', 12, 22, false], ['victory', 'ชนะ', 16, 16, false], ['death', 'ตาย', 16, 15, false]
   ];
   state = { sel: 0 };
   heroRef = React.createRef();
   cardRefs = Component.A.map(() => React.createRef());
   componentDidMount() {
-    const t0 = this.t0 = performance.now();
-    const paint = (el, a, t) => {
+    this.t0 = performance.now();
+    this.last = new Map();
+    this.iv = setInterval(() => this.tick(), 1000 / 30);
+  }
+  tick() {
+    const t = (performance.now() - this.t0) / 1000;
+    const paint = (el, a, tt, dir) => {
       if (!el) return;
       const [key, , n, fps, loop] = a, rows = Math.ceil(n / 4);
-      let f = Math.floor(t * fps);
+      let f = Math.floor(tt * fps);
       f = loop ? f % n : Math.min(f % (n + Math.round(fps * .8)), n - 1);
-      el.style.backgroundImage = `url(assets/sheets/${key}.png)`;
-      el.style.backgroundSize = `400% ${rows * 100}%`;
+      const sig = key + ':' + f, prev = this.last.get(el);
+      if (prev === sig) return;
+      if (!prev || prev.split(':')[0] !== key) {
+        el.style.backgroundImage = `url(assets/sheets/${dir}${key}.png)`;
+        el.style.backgroundSize = `400% ${rows * 100}%`;
+      }
       el.style.backgroundPosition = `${(f % 4) * 100 / 3}% ${rows > 1 ? Math.floor(f / 4) * 100 / (rows - 1) : 0}%`;
+      this.last.set(el, sig);
     };
-    const step = () => {
-      const t = (performance.now() - t0) / 1000;
-      Component.A.forEach((a, i) => { try { paint(this.cardRefs[i]?.current, a, t); } catch (e) {} });
-      paint(this.heroRef.current, Component.A[this.state.sel], t - (this.selT || 0));
-      this.raf = requestAnimationFrame(step);
-    };
-    this.raf = requestAnimationFrame(step);
+    Component.A.forEach((a, i) => { try { paint(this.cardRefs[i]?.current, a, t, 'preview/'); } catch (e) {} });
+    try { paint(this.heroRef.current, Component.A[this.state.sel], t - (this.selT || 0), ''); } catch (e) {}
   }
-  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  componentWillUnmount() { clearInterval(this.iv); }
   renderVals() {
     const sel = Component.A[this.state.sel];
     return {

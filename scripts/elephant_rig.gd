@@ -33,8 +33,11 @@ const ANIMS := {
 }
 const K := 190.0 / 295.0                 ## game px per sheet pixel: the elephant stands 190 tall
 const GUARD_HOLD := 5                    ## guard frame held while guarding: head down, trunk curled
-const WALK_CYCLES := 1.0                 ## walk cycles a second at full walking speed
-const RUN_CYCLES := 1.5                  ## run cycles a second while dashing
+## Playback speeds from the design (Elephant Actions.dc.html, frames a second of its 12- and
+## 16-frame sheets). Attacks and hit reactions don't use these: they follow the move's timing.
+const FPS := {"idle": 16.0, "guard": 16.0, "victory": 16.0, "death": 15.0}
+const WALK_CYCLES := 18.0 / 12.0         ## walk cycles a second at full walking speed
+const RUN_CYCLES := 22.0 / 12.0          ## run cycles a second while dashing
 
 ## Move -> [action, first frame, impact frame, last frame]. The frames from first to impact play
 ## during the wind-up, the impact frame while the hit is out, the rest during recovery.
@@ -229,7 +232,7 @@ func _pick(f: Fighter, over: bool, air: bool, dt: float) -> void:
 	var t := _state_t
 	match state:
 		"death":
-			_show("death", int(t * 12.0))
+			_show("death", int(t * FPS["death"]))
 		"thrown", "reel":
 			_show("hit", 2)
 		"attack":
@@ -239,11 +242,11 @@ func _pick(f: Fighter, over: bool, air: bool, dt: float) -> void:
 		"dizzy":
 			_show("hit", 4 + int(pingpong(t * 7.0, 4.0)))
 		"victory":
-			_show("victory", int(t * 10.0) % 16)
+			_show("victory", int(t * FPS["victory"]) % 16)
 		"air":
 			_show("run", _cycle("run", 0.33 if f.vy < 0.0 else 0.67))
 		"guard":
-			_show("guard", mini(int(t * 24.0), GUARD_HOLD))
+			_show("guard", mini(int(t * FPS["guard"]), GUARD_HOLD))
 		"dash":
 			_show("run", _cycle("run", t * RUN_CYCLES))
 		"backstep":
@@ -251,7 +254,7 @@ func _pick(f: Fighter, over: bool, air: bool, dt: float) -> void:
 		"walk":
 			_show("walk", _cycle("walk", _walk))
 		_:
-			_show("idle", int(_time * 12.0) % 12)
+			_show("idle", int(_time * FPS["idle"]) % 12)
 
 
 ## Attack frames timed to the move: wind-up frames until the hit comes out, the impact frame

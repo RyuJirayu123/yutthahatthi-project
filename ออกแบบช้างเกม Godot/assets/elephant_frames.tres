@@ -596,7 +596,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"idle",
-"speed": 12.0
+"speed": 16.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -637,7 +637,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk",
-"speed": 12.0
+"speed": 18.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -678,7 +678,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run",
-"speed": 14.0
+"speed": 22.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -719,7 +719,7 @@ animations = [{
 }],
 "loop": false,
 "name": &"guard",
-"speed": 10.0
+"speed": 16.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -760,7 +760,7 @@ animations = [{
 }],
 "loop": false,
 "name": &"attack_tusk",
-"speed": 14.0
+"speed": 22.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -813,7 +813,7 @@ animations = [{
 }],
 "loop": false,
 "name": &"attack_trunk",
-"speed": 12.0
+"speed": 18.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -866,7 +866,7 @@ animations = [{
 }],
 "loop": false,
 "name": &"charge",
-"speed": 12.0
+"speed": 18.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -907,7 +907,7 @@ animations = [{
 }],
 "loop": false,
 "name": &"hit",
-"speed": 14.0
+"speed": 22.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -960,7 +960,7 @@ animations = [{
 }],
 "loop": false,
 "name": &"victory",
-"speed": 10.0
+"speed": 16.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1013,5 +1013,5 @@ animations = [{
 }],
 "loop": false,
 "name": &"death",
-"speed": 10.0
+"speed": 15.0
 }]
