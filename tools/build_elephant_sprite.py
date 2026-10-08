@@ -4,6 +4,10 @@ the feet centred at x 440 in every action; see Elephant Actions.dc.html).
 
     python tools/build_elephant_sprite.py
 
+The walk and run cycles are re-cut from the source videos (VIDEOS: ออกแบบช้างเกม Godot/uploads,
+24 fps) with many more frames than the design sheets, so they play smoothly: the cream
+background is keyed out and each cycle is scaled and placed like its design sheet.
+
 For each action every frame is cropped to that action's shared box (so the feet stay put),
 scaled by SCALE and packed 4 per row into assets/sprites/<action>.png; the HUD portrait (the
 head of the first idle frame in a soft circle) goes to assets/sprites/portrait.png.
@@ -11,6 +15,7 @@ Prints the ANIMS table for scripts/elephant_rig.gd (frame count, frame size and 
 """
 import pathlib
 
+import cv2
 import numpy as np
 from PIL import Image, ImageFilter
 
@@ -24,6 +29,12 @@ SCALE = 0.6
 ACTIONS = {                    # frames in the design sheet
     "idle": 12, "walk": 12, "run": 12, "guard": 12, "attack_tusk": 12,
     "attack_trunk": 16, "charge": 16, "hit": 12, "victory": 16, "death": 16,
+}
+UPLOADS = ROOT / "ออกแบบช้างเกม Godot" / "uploads"
+## action -> [video, first frame of a seamless loop, loop length, frames to keep]
+VIDEOS = {
+    "walk": ["Elephant_walking_in_place_1080p_20261008001659.mp4", 39, 71, 36],
+    "run": ["Elephant_running_in_place_animation_20261008153727.mp4", 102, 22, 22],
 }
 HEAD = (650, 150, 125)         # portrait circle in the first idle frame: centre x, y, radius
 PORTRAIT = 256
@@ -45,6 +56,72 @@ def clean(img: Image.Image) -> Image.Image:
     return Image.fromarray(px)
 
 
+def key_out(bgr: np.ndarray) -> Image.Image:
+    """A video frame with its flat cream background made transparent: background is the
+    near-cream area reachable from the border, plus large enclosed cream holes (the curl of
+    the tail); the dark outline keeps the fill out of the elephant."""
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    h, w = rgb.shape[:2]
+    bg = np.median(np.concatenate([rgb[:8].reshape(-1, 3), rgb[-8:].reshape(-1, 3)]), axis=0)
+    dist = np.abs(rgb.astype(np.int16) - bg.astype(np.int16)).max(axis=2)
+    cand = (dist < 30).astype(np.uint8)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(cand, connectivity=4)
+    border = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])))
+    keep = np.zeros(n, bool)
+    for i in range(1, n):
+        if i in border:
+            keep[i] = True
+        elif stats[i, cv2.CC_STAT_AREA] > 600:
+            keep[i] = dist[lab == i].mean() < 8.0
+    bgmask = keep[lab]
+    alpha = np.where(bgmask, 0, 255).astype(np.uint8)
+    # soften the cut: pixels next to the background fade by how cream they are
+    near = cv2.dilate(bgmask.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+    edge = near & ~bgmask
+    alpha[edge] = np.clip((dist[edge] - 6) * 255 // 40, 0, 255).astype(np.uint8)
+    return Image.fromarray(np.dstack([rgb, alpha]))
+
+
+def video_frames(name: str, design: list) -> list:
+    """The action's loop cut from its video, scaled and placed to match its design frames
+    (same height and ground line, same centre of mass) in CELL-sized frames."""
+    video, first, length, keep = VIDEOS[name]
+    cap = cv2.VideoCapture(str(UPLOADS / video))
+    raw = []
+    i = 0
+    want = [first + round(k * length / keep) for k in range(keep)]
+    while True:
+        ok, bgr = cap.read()
+        if not ok or i > want[-1]:
+            break
+        if i in want:
+            raw.append(key_out(bgr))
+        i += 1
+    cap.release()
+    assert len(raw) == keep, (name, len(raw))
+
+    def extent(frames):
+        """Top and bottom of the elephant over all frames, and its average centre of mass."""
+        top, bottom, cx = 10 ** 6, 0, []
+        for f in frames:
+            a = np.array(f)[..., 3] > 128
+            ys, xs = np.nonzero(a)
+            top, bottom = min(top, ys.min()), max(bottom, ys.max())
+            cx.append(xs.mean())
+        return top, bottom, float(np.mean(cx))
+
+    dt, db, dx = extent(design)
+    vt, vb, vx = extent(raw)
+    k = (db - dt) / (vb - vt)
+    out = []
+    for f in raw:
+        sf = shrink(f, (round(f.width * k), round(f.height * k)))
+        cell = Image.new("RGBA", CELL, (0, 0, 0, 0))
+        cell.alpha_composite(sf, (round(dx - vx * k), round(db - vb * k)))
+        out.append(clean(cell))
+    return out
+
+
 OUT.mkdir(parents=True, exist_ok=True)
 for old in OUT.glob("elephant_walk.png*"):
     old.unlink()
@@ -52,6 +129,9 @@ table = []
 for name, n in ACTIONS.items():
     sheet = clean(Image.open(SHEETS / f"{name}.png").convert("RGBA"))
     frames = [sheet.crop(((i % COLS) * CELL[0], (i // COLS) * CELL[1], (i % COLS + 1) * CELL[0], (i // COLS + 1) * CELL[1])) for i in range(n)]
+    if name in VIDEOS and (UPLOADS / VIDEOS[name][0]).exists():
+        frames = video_frames(name, frames)
+        n = len(frames)
     box = None
     for f in frames:
         ys, xs = np.nonzero(np.array(f)[..., 3] > 0)

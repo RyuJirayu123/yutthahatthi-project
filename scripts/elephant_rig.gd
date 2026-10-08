@@ -21,8 +21,8 @@ const COLS := 4
 ## action -> [frames, frame size, pivot in the frame] (printed by tools/build_elephant_sprite.py)
 const ANIMS := {
 	"idle": [12, Vector2(419, 299), Vector2(213.6, 296.4)],
-	"walk": [12, Vector2(415, 300), Vector2(210.6, 297.6)],
-	"run": [12, Vector2(483, 305), Vector2(229.2, 301.2)],
+	"walk": [36, Vector2(418, 302), Vector2(211.2, 298.8)],
+	"run": [22, Vector2(445, 307), Vector2(232.8, 302.4)],
 	"guard": [12, Vector2(408, 296), Vector2(207.0, 294.0)],
 	"attack_tusk": [12, Vector2(457, 299), Vector2(218.4, 297.0)],
 	"attack_trunk": [16, Vector2(497, 310), Vector2(232.8, 307.2)],
@@ -33,6 +33,8 @@ const ANIMS := {
 }
 const K := 190.0 / 295.0                 ## game px per sheet pixel: the elephant stands 190 tall
 const GUARD_HOLD := 5                    ## guard frame held while guarding: head down, trunk curled
+const WALK_CYCLES := 1.0                 ## walk cycles a second at full walking speed
+const RUN_CYCLES := 1.5                  ## run cycles a second while dashing
 
 ## Move -> [action, first frame, impact frame, last frame]. The frames from first to impact play
 ## during the wind-up, the impact frame while the hit is out, the rest during recovery.
@@ -93,7 +95,7 @@ var _x := {}
 var _v := {}
 var _time := randf() * 10.0
 var _phase := 0.0
-var _walk := 0.0               ## walk cycle position, in frames
+var _walk := 0.0               ## walk cycle position, in cycles
 var _move := 0.0
 var _lifts := [0.0, 0.0, 0.0, 0.0]
 var _was_air := false
@@ -123,7 +125,7 @@ func update(f: Fighter, duel_phase: String, dt: float) -> void:
 	var walking := not air and not f.ko and f.stun <= 0.0 and not f.blocking and not f.crouching
 	if walking:
 		_phase += f.vx * f.face * dt * 0.06
-		_walk += dt * 12.0 * clampf(f.vx * f.face / 230.0, -1.6, 1.6)
+		_walk += dt * WALK_CYCLES * clampf(f.vx * f.face / 230.0, -1.6, 1.6)
 	_move = move_toward(_move, clampf(absf(f.vx) / 200.0, 0.0, 1.0) if walking else 0.0, dt * 5.0)
 
 	if f.stun > _prev_stun + 0.01:
@@ -239,15 +241,15 @@ func _pick(f: Fighter, over: bool, air: bool, dt: float) -> void:
 		"victory":
 			_show("victory", int(t * 10.0) % 16)
 		"air":
-			_show("run", 4 if f.vy < 0.0 else 8)
+			_show("run", _cycle("run", 0.33 if f.vy < 0.0 else 0.67))
 		"guard":
 			_show("guard", mini(int(t * 24.0), GUARD_HOLD))
 		"dash":
-			_show("run", int(t * 18.0) % 12)
+			_show("run", _cycle("run", t * RUN_CYCLES))
 		"backstep":
-			_show("walk", posmod(-int(t * 18.0), 12))
+			_show("walk", _cycle("walk", -t * RUN_CYCLES))
 		"walk":
-			_show("walk", posmod(int(_walk), 12))
+			_show("walk", _cycle("walk", _walk))
 		_:
 			_show("idle", int(_time * 12.0) % 12)
 
@@ -284,6 +286,12 @@ func _attack_frame(f: Fighter) -> void:
 	else:
 		fr = impact + int((t - stop) / maxf(0.01, m.dur - stop) * (last - impact + 1))
 	_show(spec[0], fr, last)
+
+
+## Frame of a looping action at cycle position `c` (any real number; it wraps).
+func _cycle(anim: String, c: float) -> int:
+	var n: int = ANIMS[anim][0]
+	return mini(int(fposmod(c, 1.0) * n), n - 1)
 
 
 func _show(anim: String, fr: int, last := -1) -> void:
