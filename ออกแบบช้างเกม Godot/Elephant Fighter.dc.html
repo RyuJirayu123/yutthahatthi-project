@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#ece8e0;color:#25211d;font-family:'IBM Plex Sans Thai',sans-serif}a{color:#8a3b1e}a:hover{color:#5e2510}</style>
+</helmet>
+<div style="max-width:1280px;margin:0 auto;padding:48px 32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">แบบ C v2 · ลงแสงเงาแบบงานวาด</div>
+<h1 style="margin:0;font-size:34px;font-weight:600">ช้างนักสู้</h1>
+<div style="font-size:16px;color:#5c554d;max-width:760px;text-wrap:pretty">วาดใหม่ทั้งตัว ผิวไล่แสงนุ่ม มีพื้นผิว เงาตกกระทบ ตาเงา ขยับหายใจ หูกระพือ และงวงแกว่งเบาๆ</div>
+</div>
+<div style="position:relative;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:linear-gradient(180deg,#8fb8c9 0%,#c9dcc8 42%,#7d9b6a 56%,#4f6c40 64%)">
+<div style="position:absolute;left:-5%;right:-5%;top:38%;height:22%;background:radial-gradient(ellipse at 20% 100%,#5f7f55 0,#5f7f55 40%,transparent 41%),radial-gradient(ellipse at 70% 100%,#6a8a5e 0,#6a8a5e 45%,transparent 46%);filter:blur(6px);opacity:.8"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(180deg,#b39a70 0%,#9a7f55 40%,#7a6240 100%)"></div>
+<div style="position:absolute;left:0;right:0;bottom:33%;height:2%;background:#5c4a2e;opacity:.35;filter:blur(3px)"></div>
+<dc-import name="ElephantArt" team="p1" animate="{{ animate }}" hint-size="52%,94%" style="position:absolute;left:-1%;bottom:2%;width:52%;height:94%"></dc-import>
+<dc-import name="ElephantArt" team="p2" flip="{{ true }}" phase="{{ 0.7 }}" animate="{{ animate }}" hint-size="52%,94%" style="position:absolute;right:-1%;bottom:2%;width:52%;height:94%"></dc-import>
+</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px">
+<div style="background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:10px">
+<div style="font-weight:600">ผู้เล่น 1 · คราม</div>
+<div style="position:relative;aspect-ratio:680/620;background:#f1ece2;border-radius:4px">
+<dc-import name="ElephantArt" team="p1" animate="{{ animate }}" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+</div>
+</div>
+<div style="background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:10px">
+<div style="font-weight:600">ผู้เล่น 2 · ม่วงพลัม</div>
+<div style="position:relative;aspect-ratio:680/620;background:#f1ece2;border-radius:4px">
+<dc-import name="ElephantArt" team="p2" phase="{{ 0.4 }}" animate="{{ animate }}" hint-size="100%,100%" style="position:absolute;inset:0"></dc-import>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() { return { animate: this.props.animate ?? true }; }
+}
+</script>
+</body>
+</html>

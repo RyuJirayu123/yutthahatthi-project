@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#ece8e0;color:#25211d;font-family:'IBM Plex Sans Thai',sans-serif}a{color:#8a3b1e}a:hover{color:#5e2510}</style>
+</helmet>
+<div style="max-width:1200px;margin:0 auto;padding:48px 32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">ภาพจาก AI · เตรียมใส่ Godot</div>
+<h1 style="margin:0;font-size:34px;font-weight:600">ช้างศึก · sprite หลัก</h1>
+<div style="font-size:16px;color:#5c554d;max-width:760px;text-wrap:pretty">ภาพเดียวทำท่ายืนหายใจและเดินโยกได้ด้วย Tween ใน Godot ดูตัวอย่างการขยับด้านล่าง</div>
+</div>
+<div style="position:relative;aspect-ratio:1376/768;background:#efe4cf;border-radius:6px;overflow:hidden">
+<div ref="{{ heroRef }}" style="position:absolute;inset:0;transform-origin:47.2% 92.7%">
+<img src="assets/elephant-ai.jpg" alt="ช้างศึก" style="display:block;width:100%;height:100%"></img>
+</div>
+<sc-if value="{{ guides }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;left:0;right:0;top:92.7%;border-top:1.5px dashed #c2410c"></div>
+<div style="position:absolute;left:47.2%;top:92.7%;width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid #c2410c;border-radius:50%;background:#fff"></div>
+<div style="position:absolute;left:calc(47.2% + 14px);top:calc(92.7% - 26px);font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c2410c">pivot (650, 712)</div>
+</sc-if>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">▶ {{ modeLabel }}</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">ขนาดไฟล์</span><span>1376×768 px · จุด pivot อยู่กลางเงาใต้เท้า</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">ต้องแก้ก่อนใช้</span><span>ลบพื้นหลังครีมเป็น PNG โปร่งใส และลบเงาวงรีออก ให้ Godot วาดเงาเอง</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">ฝั่งตรงข้าม</span><span>ใช้ flip_h = true ภาพเดิมได้เลย</span></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;idle&quot;,&quot;walk&quot;,&quot;off&quot;],&quot;default&quot;:&quot;idle&quot;,&quot;tsType&quot;:&quot;'idle'|'walk'|'off'&quot;},&quot;guides&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  heroRef = React.createRef();
+  componentDidMount() {
+    const t0 = performance.now();
+    const step = () => {
+      const t = (performance.now() - t0) / 1000, el = this.heroRef.current;
+      if (el) {
+        const m = this.props.mode ?? 'idle';
+        if (m === 'walk') {
+          const p = t * Math.PI * 2 * 1.4;
+          el.style.transform = `translateY(${(-Math.abs(Math.sin(p)) * 1.2).toFixed(2)}%) rotate(${(Math.sin(p) * 1.2).toFixed(2)}deg)`;
+        } else if (m === 'idle') {
+          const s = Math.sin(t * Math.PI * 2 * .5);
+          el.style.transform = `scale(${(1 - s * .008).toFixed(4)}, ${(1 + s * .014).toFixed(4)})`;
+        } else el.style.transform = '';
+      }
+      this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  renderVals() {
+    const m = this.props.mode ?? 'idle';
+    return {
+      heroRef: this.heroRef,
+      guides: this.props.guides ?? true,
+      modeLabel: { idle: 'ยืนหายใจ · scale 2 วินาที/รอบ', walk: 'เดินโยก · bob + rotate 1.4 Hz', off: 'หยุด' }[m]
+    };
+  }
+}
+</script>
+</body>
+</html>

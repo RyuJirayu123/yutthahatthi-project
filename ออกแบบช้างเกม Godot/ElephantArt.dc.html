@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:100%;height:100%">
+<svg viewBox="150 50 680 620" style="display:block;width:100%;height:100%;overflow:visible">
+<defs>
+<filter id="efB14" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"></feGaussianBlur></filter>
+<filter id="efB9" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"></feGaussianBlur></filter>
+<filter id="efB4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"></feGaussianBlur></filter>
+<filter id="efB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"></feGaussianBlur></filter>
+<filter id="efNoise" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="4"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter>
+<filter id="efMottle" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="9"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter>
+<linearGradient id="efGold" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" style="stop-color:#fff1b8"></stop><stop offset=".35" style="stop-color:#f2c24e"></stop><stop offset=".75" style="stop-color:#c48a1c"></stop><stop offset="1" style="stop-color:#7e520c"></stop></linearGradient>
+<linearGradient id="efIvory" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#fffaf0"></stop><stop offset=".6" style="stop-color:#eadfc6"></stop><stop offset="1" style="stop-color:#b9a685"></stop></linearGradient>
+<linearGradient id="efSteel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#ffffff"></stop><stop offset=".5" style="stop-color:#c4ccd6"></stop><stop offset="1" style="stop-color:#6c7684"></stop></linearGradient>
+<radialGradient id="efIris" cx=".45" cy=".6" r=".6"><stop offset="0" style="stop-color:#c98a4a"></stop><stop offset=".55" style="stop-color:#6a3818"></stop><stop offset="1" style="stop-color:#1f0d05"></stop></radialGradient>
+<path id="pBody" d="M 210 400 C 200 318, 282 268, 382 270 C 474 272, 524 322, 530 392 C 536 462, 500 522, 420 532 C 338 542, 250 532, 222 490 C 205 464, 212 432, 210 400 Z"></path>
+<path id="pFH" d="M 224 470 C 220 540, 222 600, 226 628 C 240 640, 290 640, 300 628 C 304 590, 302 530, 298 480 Z"></path>
+<path id="pFF" d="M 432 480 C 430 540, 432 600, 436 628 C 452 640, 500 640, 508 628 C 512 590, 508 530, 502 480 Z"></path>
+<path id="pNH" d="M 262 466 C 256 540, 260 610, 264 636 C 280 652, 340 652, 354 636 C 358 600, 356 530, 350 470 Z"></path>
+<path id="pNF" d="M 468 466 C 464 540, 468 610, 472 636 C 488 652, 546 652, 558 636 C 562 600, 560 530, 552 466 Z"></path>
+<path id="pHead" d="M 448 300 C 438 218, 500 158, 576 158 C 652 158, 702 214, 702 290 C 702 342, 682 382, 650 402 C 620 422, 580 426, 544 416 C 494 402, 454 362, 448 300 Z"></path>
+<path id="pEar" d="M 522 204 C 470 194, 420 228, 412 290 C 404 352, 430 404, 472 424 C 494 434, 510 420, 512 398 C 516 370, 536 350, 548 320 C 562 282, 562 220, 522 204 Z"></path>
+<path id="pTrunk" d="M 694 318 C 716 372, 730 420, 728 456 C 727 470, 736 476, 746 468 C 754 460, 766 466, 762 480 C 752 502, 726 510, 704 498 C 678 486, 670 440, 636 402 Z"></path>
+<path id="pTusk" d="M 632 404 C 670 434, 730 432, 768 382 C 772 376, 779 380, 776 387 C 754 442, 690 460, 634 432 Z"></path>
+<path id="pSaddle" d="M 226 338 C 220 256, 286 204, 360 202 C 438 200, 490 252, 488 328 C 420 352, 296 354, 226 338 Z"></path>
+<path id="pSkirt" d="M 232 336 C 300 356, 420 354, 486 326 L 480 402 C 420 424, 300 426, 244 406 Z"></path>
+<path id="pTorso" d="M 456 272 C 448 236, 458 208, 478 200 L 506 200 C 524 210, 528 242, 520 274 Z"></path>
+<clipPath id="cBody"><use href="#pBody"></use></clipPath>
+<clipPath id="cFH"><use href="#pFH"></use></clipPath>
+<clipPath id="cFF"><use href="#pFF"></use></clipPath>
+<clipPath id="cNH"><use href="#pNH"></use></clipPath>
+<clipPath id="cNF"><use href="#pNF"></use></clipPath>
+<clipPath id="cHead"><use href="#pHead"></use></clipPath>
+<clipPath id="cEar"><use href="#pEar"></use></clipPath>
+<clipPath id="cTrunk"><use href="#pTrunk"></use></clipPath>
+<clipPath id="cTusk"><use href="#pTusk"></use></clipPath>
+<clipPath id="cSaddle"><use href="#pSaddle"></use></clipPath>
+<clipPath id="cSkirt"><use href="#pSkirt"></use></clipPath>
+<clipPath id="cTorso"><use href="#pTorso"></use></clipPath>
+<clipPath id="cSkin"><use href="#pBody"></use><use href="#pHead"></use><use href="#pEar"></use><use href="#pTrunk"></use><use href="#pNH"></use><use href="#pNF"></use><use href="#pFH"></use><use href="#pFF"></use></clipPath>
+</defs>
+<g transform="{{ flipT }}">
+<ellipse cx="400" cy="640" rx="260" ry="20" fill="#0d0a14" filter="url(#efB9)" style="opacity:.4"></ellipse>
+<g ref="{{ bobRef }}">
+
+<path d="M 214 404 C 194 428, 184 470, 190 504" fill="none" stroke="{{ c.line }}" style="stroke-width:10;stroke-linecap:round"></path>
+<path d="M 214 404 C 194 428, 184 470, 190 504" fill="none" stroke="{{ c.far }}" style="stroke-width:6;stroke-linecap:round"></path>
+<path d="M 182 498 C 180 512, 184 526, 190 532 C 194 524, 198 512, 198 498 Z" fill="#2a2235"></path>
+
+<g style="clip-path:url(#cFH)"><rect x="150" y="400" width="700" height="300" fill="{{ c.farD }}"></rect><path d="M 224 470 C 220 540, 222 600, 226 628 C 240 640, 290 640, 300 628 C 304 590, 302 530, 298 480 Z" transform="translate(-10 -14)" fill="{{ c.far }}" filter="url(#efB9)"></path></g>
+<g style="clip-path:url(#cFF)"><rect x="150" y="400" width="700" height="300" fill="{{ c.farD }}"></rect><path d="M 432 480 C 430 540, 432 600, 436 628 C 452 640, 500 640, 508 628 C 512 590, 508 530, 502 480 Z" transform="translate(-10 -14)" fill="{{ c.far }}" filter="url(#efB9)"></path><rect x="420" y="588" width="100" height="14" fill="#8a6418"></rect></g>
+<rect x="210" y="588" width="100" height="14" fill="#8a6418" style="clip-path:url(#cFH)"></rect>
+
+<g style="clip-path:url(#cNH)">
+<rect x="150" y="400" width="700" height="300" fill="{{ c.skinD }}"></rect>
+<path d="M 262 466 C 256 540, 260 610, 264 636 C 280 652, 340 652, 354 636 C 358 600, 356 530, 350 470 Z" transform="translate(-12 -16)" fill="{{ c.skin }}" filter="url(#efB9)"></path>
+<ellipse cx="288" cy="500" rx="20" ry="50" fill="{{ c.skinL }}" filter="url(#efB9)" style="opacity:.5"></ellipse>
+<ellipse cx="308" cy="470" rx="60" ry="14" fill="{{ c.skinD }}" filter="url(#efB4)" style="opacity:.6"></ellipse>
+<rect x="250" y="584" width="120" height="20" fill="url(#efGold)"></rect>
+<rect x="250" y="584" width="120" height="3" fill="#fff1b8" style="opacity:.8"></rect>
+</g>
+<path d="M 262 466 C 256 540, 260 610, 264 636 C 280 652, 340 652, 354 636 C 358 600, 356 530, 350 470 Z" fill="none" stroke="{{ c.line }}" style="stroke-width:2.4;opacity:.55"></path>
+<path d="M 272 548 C 290 554, 316 554, 344 546 M 270 566 C 290 572, 318 572, 346 564" fill="none" stroke="{{ c.skinD }}" filter="url(#efB2)" style="stroke-width:2.6;opacity:.55"></path>
+<ellipse cx="282" cy="640" rx="12" ry="7" fill="#f4ead8" stroke="#b5a68a" style="stroke-width:1.2"></ellipse>
+<ellipse cx="308" cy="643" rx="12" ry="7" fill="#f4ead8" stroke="#b5a68a" style="stroke-width:1.2"></ellipse>
+<ellipse cx="334" cy="640" rx="12" ry="7" fill="#f4ead8" stroke="#b5a68a" style="stroke-width:1.2"></ellipse>
+<g style="clip-path:url(#cNF)">
+<rect x="150" y="400" width="700" height="300" fill="{{ c.skinD }}"></rect>
+<path d="M 468 466 C 464 540, 468 610, 472 636 C 488 652, 546 652, 558 636 C 562 600, 560 530, 552 466 Z" transform="translate(-12 -16)" fill="{{ c.skin }}" filter="url(#efB9)"></path>
+<ellipse cx="494" cy="500" rx="20" ry="50" fill="{{ c.skinL }}" filter="url(#efB9)" style="opacity:.5"></ellipse>
+<ellipse cx="520" cy="462" rx="70" ry="22" fill="{{ c.skinD }}" filter="url(#efB9)" style="opacity:.8"></ellipse>
+<rect x="455" y="584" width="120" height="20" fill="url(#efGold)"></rect>
+<rect x="455" y="584" width="120" height="3" fill="#fff1b8" style="opacity:.8"></rect>
+</g>
+<path d="M 468 466 C 464 540, 468 610, 472 636 C 488 652, 546 652, 558 636 C 562 600, 560 530, 552 466 Z" fill="none" stroke="{{ c.line }}" style="stroke-width:2.4;opacity:.55"></path>
+<path d="M 476 548 C 496 554, 524 554, 550 546 M 474 566 C 496 572, 526 572, 552 564" fill="none" stroke="{{ c.skinD }}" filter="url(#efB2)" style="stroke-width:2.6;opacity:.55"></path>
+<ellipse cx="488" cy="640" rx="12" ry="7" fill="#f4ead8" stroke="#b5a68a" style="stroke-width:1.2"></ellipse>
+<ellipse cx="514" cy="643" rx="12" ry="7" fill="#f4ead8" stroke="#b5a68a" style="stroke-width:1.2"></ellipse>
+<ellipse cx="540" cy="640" rx="12" ry="7" fill="#f4ead8" stroke="#b5a68a" style="stroke-width:1.2"></ellipse>
+<g style="clip-path:url(#cBody)">
+<rect x="150" y="200" width="700" height="400" fill="{{ c.skinD }}"></rect>
+<path d="M 210 400 C 200 318, 282 268, 382 270 C 474 272, 524 322, 530 392 C 536 462, 500 522, 420 532 C 338 542, 250 532, 222 490 C 205 464, 212 432, 210 400 Z" transform="translate(-14 -22)" fill="{{ c.skin }}" filter="url(#efB14)"></path>
+<ellipse cx="300" cy="330" rx="110" ry="60" fill="{{ c.skinL }}" filter="url(#efB14)" style="opacity:.55"></ellipse>
+<ellipse cx="500" cy="380" rx="70" ry="60" fill="{{ c.skinD }}" filter="url(#efB14)" style="opacity:.7"></ellipse>
+<ellipse cx="370" cy="430" rx="160" ry="22" fill="{{ c.skinD }}" filter="url(#efB9)" style="opacity:.6"></ellipse>
+</g>
+<path d="M 210 400 C 200 318, 282 268, 382 270 C 474 272, 524 322, 530 392 C 536 462, 500 522, 420 532 C 338 542, 250 532, 222 490 C 205 464, 212 432, 210 400 Z" fill="none" stroke="{{ c.line }}" style="stroke-width:2.4;opacity:.55"></path>
+<path d="M 236 470 C 246 492, 262 506, 280 512" fill="none" stroke="{{ c.skinD }}" filter="url(#efB2)" style="stroke-width:3;opacity:.6"></path>
+
+
+
+<g style="clip-path:url(#cSkirt)">
+<rect x="150" y="300" width="700" height="200" fill="{{ c.clothD }}"></rect>
+<path d="M 232 336 C 300 356, 420 354, 486 326 L 480 402 C 420 424, 300 426, 244 406 Z" transform="translate(-10 -16)" fill="{{ c.cloth }}" filter="url(#efB9)"></path>
+<ellipse cx="300" cy="352" rx="70" ry="16" fill="{{ c.clothL }}" filter="url(#efB9)" style="opacity:.6"></ellipse>
+<path d="M 300 352 C 298 372, 300 392, 304 418 M 360 356 C 360 378, 362 398, 362 424 M 420 352 C 424 372, 426 392, 424 418" fill="none" stroke="{{ c.clothD }}" filter="url(#efB4)" style="stroke-width:8;opacity:.6"></path>
+</g>
+<path d="M 244 398 C 300 418, 420 416, 481 394" fill="none" stroke="#7e520c" style="stroke-width:14;stroke-linecap:round"></path>
+<path d="M 244 398 C 300 418, 420 416, 481 394" fill="none" stroke="url(#efGold)" style="stroke-width:10;stroke-linecap:round"></path>
+<path d="M 244 395 C 300 414, 420 412, 481 391" fill="none" stroke="#fff1b8" style="stroke-width:2;opacity:.7"></path>
+<sc-for list="{{ tassels }}" as="t" hint-placeholder-count="0">
+<path d="{{ t.d }}" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1"></path>
+<circle cx="{{ t.x }}" cy="{{ t.y }}" r="3.4" fill="{{ c.clothL }}" stroke="{{ c.clothD }}" style="stroke-width:1"></circle>
+</sc-for>
+<path d="M 404 418 C 406 456, 410 494, 412 530" fill="none" stroke="#7e520c" style="stroke-width:13"></path>
+<path d="M 404 418 C 406 456, 410 494, 412 530" fill="none" stroke="url(#efGold)" style="stroke-width:9"></path>
+
+<g style="clip-path:url(#cSaddle)">
+<rect x="150" y="180" width="700" height="200" fill="#4a210c"></rect>
+<path d="M 226 338 C 220 256, 286 204, 360 202 C 438 200, 490 252, 488 328 C 420 352, 296 354, 226 338 Z" transform="translate(-12 -18)" fill="#9c5526" filter="url(#efB14)"></path>
+<ellipse cx="320" cy="244" rx="70" ry="30" fill="#f2b06a" filter="url(#efB14)" style="opacity:.75"></ellipse>
+<ellipse cx="310" cy="236" rx="26" ry="9" fill="#fff4e0" filter="url(#efB4)" style="opacity:.55"></ellipse>
+<path d="M 226 300 C 290 318, 420 316, 488 292" fill="none" stroke="#2a1006" filter="url(#efB9)" style="stroke-width:20;opacity:.4"></path>
+</g>
+<path d="M 300 214 C 288 260, 286 302, 292 346 M 422 212 C 434 258, 436 300, 430 344" fill="none" stroke="#7e520c" style="stroke-width:10"></path>
+<path d="M 300 214 C 288 260, 286 302, 292 346 M 422 212 C 434 258, 436 300, 430 344" fill="none" stroke="url(#efGold)" style="stroke-width:7"></path>
+<path d="M 250 262 C 300 236, 420 234, 474 262" fill="none" stroke="#7e520c" style="stroke-width:8"></path>
+<path d="M 250 262 C 300 236, 420 234, 474 262" fill="none" stroke="url(#efGold)" style="stroke-width:5"></path>
+<sc-for list="{{ rivets }}" as="r" hint-placeholder-count="0">
+<circle cx="{{ r.x }}" cy="{{ r.y }}" r="4.2" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1"></circle>
+<circle cx="{{ r.hx }}" cy="{{ r.hy }}" r="1.3" fill="#ffffff" style="opacity:.9"></circle>
+</sc-for>
+<path d="M 226 338 C 296 354, 420 352, 488 328" fill="none" stroke="#7e520c" style="stroke-width:15;stroke-linecap:round"></path>
+<path d="M 226 338 C 296 354, 420 352, 488 328" fill="none" stroke="url(#efGold)" style="stroke-width:11;stroke-linecap:round"></path>
+<path d="M 226 334 C 296 350, 420 348, 488 324" fill="none" stroke="#fff1b8" style="stroke-width:2.4;opacity:.75"></path>
+<path d="M 226 338 C 220 256, 286 204, 360 202 C 438 200, 490 252, 488 328 C 420 352, 296 354, 226 338 Z" fill="none" stroke="#2a1006" style="stroke-width:2.4;opacity:.6"></path>
+<circle cx="360" cy="288" r="27" fill="#7e520c"></circle>
+<circle cx="360" cy="287" r="24" fill="url(#efGold)"></circle>
+<circle cx="360" cy="288" r="14" fill="{{ c.clothD }}"></circle>
+<circle cx="360" cy="288" r="9" fill="{{ c.cloth }}"></circle>
+<circle cx="356" cy="284" r="3.4" fill="#ffffff" style="opacity:.85"></circle>
+
+<sc-for list="{{ spears }}" as="s" hint-placeholder-count="0">
+<path d="{{ s.shaft }}" fill="none" stroke="#2e1a0a" style="stroke-width:6;stroke-linecap:round"></path>
+<path d="{{ s.shaft }}" fill="none" stroke="#9a6534" style="stroke-width:3.4;stroke-linecap:round"></path>
+<path d="{{ s.tip }}" fill="url(#efSteel)" stroke="#4d5662" style="stroke-width:1.2"></path>
+<path d="{{ s.tas }}" fill="{{ c.cloth }}" stroke="{{ c.clothD }}" style="stroke-width:1"></path>
+</sc-for>
+<path d="M 472 206 C 440 214, 418 242, 410 274 C 428 266, 446 270, 460 276 Z" fill="{{ c.clothD }}" stroke="{{ c.line }}" style="stroke-width:1.6;opacity:.95"></path>
+
+
+
+<g ref="{{ headRef }}">
+<g transform="translate(-16 -8)"><path d="M 632 404 C 670 434, 730 432, 768 382 C 772 376, 779 380, 776 387 C 754 442, 690 460, 634 432 Z" fill="#a8977a" stroke="#6b5d45" style="stroke-width:1.6"></path></g>
+<path d="M 598 410 C 606 434, 628 444, 648 432 C 632 428, 612 422, 598 410 Z" fill="#4a1630"></path>
+<path d="M 612 428 C 622 438, 636 438, 644 432 C 634 430, 622 428, 612 428 Z" fill="#e8798f"></path>
+
+<g style="clip-path:url(#cHead)">
+<rect x="400" y="140" width="320" height="300" fill="{{ c.skinD }}"></rect>
+<path d="M 448 300 C 438 218, 500 158, 576 158 C 652 158, 702 214, 702 290 C 702 342, 682 382, 650 402 C 620 422, 580 426, 544 416 C 494 402, 454 362, 448 300 Z" transform="translate(-16 -22)" fill="{{ c.skin }}" filter="url(#efB14)"></path>
+<ellipse cx="600" cy="214" rx="70" ry="38" fill="{{ c.skinL }}" filter="url(#efB14)" style="opacity:.7"></ellipse>
+<ellipse cx="660" cy="250" rx="28" ry="22" fill="{{ c.skinL }}" filter="url(#efB9)" style="opacity:.5"></ellipse>
+<ellipse cx="548" cy="350" rx="40" ry="60" fill="{{ c.skinD }}" filter="url(#efB14)" style="opacity:.8"></ellipse>
+</g>
+<path d="M 448 300 C 438 218, 500 158, 576 158 C 652 158, 702 214, 702 290 C 702 342, 682 382, 650 402 C 620 422, 580 426, 544 416 C 494 402, 454 362, 448 300 Z" fill="none" stroke="{{ c.line }}" style="stroke-width:2.4;opacity:.55"></path>
+
+<g ref="{{ trunkRef }}">
+<g style="clip-path:url(#cTrunk)">
+<rect x="600" y="300" width="200" height="230" fill="{{ c.skinD }}"></rect>
+<path d="M 694 318 C 716 372, 730 420, 728 456 C 727 470, 736 476, 746 468 C 754 460, 766 466, 762 480 C 752 502, 726 510, 704 498 C 678 486, 670 440, 636 402 Z" transform="translate(-10 -12)" fill="{{ c.skin }}" filter="url(#efB9)"></path>
+<ellipse cx="712" cy="380" rx="12" ry="40" fill="{{ c.skinL }}" filter="url(#efB9)" style="opacity:.6"></ellipse>
+<ellipse cx="680" cy="370" rx="40" ry="30" fill="{{ c.skinD }}" filter="url(#efB9)" style="opacity:.5"></ellipse>
+</g>
+<path d="M 694 318 C 716 372, 730 420, 728 456 C 727 470, 736 476, 746 468 C 754 460, 766 466, 762 480 C 752 502, 726 510, 704 498 C 678 486, 670 440, 636 402 Z" fill="none" stroke="{{ c.line }}" style="stroke-width:2.4;opacity:.55"></path>
+<path d="M 668 392 C 686 398, 704 394, 718 380 M 680 420 C 696 424, 712 420, 724 408 M 690 448 C 704 452, 716 448, 728 436 M 702 474 C 712 478, 722 476, 730 468" fill="none" stroke="{{ c.skinD }}" filter="url(#efB2)" style="stroke-width:2.8;opacity:.6"></path>
+<ellipse cx="752" cy="478" rx="5" ry="3" fill="{{ c.line }}" style="opacity:.5"></ellipse>
+</g>
+
+<g style="clip-path:url(#cTusk)">
+<path d="M 632 404 C 670 434, 730 432, 768 382 C 772 376, 779 380, 776 387 C 754 442, 690 460, 634 432 Z" fill="url(#efIvory)"></path>
+<rect x="736" y="360" width="60" height="70" fill="url(#efGold)"></rect>
+<path d="M 736 360 L 736 430" stroke="#7e520c" style="stroke-width:2"></path>
+</g>
+<path d="M 632 404 C 670 434, 730 432, 768 382 C 772 376, 779 380, 776 387 C 754 442, 690 460, 634 432 Z" fill="none" stroke="#6b5d45" style="stroke-width:1.8"></path>
+<path d="M 652 420 C 684 436, 718 432, 742 412" fill="none" stroke="#ffffff" style="stroke-width:3;stroke-linecap:round;opacity:.85"></path>
+<path d="M 636 404 L 650 396 L 664 430 L 648 438 Z" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1.4"></path>
+
+<g ref="{{ earRef }}">
+<g style="clip-path:url(#cEar)">
+<rect x="400" y="190" width="170" height="250" fill="{{ c.skinD }}"></rect>
+<path d="M 522 204 C 470 194, 420 228, 412 290 C 404 352, 430 404, 472 424 C 494 434, 510 420, 512 398 C 516 370, 536 350, 548 320 C 562 282, 562 220, 522 204 Z" transform="translate(-8 -14)" fill="{{ c.skin }}" filter="url(#efB9)"></path>
+<path d="M 516 226 C 478 220, 440 248, 434 298 C 428 346, 448 386, 478 402 C 490 406, 496 394, 498 382 C 502 358, 518 342, 528 316 C 538 286, 540 238, 516 226 Z" fill="{{ c.inner }}" filter="url(#efB4)" style="opacity:.55"></path>
+<ellipse cx="470" cy="262" rx="40" ry="26" fill="{{ c.skinL }}" filter="url(#efB9)" style="opacity:.6"></ellipse>
+<path d="M 446 300 C 452 336, 470 366, 492 384 M 470 248 C 476 290, 486 330, 504 356" fill="none" stroke="{{ c.skinD }}" filter="url(#efB2)" style="stroke-width:2.6;opacity:.5"></path>
+</g>
+<path d="M 522 204 C 470 194, 420 228, 412 290 C 404 352, 430 404, 472 424 C 494 434, 510 420, 512 398 C 516 370, 536 350, 548 320 C 562 282, 562 220, 522 204 Z" fill="none" stroke="{{ c.line }}" style="stroke-width:2.4;opacity:.6"></path>
+<path d="M 524 208 C 556 222, 560 280, 548 320" fill="none" stroke="{{ c.skinL }}" filter="url(#efB2)" style="stroke-width:3;opacity:.7"></path>
+</g>
+
+<rect x="150" y="100" width="680" height="560" fill="#ffffff" filter="url(#efNoise)" style="clip-path:url(#cSkin);mix-blend-mode:multiply;opacity:.16"></rect>
+<rect x="150" y="100" width="680" height="560" fill="#ffffff" filter="url(#efMottle)" style="clip-path:url(#cSkin);mix-blend-mode:soft-light;opacity:.5"></rect>
+
+<ellipse cx="646" cy="336" rx="20" ry="10" fill="#ff7f9c" filter="url(#efB4)" style="opacity:.6"></ellipse>
+<ellipse cx="616" cy="292" rx="23" ry="28" fill="{{ c.line }}" style="opacity:.55"></ellipse>
+<ellipse cx="616" cy="292" rx="21" ry="26" fill="#fffdf6"></ellipse>
+<circle cx="622" cy="296" r="16" fill="url(#efIris)"></circle>
+<circle cx="623" cy="297" r="8" fill="#0d0603"></circle>
+<circle cx="629" cy="287" r="5.4" fill="#ffffff"></circle>
+<circle cx="616" cy="304" r="2.4" fill="#ffffff" style="opacity:.9"></circle>
+<path d="M 594 284 C 598 262, 630 258, 638 282" fill="none" stroke="#150a1e" style="stroke-width:4.4;stroke-linecap:round"></path>
+<path d="M 596 276 L 588 270 M 600 270 L 594 262" fill="none" stroke="#150a1e" style="stroke-width:2.6;stroke-linecap:round"></path>
+<path d="M 588 252 C 606 246, 628 252, 644 268" fill="none" stroke="{{ c.line }}" style="stroke-width:7;stroke-linecap:round"></path>
+<path d="M 598 320 C 606 326, 618 326, 628 322" fill="none" stroke="{{ c.skinD }}" filter="url(#efB2)" style="stroke-width:2.4;opacity:.6"></path>
+
+<path d="M 526 190 C 558 148, 650 138, 692 198 C 696 214, 692 228, 682 236 C 652 214, 602 200, 558 206 C 542 208, 528 202, 526 190 Z" fill="#7e520c"></path>
+<path d="M 528 188 C 560 150, 648 142, 688 198 C 690 210, 688 222, 680 230 C 650 210, 602 196, 558 202 C 544 204, 532 198, 528 188 Z" fill="{{ c.clothD }}"></path>
+<path d="M 540 186 C 570 158, 640 154, 676 198 C 650 186, 600 178, 558 188 Z" fill="{{ c.cloth }}" filter="url(#efB2)" style="opacity:.9"></path>
+<path d="M 528 188 C 560 150, 648 142, 688 198 C 690 210, 688 222, 680 230" fill="none" stroke="url(#efGold)" style="stroke-width:6"></path>
+<path d="M 680 230 C 650 210, 602 196, 558 202 C 544 204, 532 198, 528 188" fill="none" stroke="url(#efGold)" style="stroke-width:5"></path>
+<circle cx="560" cy="182" r="3.6" fill="url(#efGold)"></circle><circle cx="590" cy="170" r="3.6" fill="url(#efGold)"></circle><circle cx="652" cy="176" r="3.6" fill="url(#efGold)"></circle><circle cx="672" cy="196" r="3.6" fill="url(#efGold)"></circle>
+<path d="M 606 172 C 604 150, 612 128, 624 112 C 628 130, 636 150, 632 172 Z" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1.4"></path>
+<circle cx="620" cy="180" r="11" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1.4"></circle>
+<circle cx="620" cy="180" r="6" fill="{{ c.cloth }}"></circle>
+<circle cx="618" cy="178" r="2" fill="#ffffff"></circle>
+</g>
+
+<g ref="{{ riderRef }}">
+<path d="M 474 256 C 494 258, 518 264, 532 276 L 530 296 L 510 292 C 496 286, 480 284, 466 278 Z" fill="{{ c.clothD }}" stroke="{{ c.line }}" style="stroke-width:1.6"></path>
+<path d="M 510 290 L 531 292 L 530 308 C 528 316, 512 316, 510 306 Z" fill="#3b2414" stroke="#1d1008" style="stroke-width:1.4"></path>
+<path d="M 512 290 L 530 292" stroke="url(#efGold)" style="stroke-width:3"></path>
+<g style="clip-path:url(#cTorso)">
+<rect x="440" y="190" width="100" height="100" fill="{{ c.clothD }}"></rect>
+<path d="M 456 272 C 448 236, 458 208, 478 200 L 506 200 C 524 210, 528 242, 520 274 Z" transform="translate(-6 -8)" fill="{{ c.cloth }}" filter="url(#efB4)"></path>
+<path d="M 468 214 C 480 234, 500 236, 516 214 L 518 250 C 500 260, 478 260, 462 248 Z" fill="url(#efGold)" style="opacity:.95"></path>
+<path d="M 470 230 C 482 240, 500 240, 512 230 M 466 244 C 480 254, 500 254, 516 244" fill="none" stroke="#7e520c" style="stroke-width:1.4"></path>
+</g>
+<path d="M 456 272 C 448 236, 458 208, 478 200 L 506 200 C 524 210, 528 242, 520 274 Z" fill="none" stroke="{{ c.line }}" style="stroke-width:1.8"></path>
+<path d="M 454 266 L 522 270" stroke="url(#efGold)" style="stroke-width:6;stroke-linecap:round"></path>
+<path d="M 496 222 L 512 258" fill="none" stroke="{{ c.line }}" style="stroke-width:12;stroke-linecap:round"></path>
+<path d="M 496 222 L 512 258" fill="none" stroke="{{ c.cloth }}" style="stroke-width:8.5;stroke-linecap:round"></path>
+
+<g transform="{{ glaiveT }}">
+<path d="M 476 322 L 590 120" stroke="#2e1a0a" style="stroke-width:7;stroke-linecap:round"></path>
+<path d="M 476 322 L 590 120" stroke="#9a6534" style="stroke-width:4.4;stroke-linecap:round"></path>
+<path d="M 586 126 C 574 104, 582 80, 606 60 C 606 76, 612 86, 624 90 C 620 108, 608 122, 594 132 Z" fill="url(#efSteel)" stroke="#4d5662" style="stroke-width:1.4"></path>
+<path d="M 592 118 C 590 102, 596 86, 606 72" fill="none" stroke="#ffffff" style="stroke-width:1.6;opacity:.9"></path>
+<path d="M 580 130 L 596 138 L 600 128 L 586 120 Z" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1.2"></path>
+<path d="M 586 134 C 574 142, 570 156, 574 166 C 580 156, 586 150, 594 144 Z" fill="{{ c.cloth }}" stroke="{{ c.clothD }}" style="stroke-width:1"></path>
+</g>
+<circle cx="512" cy="258" r="6.5" fill="#e8b07e" stroke="#9a5f36" style="stroke-width:1.4"></circle>
+<path d="M 500 214 L 538 210" fill="none" stroke="{{ c.line }}" style="stroke-width:12;stroke-linecap:round"></path>
+<path d="M 500 214 L 538 210" fill="none" stroke="{{ c.cloth }}" style="stroke-width:8.5;stroke-linecap:round"></path>
+<path d="M 498 210 L 512 208" stroke="url(#efGold)" style="stroke-width:9;stroke-linecap:round"></path>
+<circle cx="540" cy="210" r="6.5" fill="#e8b07e" stroke="#9a5f36" style="stroke-width:1.4"></circle>
+
+<rect x="480" y="190" width="16" height="16" rx="5" fill="#d29a68"></rect>
+<circle cx="488" cy="166" r="35" fill="#9a5f36"></circle>
+<circle cx="488" cy="166" r="33.5" fill="#e8b07e"></circle>
+<circle cx="480" cy="156" r="24" fill="#ffd8b0" filter="url(#efB9)" style="opacity:.7"></circle>
+<ellipse cx="470" cy="184" rx="18" ry="12" fill="#b9784c" filter="url(#efB9)" style="opacity:.5"></ellipse>
+<ellipse cx="510" cy="182" rx="7" ry="4" fill="#ff8a8a" filter="url(#efB2)" style="opacity:.7"></ellipse>
+<ellipse cx="506" cy="166" rx="4.4" ry="6.4" fill="#1a0e08"></ellipse>
+<circle cx="507.6" cy="163.6" r="1.8" fill="#ffffff"></circle>
+<path d="M 498 154 L 514 158" stroke="#2a160c" style="stroke-width:3.2;stroke-linecap:round"></path>
+<path d="M 506 186 C 510 188, 514 187, 516 184" fill="none" stroke="#7a3a24" style="stroke-width:2;stroke-linecap:round"></path>
+<path d="M 474 170 C 466 168, 462 178, 468 184 C 472 186, 476 182, 476 176" fill="#d9976a" stroke="#9a5f36" style="stroke-width:1.2"></path>
+<path d="M 452 170 C 446 190, 452 206, 466 210 C 466 196, 466 182, 470 172 Z" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1.2"></path>
+<path d="M 450 166 C 448 126, 468 106, 490 106 C 514 106, 530 126, 528 164 C 512 154, 468 154, 450 166 Z" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1.6"></path>
+<path d="M 462 132 C 472 116, 490 112, 502 114" fill="none" stroke="#fff6cc" style="stroke-width:3;stroke-linecap:round;opacity:.9"></path>
+<path d="M 448 164 C 470 152, 510 152, 530 162 L 530 170 C 510 162, 470 162, 448 172 Z" fill="#c48a1c" stroke="#7e520c" style="stroke-width:1.2"></path>
+<circle cx="490" cy="128" r="6" fill="{{ c.cloth }}" stroke="#7e520c" style="stroke-width:1.2"></circle>
+<path d="M 486 108 L 490 76 L 494 108 Z" fill="url(#efGold)" stroke="#7e520c" style="stroke-width:1.2"></path>
+<path d="{{ plumeD }}" fill="{{ c.cloth }}" stroke="{{ c.clothD }}" style="stroke-width:1.4"></path>
+</g>
+
+</g>
+</g>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:680,&quot;height&quot;:620},&quot;team&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;p1&quot;,&quot;p2&quot;],&quot;default&quot;:&quot;p1&quot;,&quot;tsType&quot;:&quot;'p1'|'p2'&quot;},&quot;flip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;phase&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  bobRef = React.createRef(); headRef = React.createRef(); earRef = React.createRef();
+  trunkRef = React.createRef(); riderRef = React.createRef();
+  componentDidMount() {
+    const t0 = performance.now() + (this.props.phase ?? 0) * 1000;
+    const step = () => {
+      if (this.props.animate ?? true) {
+        const t = (performance.now() - t0) / 1000, s = Math.sin(t * 2.4), s2 = Math.sin(t * 2.4 - .6);
+        this.bobRef.current?.setAttribute('transform', `translate(0 ${(s * 3).toFixed(2)})`);
+        this.headRef.current?.setAttribute('transform', `rotate(${(s2 * 1.2).toFixed(2)} 520 330)`);
+        this.earRef.current?.setAttribute('transform', `rotate(${(Math.sin(t * 1.7) * 4).toFixed(2)} 522 210)`);
+        this.trunkRef.current?.setAttribute('transform', `rotate(${(Math.sin(t * 2.4 - 1.2) * 3).toFixed(2)} 664 360)`);
+        this.riderRef.current?.setAttribute('transform', `translate(0 ${(s2 * 2).toFixed(2)})`);
+      }
+      this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  renderVals() {
+    const p2 = this.props.team === 'p2';
+    const c = p2
+      ? { skin:'#8e4c7c', skinD:'#3a1232', skinL:'#f0b6dc', line:'#24081e', far:'#64305a', farD:'#260a20', inner:'#ffa6c4', cloth:'#2e9c86', clothD:'#0f4a3f', clothL:'#7fe8cf' }
+      : { skin:'#6d78db', skinD:'#262a72', skinL:'#c2ccff', line:'#16184a', far:'#4a50a6', farD:'#1c1f58', inner:'#e2a8f0', cloth:'#d23b44', clothD:'#721320', clothL:'#ff8a8e' };
+    const bez = (p, t) => { const u = 1 - t; return [0, 1].map(k => u*u*u*p[0][k] + 3*u*u*t*p[1][k] + 3*u*t*t*p[2][k] + t*t*t*p[3][k]); };
+    const r = n => n.toFixed(1);
+    const tassels = [];
+    const hem = [[244, 398], [300, 418], [420, 416], [481, 394]];
+    for (let i = 0; i < 9; i++) {
+      const [x, y] = bez(hem, (i + .5) / 9);
+      tassels.push({ d: `M ${r(x - 5)} ${r(y + 3)} L ${r(x + 5)} ${r(y + 3)} L ${r(x + 2)} ${r(y + 16)} L ${r(x - 2)} ${r(y + 16)} Z`, x: r(x), y: r(y + 19) });
+    }
+    const rivets = [];
+    const bands = [[[300, 214], [288, 260], [286, 302], [292, 346]], [[422, 212], [434, 258], [436, 300], [430, 344]]];
+    for (const b of bands) for (const t of [.18, .42, .66]) { const [x, y] = bez(b, t); rivets.push({ x: r(x), y: r(y), hx: r(x - 1.4), hy: r(y - 1.4) }); }
+    for (const t of [.1, .3, .7, .9]) { const [x, y] = bez([[226, 338], [296, 354], [420, 352], [488, 328]], t); rivets.push({ x: r(x), y: r(y), hx: r(x - 1.4), hy: r(y - 1.4) }); }
+    const spears = [-58, -46, -34, -22].map((a, i) => {
+      const t = a * Math.PI / 180, dx = Math.sin(t), dy = -Math.cos(t), px = -dy, py = dx;
+      const x0 = 470, y0 = 240, L = 150 - i * 6, x1 = x0 + L * dx, y1 = y0 + L * dy;
+      return {
+        shaft: `M ${x0} ${y0} L ${r(x1)} ${r(y1)}`,
+        tip: `M ${r(x1 + px * 5)} ${r(y1 + py * 5)} C ${r(x1 + px * 6 + dx * 10)} ${r(y1 + py * 6 + dy * 10)}, ${r(x1 + dx * 22)} ${r(y1 + dy * 22)}, ${r(x1 + dx * 26)} ${r(y1 + dy * 26)} C ${r(x1 + dx * 22)} ${r(y1 + dy * 22)}, ${r(x1 - px * 6 + dx * 10)} ${r(y1 - py * 6 + dy * 10)}, ${r(x1 - px * 5)} ${r(y1 - py * 5)} Z`,
+        tas: `M ${r(x1 - dx * 2)} ${r(y1 - dy * 2)} C ${r(x1 - dx * 8 - px * 10)} ${r(y1 - dy * 8 - py * 10)}, ${r(x1 - dx * 18 - px * 8)} ${r(y1 - dy * 18 - py * 8)}, ${r(x1 - dx * 22 - px * 2)} ${r(y1 - dy * 22 - py * 2)} C ${r(x1 - dx * 14)} ${r(y1 - dy * 14)}, ${r(x1 - dx * 8)} ${r(y1 - dy * 8)}, ${r(x1 - dx * 2)} ${r(y1 - dy * 2)} Z`
+      };
+    });
+    return {
+      c, tassels, rivets, spears,
+      flipT: this.props.flip ? 'translate(980 0) scale(-1 1)' : '',
+      glaiveT: '',
+      plumeD: 'M 490 80 C 470 70, 448 76, 434 92 C 446 90, 452 94, 446 104 C 460 96, 470 98, 466 110 C 478 98, 488 92, 492 84 Z',
+      bobRef: this.bobRef, headRef: this.headRef, earRef: this.earRef, trunkRef: this.trunkRef, riderRef: this.riderRef
+    };
+  }
+}
+</script>
+</body>
+</html>

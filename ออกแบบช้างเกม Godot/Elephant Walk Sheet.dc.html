@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#ece8e0;color:#25211d;font-family:'IBM Plex Sans Thai',sans-serif}a{color:#8a3b1e}a:hover{color:#5e2510}</style>
+</helmet>
+<div style="max-width:1200px;margin:0 auto;padding:48px 32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">จากวิดีโอ Google Flow · 12 เฟรม</div>
+<h1 style="margin:0;font-size:34px;font-weight:600">ช้างเดิน · sprite sheet</h1>
+<div style="font-size:16px;color:#5c554d;max-width:760px;text-wrap:pretty">ดึง 12 เฟรมจากวินาทีที่ 2–5 ของวิดีโอ (ช่วงที่วนกลับมาท่าเดิมได้เนียนที่สุด) ลบพื้นหลังเป็นโปร่งใสแล้ว</div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px;align-items:start">
+<div style="position:relative;aspect-ratio:699/507;border-radius:6px;overflow:hidden;background:linear-gradient(180deg,#bcd6d9 0%,#dfe8d6 70%,#b39a70 70%,#8f7650 100%)">
+<div ref="{{ spriteRef }}" style="position:absolute;inset:0;background-image:url(assets/elephant-walk-sheet.png);background-size:400% 300%;background-repeat:no-repeat"></div>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#3d3832">▶ {{ fps }} fps · เฟรม {{ frameNo }}/12</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px">
+<span style="color:#7a7268">ไฟล์</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px">assets/elephant-walk-sheet.png</span>
+<span style="color:#7a7268">ขนาดรวม</span><span>2796×1521 px</span>
+<span style="color:#7a7268">ต่อเฟรม</span><span>699×507 px · 4 คอลัมน์ × 3 แถว</span>
+<span style="color:#7a7268">ความเร็ว</span><span>12 fps (เดินตามจังหวะในวิดีโอ)</span>
+</div>
+</div>
+</div>
+<div style="background:repeating-conic-gradient(#e2ddd3 0 25%,#f4f1ea 0 50%) 0 0/20px 20px;border-radius:6px;overflow:hidden">
+<img src="assets/elephant-walk-sheet.png" alt="sprite sheet" style="display:block;width:100%;height:auto"></img>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;fps&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:2,&quot;max&quot;:24,&quot;default&quot;:12,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  spriteRef = React.createRef();
+  state = { f: 0 };
+  componentDidMount() { this.start(); }
+  componentDidUpdate(pp) { if (pp.fps !== this.props.fps) this.start(); }
+  componentWillUnmount() { clearInterval(this.iv); }
+  start() {
+    clearInterval(this.iv);
+    this.iv = setInterval(() => {
+      const f = (this.state.f + 1) % 12, el = this.spriteRef.current;
+      if (el) el.style.backgroundPosition = `${(f % 4) * 100 / 3}% ${Math.floor(f / 4) * 50}%`;
+      this.setState({ f });
+    }, 1000 / Math.max(1, this.props.fps ?? 12));
+  }
+  renderVals() { return { spriteRef: this.spriteRef, fps: this.props.fps ?? 12, frameNo: this.state.f + 1 }; }
+}
+</script>
+</body>
+</html>

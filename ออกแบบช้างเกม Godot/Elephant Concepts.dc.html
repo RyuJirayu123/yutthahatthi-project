@@ -13,6 +13,68 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>body{margin:0;background:#ece8e0;color:#25211d;font-family:'IBM Plex Sans Thai',sans-serif}a{color:#8a3b1e}a:hover{color:#5e2510}</style>
 </helmet>
+<section id="turn3" style="padding:64px 64px 0;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">รอบที่ 3 · แนวเกมต่อสู้</div>
+<h1 style="margin:0;font-size:34px;font-weight:600">ช้างศึก · แนวเกมต่อสู้</h1>
+<div style="font-size:16px;color:#5c554d;max-width:760px;text-wrap:pretty">ตัวละครออกแบบใหม่ ใช้โครงเดิม ลงแสงเงาให้ดูมีมิติ สีผิวแยกฝั่งผู้เล่น ไม่มีเส้นขอบดำ มีท่าตั้งการ์ดสำหรับยืนเผชิญหน้า</div>
+</div>
+<div id="3a" style="flex:none;width:1120px;box-sizing:border-box;background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;background:#25211d;color:#fbfaf7;padding:3px 9px;border-radius:3px">3a</span>
+<h2 style="margin:0;font-size:24px;font-weight:600">แบบ C · ช้างนักสู้</h2>
+<span style="font-size:15px;color:#7a7268">ผู้เล่น 1 สีคราม · ผู้เล่น 2 สีม่วงเข้ม</span>
+</div>
+<div style="position:relative;height:500px;border-radius:4px;overflow:hidden;background:linear-gradient(180deg,#4f7484 0%,#8fae9a 48%,#5f7d4a 62%,#3f5a33 72%)">
+<div style="position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(180deg,#9a8058 0%,#7a6240 100%)"></div>
+<div style="position:absolute;left:0;right:0;bottom:118px;height:6px;background:#5c4a2e;opacity:.5"></div>
+<dc-import name="Elephant" variant="c" team="red" anim="fight" fps="{{ fps }}" outline="{{ outline3 }}" hint-size="560px,482px" style="position:absolute;left:10px;bottom:4px;width:560px;height:482px"></dc-import>
+<dc-import name="Elephant" variant="c" team="green" anim="fight" fps="{{ fps }}" flip="{{ true }}" outline="{{ outline3 }}" hint-size="560px,482px" style="position:absolute;left:500px;bottom:4px;width:560px;height:482px"></dc-import>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#f4efe4">▶ ท่าตั้งการ์ด · {{ fps }} fps</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">ตัวช้าง</span><span>ไล่แสงจากบนซ้ายทุกชิ้นส่วน งายาวโค้งสวมปลอกทอง เกราะหน้าผากหมุดทอง</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">เครื่องทรง</span><span>เกราะหลังทรงโดมหนังขัดเงา คาดทอง หมุดเรียงแถว ตราวงกลมกลางหลัง</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">คนขี่</span><span>แม่ทัพคนเดียว หมวกทองทรงกลม สะพายซองหอกกางเป็นพัดด้านหลัง ถือง้าว</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap">
+<div style="font-size:18px;font-weight:600;white-space:nowrap">เฟรม sprite</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">เฟรม 500×430 · pivot (235, 423) · ตั้งการ์ด 2 เฟรม 4 fps · เดิน 4 เฟรม · ชน 3 เฟรม</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<sc-for list="{{ frames3 }}" as="f" hint-placeholder-count="10">
+<div style="background:#f4f0e8;border:1px solid #e4ddd1;border-radius:4px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px"><span style="font-weight:500;white-space:nowrap">{{ f.label }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a8278">{{ f.key }}</span></div>
+<div style="position:relative;height:160px;border-bottom:1px dashed #cfc5b4">
+<dc-import name="Elephant" variant="c" team="{{ f.team }}" pose="{{ f.key }}" outline="{{ outline3 }}" hint-size="100%,160px" style="position:absolute;inset:0"></dc-import>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div id="3b" style="flex:none;width:1120px;box-sizing:border-box;background:#fbfaf7;border:1px solid #ddd6ca;border-radius:6px;padding:32px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;align-items:center;gap:14px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;background:#25211d;color:#fbfaf7;padding:3px 9px;border-radius:3px">3b</span>
+<h2 style="margin:0;font-size:24px;font-weight:600">แบบ C · ช้างนักสู้ ตาโต หัวกลม</h2>
+<span style="font-size:15px;color:#7a7268">ปรับจาก <a href="#3a">3a</a></span>
+</div>
+<div style="position:relative;height:500px;border-radius:4px;overflow:hidden;background:linear-gradient(180deg,#4f7484 0%,#8fae9a 48%,#5f7d4a 62%,#3f5a33 72%)">
+<div style="position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(180deg,#9a8058 0%,#7a6240 100%)"></div>
+<div style="position:absolute;left:0;right:0;bottom:118px;height:6px;background:#5c4a2e;opacity:.5"></div>
+<dc-import name="Elephant" variant="c" cute="{{ true }}" team="red" anim="fight" fps="{{ fps }}" outline="{{ outline3 }}" hint-size="560px,482px" style="position:absolute;left:10px;bottom:4px;width:560px;height:482px"></dc-import>
+<dc-import name="Elephant" variant="c" cute="{{ true }}" team="green" anim="fight" fps="{{ fps }}" flip="{{ true }}" outline="{{ outline3 }}" hint-size="560px,482px" style="position:absolute;left:500px;bottom:4px;width:560px;height:482px"></dc-import>
+<div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#f4efe4">▶ ท่าตั้งการ์ด · {{ fps }} fps</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;font-size:15px;line-height:1.55;color:#3d3832">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">ตัวช้าง</span><span>ไล่แสงจากบนซ้ายทุกชิ้นส่วน งายาวโค้งสวมปลอกทอง เกราะหน้าผากหมุดทอง</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">เครื่องทรง</span><span>เกราะหลังทรงโดมหนังขัดเงา คาดทอง หมุดเรียงแถว ตราวงกลมกลางหลัง</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;color:#25211d">คนขี่</span><span>แม่ทัพคนเดียว หมวกทองทรงกลม สะพายซองหอกกางเป็นพัดด้านหลัง ถือง้าว</span></div>
+</div>
+</div>
+</section>
 <section id="turn2" style="padding:64px 64px 0;display:flex;flex-direction:column;gap:32px">
 <div style="display:flex;flex-direction:column;gap:6px">
 <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7a7268;letter-spacing:.04em">รอบที่ 2 · น่ารักขึ้น</div>
@@ -30,7 +92,7 @@
 <div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
 <div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
 <div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
-<dc-import name="Elephant" cute="{{ true }}" variant="a" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<dc-import name="Elephant" cute="{{ true }}" variant="a" team="{{ heroTeam }}" pose="idle" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
 <div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
 </div>
 <div style="display:flex;flex-direction:column;gap:20px">
@@ -78,7 +140,7 @@
 <div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
 <div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
 <div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
-<dc-import name="Elephant" cute="{{ true }}" variant="b" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<dc-import name="Elephant" cute="{{ true }}" variant="b" team="{{ heroTeam }}" pose="idle" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
 <div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
 </div>
 <div style="display:flex;flex-direction:column;gap:20px">
@@ -136,7 +198,7 @@
 <div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
 <div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
 <div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
-<dc-import name="Elephant" variant="a" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<dc-import name="Elephant" variant="a" team="{{ heroTeam }}" pose="idle" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
 <div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
 </div>
 <div style="display:flex;flex-direction:column;gap:20px">
@@ -184,7 +246,7 @@
 <div style="display:grid;grid-template-columns:600px minmax(0,1fr);gap:28px">
 <div style="position:relative;height:525px;background:#f1ece2;border-radius:4px;overflow:hidden">
 <div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:#e3d7c1"></div>
-<dc-import name="Elephant" variant="b" team="{{ heroTeam }}" anim="{{ anim }}" fps="{{ fps }}" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
+<dc-import name="Elephant" variant="b" team="{{ heroTeam }}" pose="idle" outline="{{ outline }}" hint-size="600px,525px" style="position:absolute;left:0;top:0;width:600px;height:525px"></dc-import>
 <div style="position:absolute;left:14px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7a7268">{{ animLabel }}</div>
 </div>
 <div style="display:flex;flex-direction:column;gap:20px">
@@ -226,7 +288,7 @@
 </div>
 </section>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;anim&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;walk&quot;,&quot;charge&quot;,&quot;idle&quot;],&quot;default&quot;:&quot;walk&quot;,&quot;tsType&quot;:&quot;'walk'|'charge'|'idle'&quot;},&quot;fps&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:24,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;team&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;red&quot;,&quot;green&quot;],&quot;default&quot;:&quot;red&quot;,&quot;tsType&quot;:&quot;'red'|'green'&quot;},&quot;outline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;anim&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;walk&quot;,&quot;charge&quot;,&quot;idle&quot;,&quot;fight&quot;],&quot;default&quot;:&quot;walk&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;fps&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:24,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;team&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;red&quot;,&quot;green&quot;],&quot;default&quot;:&quot;red&quot;,&quot;tsType&quot;:&quot;'red'|'green'&quot;},&quot;outline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;outline3&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   renderVals() {
     const anim = this.props.anim ?? 'walk';
@@ -237,7 +299,12 @@ class Component extends DCLogic {
       animLabel: `▶ ${names[anim] || 'เดิน'} · ${this.props.fps ?? 6} fps`,
       heroTeam: team,
       altTeam: team === 'red' ? 'green' : 'red',
-      outline: this.props.outline ?? true,
+      outline: this.props.outline ?? false,
+      outline3: this.props.outline3 ?? false,
+      frames3: ['stance', 'stance2', 'idle', 'walk1', 'walk2', 'walk3', 'walk4', 'charge1', 'charge2', 'charge3'].map((key, i) => ({
+        key, team: i % 2 ? 'green' : 'red',
+        label: { stance: 'การ์ด 1', stance2: 'การ์ด 2', idle: 'ยืน', walk1: 'เดิน 1', walk2: 'เดิน 2', walk3: 'เดิน 3', walk4: 'เดิน 4', charge1: 'ชน 1', charge2: 'ชน 2', charge3: 'ชน 3' }[key]
+      })),
       frames: [
         { key: 'idle', label: 'ยืน' },
         { key: 'walk1', label: 'เดิน 1' },
